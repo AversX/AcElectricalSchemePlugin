@@ -57,7 +57,9 @@ namespace AcElectricalSchemePlugin
             {
                 editor.WriteMessage(string.Format("\nMark:{0}; Cable:{1}\n", cable.Mark.TextString, cable.TailsNum));
             }
+            inPoly(new Cable());
         }
+
         private static ObjectId getClosestLine(DBText Text)
         {
             TypedValue[] filterlist = new TypedValue[2];
@@ -341,18 +343,85 @@ namespace AcElectricalSchemePlugin
                 else return null;
             }
         }
+
+        private static void calculateBlocks(Transaction acTrans)
+        {
+            //TypedValue[] filterlist = new TypedValue[1];
+            //filterlist[0] = new TypedValue((int)DxfCode.Start, "INSERT");
+            //SelectionFilter filter = new SelectionFilter(filterlist);
+            //PromptSelectionResult selRes = editor.SelectAll(filter);
+            //if (selRes.Status == PromptStatus.OK)
+            //{
+            //    List<ObjectId> btrs = selRes.Value.GetObjectIds().ToList();
+            //    List<BlockReference> blocks = new List<BlockReference>();
+            //    foreach(ObjectId id in btrs)
+            //    {
+            //        BlockReference btr = (BlockReference)acTrans.GetObject(id, OpenMode.ForRead);
+            //        if (btr.Name.Contains("Block") || btr.Name.Contains("block"))
+            //            blocks.Add(btr);
+            //    }
+            //    blocks.Sort(new NaturalStringComparer());
+            //    foreach (BlockReference btr in blocks)
+            //        editor.WriteMessage("{0}", btr.Name);
+            //}
+
+        }
+
+        private static void inPoly(Cable cable)
+        {
+            TypedValue[] filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "LWPOLYLINE");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
+            SelectionFilter filter = new SelectionFilter(filterlist);
+            PromptSelectionResult selRes = editor.SelectAll(filter);
+            List<Polyline> polys = new List<Polyline>();
+            if (selRes.Status == PromptStatus.OK)
+            {
+                using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
+                {
+                    List<ObjectId> objIds = selRes.Value.GetObjectIds().ToList();
+                    for (int i = 0; i < objIds.Count; i++)
+                    {
+                        Polyline poly = (Polyline)acTrans.GetObject(objIds[i], OpenMode.ForRead);
+                        polys.Add(poly);
+                    }
+                    acTrans.Commit();
+                }
+                for (int i = 0; i < polys.Count; i++)
+                {
+                    for (int j = i; j < polys.Count; j++)
+                    {
+                        if (polys[i].Area / 2 >= polys[j].Area)
+                            polys.RemoveAt(j);
+                        else j++;
+                    }
+                }
+                //polys.Sort(new PolyComparer());
+            }
+            foreach (Polyline poly in polys)
+            {
+                editor.WriteMessage("{1}:{2}", poly.StartPoint.X, poly.StartPoint.Y);
+            }
+        }
     }
 
     class NaturalStringComparer : IComparer<Cable>
     {
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         static extern int StrCmpLogicalW(string s1, string s2);
-
         public int Compare(Cable x, Cable y)
         {
             return StrCmpLogicalW(x.Mark.TextString, y.Mark.TextString);
         }
     }
+
+    //class PolyComparer : IComparer<Polyline3d>
+    //{
+    //    public int CompareX(Polyline3d x, Polyline3d y)
+    //    {
+    //        return x.StartPoint.X.CompareTo(y.StartPoint.X);
+    //    }
+    //}
 
     public struct Cable
     {
@@ -364,6 +433,18 @@ namespace AcElectricalSchemePlugin
             Mark = mark;
             TailsNum = 2;
             CableLine = cableLine;
+        }
+    }
+    public struct BlockCouple
+    {
+        public BlockTableRecord block;
+        public BlockTableRecord block1;
+        public BlockTableRecord block2;
+        public BlockCouple(BlockTableRecord b, BlockTableRecord b1, BlockTableRecord b2)
+        {
+            block = b;
+            block1 = b1;
+            block2 = b2;
         }
     }
 }
