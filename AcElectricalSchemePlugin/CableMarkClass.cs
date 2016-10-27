@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -383,25 +384,51 @@ namespace AcElectricalSchemePlugin
                     for (int i = 0; i < objIds.Count; i++)
                     {
                         Polyline poly = (Polyline)acTrans.GetObject(objIds[i], OpenMode.ForRead);
-                        polys.Add(poly);
+                        if (poly.Area > 30000) polys.Add(poly);
                     }
                     acTrans.Commit();
                 }
-                for (int i = 0; i < polys.Count; i++)
+            }
+            List<BlockCouple> blocks = new List<BlockCouple>(); 
+            for (int i = 0; i < polys.Count; i++)
+            {
+                for (int j = i + 1; j < polys.Count; j++)
                 {
-                    for (int j = i; j < polys.Count; j++)
+                    if (polys[i].StartPoint.Y <= polys[j].StartPoint.Y + 1 && polys[i].StartPoint.Y >= polys[j].StartPoint.Y - 1)
                     {
-                        if (polys[i].Area / 2 >= polys[j].Area)
+                        if (comparePolys(polys[i], polys[j]))
+                        {
+                            blocks.Add(new BlockCouple(polys[i], polys[j]));
+                            polys.RemoveAt(i);
                             polys.RemoveAt(j);
+                        }
+                        else if (comparePolys(polys[j], polys[i]))
+                        {
+                            blocks.Add(new BlockCouple(polys[j], polys[i]));
+                            polys.RemoveAt(i);
+                            polys.RemoveAt(j);
+                        }
                         else j++;
                     }
+                    else j++;
                 }
-                //polys.Sort(new PolyComparer());
             }
-            foreach (Polyline poly in polys)
+            foreach (BlockCouple block in blocks)
+                editor.WriteMessage("{0}:{1}   {2}:{3}\n", block.Block1.StartPoint.X, block.Block1.StartPoint.Y, block.Block2.StartPoint.X, block.Block2.StartPoint.Y);
+        }
+
+        private static bool comparePolys(Polyline poly1, Polyline poly2)
+        {
+            double X1 = poly1.StartPoint.X;
+            double X2 = poly2.StartPoint.X;
+            if (X1 < X2)
             {
-                editor.WriteMessage("{1}:{2}", poly.StartPoint.X, poly.StartPoint.Y);
+                double delta = Math.Abs(X2) - Math.Abs(X1);
+                if (delta <= 1000 && delta>0)
+                    return true;
+                else return false;
             }
+            else return false;
         }
     }
 
@@ -415,14 +442,6 @@ namespace AcElectricalSchemePlugin
         }
     }
 
-    //class PolyComparer : IComparer<Polyline3d>
-    //{
-    //    public int CompareX(Polyline3d x, Polyline3d y)
-    //    {
-    //        return x.StartPoint.X.CompareTo(y.StartPoint.X);
-    //    }
-    //}
-
     public struct Cable
     {
         public DBText Mark;
@@ -435,16 +454,15 @@ namespace AcElectricalSchemePlugin
             CableLine = cableLine;
         }
     }
+
     public struct BlockCouple
     {
-        public BlockTableRecord block;
-        public BlockTableRecord block1;
-        public BlockTableRecord block2;
-        public BlockCouple(BlockTableRecord b, BlockTableRecord b1, BlockTableRecord b2)
+        public Polyline Block1;
+        public Polyline Block2;
+        public BlockCouple(Polyline block1, Polyline block2)
         {
-            block = b;
-            block1 = b1;
-            block2 = b2;
+            Block1 = block1;
+            Block2 = block2;
         }
     }
 }
