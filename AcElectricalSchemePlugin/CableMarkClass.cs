@@ -17,14 +17,21 @@ namespace AcElectricalSchemePlugin
         private static Editor editor;
         private static Document acDoc;
         private static Database acDb;
-
+        private static List<BlockCouple> blocks;
+        private static List<DBText> marks;
+        private static List<Cable> cables;
+        private static List<Cable> CalculatedCables;
         static public void CalculateMarks()
         {
             Document acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
             acDb = acDoc.Database;
-            List<DBText> marks = getAllMarks();
-            List<Cable> cables = new List<Cable>();
+            
+            marks = getAllMarks();
+            cables = new List<Cable>();
+            CalculatedCables = new List<Cable>();
+            blocks = getBlocks();
+
             using (DocumentLock docLock = acDoc.LockDocument())
             {
                 acDoc.LockDocument();
@@ -34,31 +41,38 @@ namespace AcElectricalSchemePlugin
                     {
                         ObjectId id = getClosestLine(mark);
                         if (id != ObjectId.Null)
-                            try
-                            {
-                                Line closestLine = (Line)acTrans.GetObject(id, OpenMode.ForWrite);
-                                closestLine.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
-                                DBText Text = (DBText)acTrans.GetObject(mark.Id, OpenMode.ForWrite);
-                                Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
-                                cables.Add(new Cable(mark, closestLine));
-                            }
-                            catch
-                            {
-                                editor.WriteMessage("Ошибка при попытке перекрасить");
-                            }
+                        {
+                            Line closestLine = (Line)acTrans.GetObject(id, OpenMode.ForWrite);
+                            closestLine.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
+                            DBText Text = (DBText)acTrans.GetObject(mark.Id, OpenMode.ForWrite);
+                            Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
+                            cables.Add(new Cable(mark, closestLine));
+                        }
                     }
                     acTrans.Commit();
                     acTrans.Dispose();
                 }
             }
             //marks = marks.GroupBy(x => x.TextString).Select(group => group.First()).OrderBy(x => x.TextString, new NaturalStringComparer()).ToList();
-            cables = SmartDistinct(cables);
+            cables = SmartDistinct();
             cables.Sort(new NaturalStringComparer());
             foreach (Cable cable in cables)
             {
-                editor.WriteMessage(string.Format("\nMark:{0}; Cable:{1}\n", cable.Mark.TextString, cable.TailsNum));
+                editor.WriteMessage(string.Format("\nMark:{0}; Cable:{1}       \n", cable.Mark.TextString, cable.TailsNum));//, inBlock(cable)));
             }
-            inPoly(new Cable());
+        }
+
+        public static List<string> getData()
+        {
+            List<string> data = new List<string>();
+            for (int i=0; i<cables.Count; i++)
+                for (int j=0; j<cables[i].TailsNum;j++)
+                    data.Add(cables[i].Mark.TextString);
+            List<Cable> cable = calculateBlock();
+            for (int i=0; i<cables.Count; i++)
+                for (int j=0; j<cables[i].TailsNum;j++)
+                    data.Add(cables[i].Mark.TextString);
+            return data;
         }
 
         private static ObjectId getClosestLine(DBText Text)
@@ -114,107 +128,164 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static List<Cable> SmartDistinct(List<Cable> Cables)
+        private static List<Cable> SmartDistinct()
         {
-            List<Cable> cables = Cables;
-            Cable cable;
             cables.Sort(delegate(Cable x, Cable y)
             {
-                return y.Mark.Position.X.CompareTo(x.Mark.Position.X);
+                return y.CableLine.Length.CompareTo(x.CableLine.Length);
             });
             using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
             {
-                for (int i = 0; i < cables.Count - 1; i++)
-                    for (int j = i + 1; j < cables.Count; j++)
-                        if (cables[i].Mark.TextString.Equals(cables[j].Mark.TextString))
+                for (int i = 0; i < cables.Count; i++)
+                   if (!inBlock(cables[i]))
+                    {
+                        for (int j = i + 1; j < cables.Count; j++)
                         {
-                            if (cables[i].CableLine.Id.Equals(cables[j].CableLine.Id))
+                           if (!inBlock(cables[j]))
                             {
-                                DBText mark = (DBText)acTrans.GetObject(cables[j].Mark.Id, OpenMode.ForWrite);
-                                mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForRead)).Color;
-                                cables.Remove(cables[j]);
-                            }
-                            else
-                            {
-                                List<ObjectId> ids = getIntersectWithTerminal(cables[j].CableLine, acTrans);
-                                if (ids != null)
+                                if (cables[i].Mark.TextString.Equals(cables[j].Mark.TextString))
                                 {
-                                    for (int x = 0; x < ids.Count; x++)
+                                    if (cables[i].CableLine.Id==cables[j].CableLine.Id)
                                     {
-                                        Circle circle = (Circle)acTrans.GetObject(ids[x], OpenMode.ForWrite);
-                                        circle.Color = Color.FromRgb(0, 0, 0);
-                                        cable = cables[i];
-                                        cable.TailsNum++;
-                                        if (cables[i].CableLine.Length > cables[j].CableLine.Length)
-                                            cables[i] = cable;
+                                        if (cables[i].Mark.Position.X < cables[j].Mark.Position.X)
+                                        {
+                                            DBText mark = (DBText)acTrans.GetObject(cables[j].Mark.Id, OpenMode.ForWrite);
+                                            mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForRead)).Color;
+                                            cables.Remove(cables[j]);
+                                        }
                                         else
-                                            cables[j] = cable;
+                                        {
+                                            DBText mark = (DBText)acTrans.GetObject(cables[j].Mark.Id, OpenMode.ForWrite);
+                                            mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForRead)).Color;
+                                            cables.Remove(cables[i]);
+                                        }
                                     }
-                                    if (cables[i].CableLine.Length > cables[j].CableLine.Length)
-                                        cables.Remove(cables[j]);
                                     else
                                     {
-                                        cables.Remove(cables[i]);
-                                        break;
+                                        int removed = 0;
+                                        List<ObjectId> ids1 = getIntersectWithTerminal(cables[i].CableLine, acTrans);
+                                        List<ObjectId> ids2 = getIntersectWithTerminal(cables[j].CableLine, acTrans);
+                                        if (ids1 != null && ids2 != null)
+                                        {
+                                            List<ObjectId> ids = ids1.Intersect(ids2).ToList();
+                                            if (ids != null)
+                                            {
+                                                if (cables[i].CableLine.Length > cables[j].CableLine.Length)
+                                                {
+                                                    ids.AddRange(ids1.Except(ids2));
+                                                    for (int x = 0; x < ids.Count; x++)
+                                                    {
+                                                        Circle circle = (Circle)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                                                        circle.Color = Color.FromRgb(0, 0, 0);
+                                                        Cable cable;
+                                                        cable = cables[i];
+                                                        cable.TailsNum++;
+                                                        cables[i] = cable;
+                                                    }
+                                                   // cables.RemoveAt(j);
+                                                    removed++;
+                                                }
+                                                else
+                                                {
+                                                    ids.AddRange(ids2.Except(ids1));
+                                                    for (int x = 0; x < ids.Count; x++)
+                                                    {
+                                                        Circle circle = (Circle)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                                                        circle.Color = Color.FromRgb(0, 0, 0);
+                                                        Cable cable;
+                                                        cable = cables[j];
+                                                        cable.TailsNum++;
+                                                        cables[j] = cable;
+                                                    }
+                                                  //  cables.RemoveAt(i);
+                                                    removed++;
+                                                }
+                                            }
+                                        }
+                                        ids1 = getIntersectWithSplitter(cables[i].CableLine, acTrans);
+                                        ids2 = getIntersectWithSplitter(cables[j].CableLine, acTrans);
+                                        if (ids1 != null && ids2 != null)
+                                        {
+                                            List<ObjectId> ids = ids1.Intersect(ids2).ToList();
+                                            if (ids != null)
+                                            {
+                                                if (cables[i].CableLine.Length > cables[j].CableLine.Length)
+                                                {
+                                                    ids.AddRange(ids1.Except(ids2));
+                                                    for (int x = 0; x < ids.Count; x++)
+                                                    {
+                                                        Hatch hatch = (Hatch)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                                                        hatch.Color = Color.FromRgb(0, 0, 0);
+                                                        Cable cable;
+                                                        cable = cables[i];
+                                                        cable.TailsNum++;
+                                                        cables[i] = cable;
+                                                    }
+                                                  //  cables.RemoveAt(j);
+                                                    removed++;
+                                                }
+                                                else
+                                                {
+                                                    ids.AddRange(ids2.Except(ids1));
+                                                    for (int x = 0; x < ids.Count; x++)
+                                                    {
+                                                        Hatch hatch = (Hatch)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                                                        hatch.Color = Color.FromRgb(0, 0, 0);
+                                                        Cable cable;
+                                                        cable = cables[j];
+                                                        cable.TailsNum++;
+                                                        cables[j] = cable;
+                                                    }
+                                                  //  cables.RemoveAt(i);
+                                                    removed++;
+                                                }
+                                            }
+                                        }
+                                        //if (removed == 0) j++;
                                     }
-                                }
-
-                                ids = getIntersectWithSplitter(cables[j].CableLine, acTrans);
-                                if (ids != null)
-                                {
-                                    for (int x = 0; x < ids.Count; x++)
-                                    {
-                                        Hatch hatch = (Hatch)acTrans.GetObject(ids[x], OpenMode.ForWrite);
-                                        hatch.Color = Color.FromRgb(0, 0, 0);
-                                        cable = cables[i];
-                                        cable.TailsNum++;
-                                        if (cables[i].CableLine.Length > cables[j].CableLine.Length)
-                                            cables[i] = cable;
-                                        else
-                                            cables[j] = cable;
-                                    }
-                                    if (cables[i].CableLine.Length > cables[j].CableLine.Length)
-                                        cables.Remove(cables[j]);
-                                    else
-                                    {
-                                        cables.Remove(cables[i]);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                                } //else j++;
+                            } else cables.RemoveAt(j);
+                        } //i++;
+                    } else cables.RemoveAt(i);
                 for (int i = 0; i < cables.Count; i++)
                 {
                     if (cables[i].TailsNum == 2)
-                    {
-                        List<ObjectId> ids = getIntersectWithTerminal(cables[i].CableLine, acTrans);
-                        if (ids != null)
-                            for (int x = 0; x < ids.Count; x++)
-                            {
-                                Circle circle = (Circle)acTrans.GetObject(ids[x], OpenMode.ForWrite);
-                                circle.Color = Color.FromRgb(0, 0, 0);
-                                cable = cables[i];
-                                cable.TailsNum++;
-                                cables[i] = cable;
-                            }
-                        ids = getIntersectWithSplitter(cables[i].CableLine, acTrans);
-                        if (ids != null)
-                        {
-                            for (int x = 0; x < ids.Count; x++)
-                            {
-                                Hatch hatch = (Hatch)acTrans.GetObject(ids[x], OpenMode.ForWrite);
-                                hatch.Color = Color.FromRgb(0, 0, 0);
-                                cable = cables[i];
-                                cable.TailsNum++;
-                                cables[i] = cable;
-                            }
-                        }
-                    }
+                        calculateCable(i, acTrans);
                 }
                 acTrans.Commit();
                 acTrans.Dispose();
             }
             return cables;
+        }
+
+        private static void calculateCable(int indexI, Transaction acTrans)
+        {
+            List<ObjectId> ids = getIntersectWithTerminal(cables[indexI].CableLine, acTrans);
+            if (ids != null)
+            {
+                for (int x = 0; x < ids.Count; x++)
+                {
+                    Circle circle = (Circle)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                    circle.Color = Color.FromRgb(0, 0, 0);
+                    Cable cable;
+                    cable = cables[indexI];
+                    cable.TailsNum++;
+                    cables[indexI] = cable;
+                }
+            }
+            ids = getIntersectWithSplitter(cables[indexI].CableLine, acTrans);
+            if (ids != null)
+            {
+                for (int x = 0; x < ids.Count; x++)
+                {
+                    Hatch hatch = (Hatch)acTrans.GetObject(ids[x], OpenMode.ForWrite);
+                    hatch.Color = Color.FromRgb(0, 0, 0);
+                    Cable cable;
+                    cable = cables[indexI];
+                    cable.TailsNum++;
+                    cables[indexI] = cable;
+                }
+            }
         }
 
         private static List<ObjectId> getIntersectWithTerminal(Line line, Transaction acTrans)
@@ -227,7 +298,7 @@ namespace AcElectricalSchemePlugin
             Point3d point2;
             if (line.Angle == 0 || line.Angle == 180 || line.Angle == 360)
             {
-                if (line.StartPoint.X > line.StartPoint.X)
+                if (line.StartPoint.X > line.EndPoint.X)
                 {
                     point1 = line.StartPoint.Add(new Vector3d(1, 0, 0));
                     point2 = line.EndPoint.Add(new Vector3d(-1, 0, 0));
@@ -240,7 +311,7 @@ namespace AcElectricalSchemePlugin
             }
             else
             {
-                if (line.StartPoint.Y > line.StartPoint.Y)
+                if (line.StartPoint.Y > line.EndPoint.Y)
                 {
                     point1 = line.StartPoint.Add(new Vector3d(0, 1, 0));
                     point2 = line.EndPoint.Add(new Vector3d(0, -1, 0));
@@ -310,7 +381,7 @@ namespace AcElectricalSchemePlugin
             Point3d point2;
             if (line.Angle == 0 || line.Angle == 180 || line.Angle == 360)
             {
-                if (line.StartPoint.X > line.StartPoint.X)
+                if (line.StartPoint.X > line.EndPoint.X)
                 {
                     point1 = line.StartPoint.Add(new Vector3d(1, 0, 0));
                     point2 = line.EndPoint.Add(new Vector3d(-1, 0, 0));
@@ -323,7 +394,7 @@ namespace AcElectricalSchemePlugin
             }
             else
             {
-                if (line.StartPoint.Y > line.StartPoint.Y)
+                if (line.StartPoint.Y > line.EndPoint.Y)
                 {
                     point1 = line.StartPoint.Add(new Vector3d(0, 1, 0));
                     point2 = line.EndPoint.Add(new Vector3d(0, -1, 0));
@@ -345,31 +416,159 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static void calculateBlocks(Transaction acTrans)
+        private static List<Cable> calculateBlock()
         {
-            //TypedValue[] filterlist = new TypedValue[1];
-            //filterlist[0] = new TypedValue((int)DxfCode.Start, "INSERT");
-            //SelectionFilter filter = new SelectionFilter(filterlist);
-            //PromptSelectionResult selRes = editor.SelectAll(filter);
-            //if (selRes.Status == PromptStatus.OK)
-            //{
-            //    List<ObjectId> btrs = selRes.Value.GetObjectIds().ToList();
-            //    List<BlockReference> blocks = new List<BlockReference>();
-            //    foreach(ObjectId id in btrs)
-            //    {
-            //        BlockReference btr = (BlockReference)acTrans.GetObject(id, OpenMode.ForRead);
-            //        if (btr.Name.Contains("Block") || btr.Name.Contains("block"))
-            //            blocks.Add(btr);
-            //    }
-            //    blocks.Sort(new NaturalStringComparer());
-            //    foreach (BlockReference btr in blocks)
-            //        editor.WriteMessage("{0}", btr.Name);
-            //}
-
+            List<Cable> calculated = new List<Cable>();
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                for (int j = 0; j < blocks[i].Cables.Count; j++)
+                {
+                    Cable cableL = blocks[i].Cables[j].cable;
+                    for (int k = j + 1; k < blocks[i].Cables.Count; k++)
+                    {
+                        if (!blocks[i].Cables[k].Left)
+                        {
+                            Cable cableR = blocks[i].Cables[k].cable;
+                            if (blocks[i].Cables[j].Left)
+                            {
+                                if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
+                                    if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
+                                    {
+                                        string left = cableL.Mark.TextString;
+                                        string right = cableR.Mark.TextString;
+                                        left.Remove(0, 2);
+                                        right.Remove(0, 2);
+                                        int leftCount;
+                                        int rightCount;
+                                        int.TryParse(left, out leftCount);
+                                        int.TryParse(right, out rightCount);
+                                        if (leftCount != 0 && rightCount != 0)
+                                        {
+                                            if (leftCount < rightCount)
+                                                for (int q = leftCount; q <= rightCount; q++)
+                                                {
+                                                    DBText mark = new DBText();
+                                                    mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
+                                                    Cable cable = new Cable(mark, new Line());
+                                                    cable.TailsNum = cableL.TailsNum;
+                                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+                                                        calculated.Add(cable);
+                                                }
+                                        }
+                                    }
+                                    else if (cableL.Mark.TextString == cableR.Mark.TextString)
+                                        for (int q = 0; q < blocks[i].Number; q++)
+                                        {
+                                            DBText mark = new DBText();
+                                            mark.TextString = cableL.Mark.TextString;
+                                            Cable cable = new Cable(mark, new Line());
+                                            cable.TailsNum = cableL.TailsNum;
+                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+                                                calculated.Add(cable);
+                                        }
+                            }
+                            else
+                            {
+                                if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
+                                    if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
+                                    {
+                                        string left = cableR.Mark.TextString;
+                                        string right = cableL.Mark.TextString;
+                                        left.Remove(0, 2);
+                                        right.Remove(0, 2);
+                                        int leftCount;
+                                        int rightCount;
+                                        int.TryParse(left, out leftCount);
+                                        int.TryParse(right, out rightCount);
+                                        if (leftCount != 0 && rightCount != 0)
+                                        {
+                                            if (leftCount < rightCount)
+                                                for (int q = leftCount; q <= rightCount; q++)
+                                                {
+                                                    DBText mark = new DBText();
+                                                    mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
+                                                    Cable cable = new Cable(mark, new Line());
+                                                    cable.TailsNum = cableL.TailsNum;
+                                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+                                                        calculated.Add(cable);
+                                                }
+                                        }
+                                    }
+                                    else if (cableL.Mark.TextString == cableR.Mark.TextString)
+                                        for (int q = 0; q < blocks[i].Number; q++)
+                                        {
+                                            DBText mark = new DBText();
+                                            mark.TextString = cableL.Mark.TextString;
+                                            Cable cable = new Cable(mark, new Line());
+                                            cable.TailsNum = cableL.TailsNum;
+                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+                                                calculated.Add(cable);
+                                        }
+                            }
+                        }
+                    }
+                }
+            }
+            return calculated;
+        }
+        
+        private static Cable findCableByMark(List<Cable> cables, DBText mark)
+        {
+            Cable result = new Cable();
+            for (int i = 0; i < cables.Count; i++)
+                if (mark.Equals(cables[i].Mark)) result = cables[i];
+            return result;
         }
 
-        private static void inPoly(Cable cable)
+        private static bool inBlock(Cable cable)
         {
+            BlockCouple block;
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                if (inPerimeter(blocks[i].Block1, cable.Mark.Position))
+                {
+                    block = blocks[i];
+                    List<BlockCable> bC = block.Cables;
+                    bC.Add(new BlockCable(cable, true));
+                    block.Cables = bC;
+                    return true;
+                }
+                else if (inPerimeter(blocks[i].Block2, cable.Mark.Position))
+                {
+                    block = blocks[i];
+                    List<BlockCable> bC = block.Cables;
+                    bC.Add(new BlockCable(cable, false));
+                    block.Cables = bC;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool inPerimeter(Polyline poly, Point3d point)
+        {
+            Point3d point1 = poly.GetPoint3dAt(0);
+            for (int i = 1; i < poly.NumberOfVertices; i++)
+            {
+                Point3d p = poly.GetPoint3dAt(i);
+                if (point1.X >= p.X && point1.Y <= p.Y)
+                    point1 = p;
+            }
+            Point3d point3 = poly.GetPoint3dAt(0);
+            for (int i = 1; i < poly.NumberOfVertices; i++)
+            {
+                Point3d p = poly.GetPoint3dAt(i);
+                if (point3.X <= p.X && point3.Y >= p.Y)
+                    point3 = p;
+            }
+            if (point.X >= point1.X && point.X <= point3.X && point.Y <= point1.Y && point.Y >= point3.Y) 
+                return true;
+            else return false;
+        }
+
+        private static List<BlockCouple> getBlocks()
+        {
+            List<BlockCouple> blocks = new List<BlockCouple>(); 
             TypedValue[] filterlist = new TypedValue[2];
             filterlist[0] = new TypedValue((int)DxfCode.Start, "LWPOLYLINE");
             filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
@@ -389,7 +588,6 @@ namespace AcElectricalSchemePlugin
                     acTrans.Commit();
                 }
             }
-            List<BlockCouple> blocks = new List<BlockCouple>(); 
             for (int i = 0; i < polys.Count; i++)
             {
                 for (int j = i + 1; j < polys.Count; j++)
@@ -399,22 +597,68 @@ namespace AcElectricalSchemePlugin
                         if (comparePolys(polys[i], polys[j]))
                         {
                             blocks.Add(new BlockCouple(polys[i], polys[j]));
-                            polys.RemoveAt(i);
-                            polys.RemoveAt(j);
+                            BlockCouple bc = blocks[blocks.Count - 1];
+                            bc.Number = getNumOfBlocks(bc);
+                            blocks[blocks.Count - 1] = bc;
                         }
                         else if (comparePolys(polys[j], polys[i]))
                         {
                             blocks.Add(new BlockCouple(polys[j], polys[i]));
-                            polys.RemoveAt(i);
-                            polys.RemoveAt(j);
+                            BlockCouple bc = blocks[blocks.Count - 1];
+                            bc.Number = getNumOfBlocks(bc);
+                            blocks[blocks.Count - 1] = bc;
                         }
                         else j++;
                     }
                     else j++;
                 }
             }
-            foreach (BlockCouple block in blocks)
-                editor.WriteMessage("{0}:{1}   {2}:{3}\n", block.Block1.StartPoint.X, block.Block1.StartPoint.Y, block.Block2.StartPoint.X, block.Block2.StartPoint.Y);
+            return blocks;
+        }
+
+        private static int getNumOfBlocks(BlockCouple blockCouple)
+        {
+            int result = 0;
+            TypedValue[] filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "LINE");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
+            SelectionFilter filter = new SelectionFilter(filterlist);
+            Point3d point1 = blockCouple.Block1.GetPoint3dAt(0);
+            for (int i = 1; i < blockCouple.Block1.NumberOfVertices; i++)
+            {
+                Point3d point = blockCouple.Block1.GetPoint3dAt(i);
+                if (point.X >= point1.X && point.Y >= point1.Y)
+                    point1 = point;
+            }
+            Point3d point2 = blockCouple.Block2.GetPoint3dAt(0);
+            for (int i = 1; i < blockCouple.Block2.NumberOfVertices; i++)
+            {
+                Point3d point = blockCouple.Block2.GetPoint3dAt(i);
+                if (point.X <= point2.X && point.Y <= point2.Y)
+                    point2 = point;
+            }
+            PromptSelectionResult selRes = editor.SelectCrossingWindow(point1, point2, filter);
+            if (selRes.Status == PromptStatus.OK)
+            {
+                using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
+                {
+                    Line line = (Line)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
+                    filterlist = new TypedValue[1];
+                    filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                    filter = new SelectionFilter(filterlist);
+                    point1 = line.StartPoint.Add(new Vector3d(0, 10, 0));
+                    point2 = line.EndPoint.Add(new Vector3d(0, -10, 0));
+                    selRes = editor.SelectCrossingWindow(point1, point2);
+                    if (selRes.Status == PromptStatus.OK)
+                    {
+                        DBText dbText = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
+                        string text = dbText.TextString;
+                        int.TryParse(text, out result);
+                    }
+                    acTrans.Commit();
+                }
+            }
+            return result;
         }
 
         private static bool comparePolys(Polyline poly1, Polyline poly2)
@@ -454,15 +698,30 @@ namespace AcElectricalSchemePlugin
             CableLine = cableLine;
         }
     }
+    public struct BlockCable
+    {
+        public Cable cable;
+        public bool Left;
+        public BlockCable(Cable _cable, bool left)
+        {
+            cable = _cable;
+            Left = left;
+        }
+
+    }
 
     public struct BlockCouple
     {
         public Polyline Block1;
         public Polyline Block2;
+        public int Number;
+        public List<BlockCable> Cables;
         public BlockCouple(Polyline block1, Polyline block2)
         {
             Block1 = block1;
             Block2 = block2;
+            Number = 0;
+            Cables = new List<BlockCable>();
         }
     }
 }

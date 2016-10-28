@@ -37,6 +37,11 @@ namespace AcElectricalSchemePlugin
         public void Mark()
         {
             CableMark.CalculateMarks();
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "Text|*.txt";
+            saveFileDialog1.ShowDialog();
+            if(saveFileDialog1.FileName != "")
+                System.IO.File.WriteAllLines(saveFileDialog1.FileName, CableMark.getData());
         }
     }
 }
