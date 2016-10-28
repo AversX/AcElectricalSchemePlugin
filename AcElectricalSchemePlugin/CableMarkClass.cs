@@ -55,7 +55,7 @@ namespace AcElectricalSchemePlugin
             }
             //marks = marks.GroupBy(x => x.TextString).Select(group => group.First()).OrderBy(x => x.TextString, new NaturalStringComparer()).ToList();
             cables = SmartDistinct();
-            cables.Sort(new NaturalStringComparer());
+            cables.Sort(new CableComparer());
             foreach (Cable cable in cables)
             {
                 editor.WriteMessage(string.Format("\nMark:{0}; Cable:{1}       \n", cable.Mark.TextString, cable.TailsNum));//, inBlock(cable)));
@@ -72,6 +72,7 @@ namespace AcElectricalSchemePlugin
             for (int i=0; i<cables.Count; i++)
                 for (int j=0; j<cables[i].TailsNum;j++)
                     data.Add(cables[i].Mark.TextString);
+            data.Sort(new NaturalStringComparer());
             return data;
         }
 
@@ -676,13 +677,23 @@ namespace AcElectricalSchemePlugin
         }
     }
 
-    class NaturalStringComparer : IComparer<Cable>
+    class CableComparer : IComparer<Cable>
     {
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         static extern int StrCmpLogicalW(string s1, string s2);
         public int Compare(Cable x, Cable y)
         {
             return StrCmpLogicalW(x.Mark.TextString, y.Mark.TextString);
+        }
+    }
+
+    class NaturalStringComparer : IComparer<String>
+    {
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        static extern int StrCmpLogicalW(string s1, string s2);
+        public int Compare(string x, string y)
+        {
+            return StrCmpLogicalW(x, y);
         }
     }
 
