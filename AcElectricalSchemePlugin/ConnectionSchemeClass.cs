@@ -18,8 +18,30 @@ namespace AcElectricalSchemePlugin
 
         struct Unit
         {
-            public string Name;
-            public int Terminals;
+            public string cupBoardName;
+            public string tBoxName;
+            public string designation;
+            public string param;
+            public string equipment;
+            public string equipType;
+            public string cableMark;
+            public string shade;
+            public List<Terminal> terminals;
+        }
+
+        struct Terminal
+        {
+            public string boxTerminal1;
+            public string boxTerminal2;
+            public string equipTerminal1;
+            public string equipTerminal2;
+            public Terminal(string terminal1, string terminal2, string equip1, string equip2)
+            {
+                boxTerminal1 = terminal1;
+                boxTerminal2 = terminal2;
+                equipTerminal1 = equip1;
+                equipTerminal2 = equip2;
+            }
         }
 
         public static void DrawScheme()
@@ -96,7 +118,45 @@ namespace AcElectricalSchemePlugin
                     acModSpace.AppendEntity(gndPoly);
                     acTrans.AddNewlyCreatedDBObject(gndPoly, true);
                     #endregion
-                    //#region Text
+                    #region TerminalBox
+                    List<Unit> units = new List<Unit>();
+                    
+                    Unit unit = new Unit();
+                    List<Terminal> terminals = new List<Terminal>();
+                    terminals.Add(new Terminal("[XT3.6]FU1", "[XT3.6]1", "+", "-"));
+                    unit.terminals = terminals;
+                    units.Add(unit);
+
+                    unit = new Unit();
+                    terminals = new List<Terminal>();
+                    terminals.Add(new Terminal("[XT3.6]FU2", "[XT3.6]2", "+", "-"));
+                    unit.terminals = terminals;
+                    units.Add(unit);
+
+                    unit = new Unit();
+                    terminals = new List<Terminal>();
+                    terminals.Add(new Terminal("[XT3.6]FU3", "[XT3.6]3", "+", "-"));
+                    unit.terminals = terminals;
+                    units.Add(unit);
+
+                    unit = new Unit();
+                    terminals = new List<Terminal>();
+                    terminals.Add(new Terminal("[XT24.1]FU1", "[XT24.1]1", "+", "-"));
+                    terminals.Add(new Terminal("[XT4.4]FU1", "[XT4.4]1", "+", "-"));
+                    terminals.Add(new Terminal("[XT3.6]FU5", "[XT3.6]5", "+", "-"));
+                    unit.terminals = terminals;
+                    units.Add(unit);
+
+                    unit = new Unit();
+                    terminals = new List<Terminal>();
+                    terminals.Add(new Terminal("[XT4.4]FU2", "[XT4.4]2", "+", "-"));
+                    terminals.Add(new Terminal("[XT3.6]FU6", "[XT3.6]6", "+", "-"));
+                    unit.terminals = terminals;
+                    units.Add(unit);
+
+                    drawUnits(acTrans, acModSpace, units, gndPoly);
+                    #endregion
+                    #region Text
                     //DBText acText1 = new DBText();
                     //acText1.Position = new Point3d(101, 1070, 0);
                     //acText1.Height = 2.1;
@@ -120,8 +180,8 @@ namespace AcElectricalSchemePlugin
                     //acText3.WidthFactor = 0.5;
                     //acModSpace.AppendEntity(acText3);
                     //acTrans.AddNewlyCreatedDBObject(acText3, true);
-                    //#endregion
-                    //#region connectors
+                    #endregion
+                    #region connectors
                     //int terminals = units[0].Terminals;
                     //#region power
                     //double offset;
@@ -361,10 +421,226 @@ namespace AcElectricalSchemePlugin
                     //    offset = offset - 2 + 3.5 * (units[i].Terminals - 1) + 8 + 5;
                     //}
                     //#endregion
-                    //#endregion
+                    #endregion
 
                     acTrans.Commit();
                     acTrans.Dispose();
+                }
+            }
+        }
+
+        private static void drawUnits(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline gnd)
+        {
+            Polyline tBoxPoly = new Polyline();
+            tBoxPoly.SetDatabaseDefaults();
+            tBoxPoly.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            tBoxPoly.Closed = true;
+            tBoxPoly.AddVertexAt(0, gnd.GetPoint2dAt(3).Add(new Vector2d(0, -3)), 0, 0, 0);
+            tBoxPoly.AddVertexAt(1, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(27, 0)), 0, 0, 0);
+            tBoxPoly.AddVertexAt(2, tBoxPoly.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+            tBoxPoly.AddVertexAt(3, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+            modSpace.AppendEntity(tBoxPoly);
+            acTrans.AddNewlyCreatedDBObject(tBoxPoly, true);
+            Polyline prevPoly = tBoxPoly;
+            Polyline prevTermPoly = null;
+            string prevTerminal=null;
+            for (int j = 0; j < units.Count; j++)
+            {
+                for (int i = 0; i < units[j].terminals.Count; i++)
+                {
+                    string terminalTag = units[j].terminals[i].boxTerminal1.Split('[', ']')[1];
+                    string terminal1 = units[j].terminals[i].boxTerminal1.Split('[', ']')[2];
+                    string terminal2 = units[j].terminals[i].boxTerminal2.Split('[', ']')[2];
+                    if (prevTerminal == null)
+                    {
+                        prevTerminal = terminalTag;
+                        DBText text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                        text.TextString = terminalTag;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        Polyline termPoly1 = new Polyline();
+                        termPoly1.SetDatabaseDefaults();
+                        termPoly1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly1.Closed = true;
+                        termPoly1.AddVertexAt(0, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(1, termPoly1.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(2, termPoly1.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly1.AddVertexAt(3, termPoly1.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly1);
+                        acTrans.AddNewlyCreatedDBObject(termPoly1, true);
+
+                        text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly1.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal1;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        Polyline termPoly2 = new Polyline();
+                        termPoly2.SetDatabaseDefaults();
+                        termPoly2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly2.Closed = true;
+                        termPoly2.AddVertexAt(0, termPoly1.GetPoint2dAt(1), 0, 0, 0);
+                        termPoly2.AddVertexAt(1, termPoly2.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly2.AddVertexAt(2, termPoly2.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly2.AddVertexAt(3, termPoly1.GetPoint2dAt(2), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly2);
+                        acTrans.AddNewlyCreatedDBObject(termPoly2, true);
+
+                        text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly2.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal2;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        prevTermPoly = termPoly2;
+                    }
+                    else if (prevTerminal == terminalTag)
+                    {
+                        Point2d p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(30, 0));
+                        prevPoly.SetPointAt(1, p1);
+                        Point2d p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(30, 0));
+                        prevPoly.SetPointAt(2, p2);
+
+                        Polyline termPoly1 = new Polyline();
+                        termPoly1.SetDatabaseDefaults();
+                        termPoly1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly1.Closed = true;
+                        termPoly1.AddVertexAt(0, prevTermPoly.GetPoint2dAt(1).Add(new Vector2d(31, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(1, termPoly1.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(2, termPoly1.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly1.AddVertexAt(3, termPoly1.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly1);
+                        acTrans.AddNewlyCreatedDBObject(termPoly1, true);
+
+                        DBText text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly1.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal1;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        Polyline termPoly2 = new Polyline();
+                        termPoly2.SetDatabaseDefaults();
+                        termPoly2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly2.Closed = true;
+                        termPoly2.AddVertexAt(0, termPoly1.GetPoint2dAt(1), 0, 0, 0);
+                        termPoly2.AddVertexAt(1, termPoly2.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly2.AddVertexAt(2, termPoly2.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly2.AddVertexAt(3, termPoly1.GetPoint2dAt(2), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly2);
+                        acTrans.AddNewlyCreatedDBObject(termPoly2, true);
+
+                        text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly2.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal2;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        prevTermPoly = termPoly2;
+                    }
+                    else
+                    {
+                        tBoxPoly = new Polyline();
+                        tBoxPoly.SetDatabaseDefaults();
+                        tBoxPoly.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        tBoxPoly.Closed = true;
+                        tBoxPoly.AddVertexAt(0, prevPoly.GetPoint2dAt(1).Add(new Vector2d(15, 0)), 0, 0, 0);
+                        tBoxPoly.AddVertexAt(1, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(27, 0)), 0, 0, 0);
+                        tBoxPoly.AddVertexAt(2, tBoxPoly.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        tBoxPoly.AddVertexAt(3, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        modSpace.AppendEntity(tBoxPoly);
+                        acTrans.AddNewlyCreatedDBObject(tBoxPoly, true);
+                        prevPoly = tBoxPoly;
+                        prevTermPoly = null;
+                        prevTerminal = terminalTag;
+
+                        DBText text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                        text.TextString = terminalTag;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        Polyline termPoly1 = new Polyline();
+                        termPoly1.SetDatabaseDefaults();
+                        termPoly1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly1.Closed = true;
+                        termPoly1.AddVertexAt(0, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(1, termPoly1.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly1.AddVertexAt(2, termPoly1.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly1.AddVertexAt(3, termPoly1.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly1);
+                        acTrans.AddNewlyCreatedDBObject(termPoly1, true);
+
+                        text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly1.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal1;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        Polyline termPoly2 = new Polyline();
+                        termPoly2.SetDatabaseDefaults();
+                        termPoly2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        termPoly2.Closed = true;
+                        termPoly2.AddVertexAt(0, termPoly1.GetPoint2dAt(1), 0, 0, 0);
+                        termPoly2.AddVertexAt(1, termPoly2.GetPoint2dAt(0).Add(new Vector2d(6, 0)), 0, 0, 0);
+                        termPoly2.AddVertexAt(2, termPoly2.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                        termPoly2.AddVertexAt(3, termPoly1.GetPoint2dAt(2), 0, 0, 0);
+                        modSpace.AppendEntity(termPoly2);
+                        acTrans.AddNewlyCreatedDBObject(termPoly2, true);
+
+                        text = new DBText();
+                        text.SetDatabaseDefaults();
+                        text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        text.Position = termPoly2.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
+                        text.TextString = terminal2;
+                        text.Rotation = 1.5708;
+                        text.VerticalMode = TextVerticalMode.TextVerticalMid;
+                        text.HorizontalMode = TextHorizontalMode.TextCenter;
+                        text.AlignmentPoint = text.Position;
+                        modSpace.AppendEntity(text);
+                        acTrans.AddNewlyCreatedDBObject(text, true);
+
+                        prevTermPoly = termPoly2;
+                    }
                 }
             }
         }

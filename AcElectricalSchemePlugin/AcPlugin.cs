@@ -27,7 +27,7 @@ namespace AcElectricalSchemePlugin
         {
         }
 
-        [CommandMethod("Start", CommandFlags.Session)]
+        [CommandMethod("Scheme", CommandFlags.Session)]
         public void Start()
         {
             ConnectionScheme.DrawScheme();
