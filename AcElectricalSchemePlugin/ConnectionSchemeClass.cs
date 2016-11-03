@@ -472,9 +472,9 @@ namespace AcElectricalSchemePlugin
                     }
                     else if (prevTerminal == terminalTag)
                     {
-                        Point2d p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(43, 0));
+                        Point2d p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(37, 0));
                         prevPoly.SetPointAt(1, p1);
-                        Point2d p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(43, 0));
+                        Point2d p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(37, 0));
                         prevPoly.SetPointAt(2, p2);
                         
                         prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly, terminal1, terminal2, true);
@@ -629,17 +629,27 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableLine1);
             acTrans.AddNewlyCreatedDBObject(cableLine1, true);
 
-            Polyline cable = new Polyline();
-            cable.SetDatabaseDefaults();
-            cable.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            cable.Closed = true;
-            cable.AddVertexAt(0, new Point2d(cableLine1.EndPoint.X-24, cableLine1.EndPoint.Y), 0, 0, 0);
-            cable.AddVertexAt(1, cable.GetPoint2dAt(0).Add(new Vector2d(48, 0)), 0, 0, 0);
-            cable.AddVertexAt(2, cable.GetPoint2dAt(1).Add(new Vector2d(0, -10)), 5, 0, 0);
-            cable.AddVertexAt(3, cable.GetPoint2dAt(0).Add(new Vector2d(0, -10)), 0, 0, 0);
-            modSpace.AppendEntity(cable);
-            acTrans.AddNewlyCreatedDBObject(cable, true);
-            
+            Polyline cableName = new Polyline();
+            cableName.SetDatabaseDefaults();
+            cableName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            cableName.Closed = true;
+            cableName.AddVertexAt(0, new Point2d(cableLine1.EndPoint.X - 12.5, cableLine1.EndPoint.Y), 0, 0, 0);
+            cableName.AddVertexAt(1, cableName.GetPoint2dAt(0).Add(new Vector2d(25, 0)), -1, 0, 0);
+            cableName.AddVertexAt(2, cableName.GetPoint2dAt(1).Add(new Vector2d(0, -10)), 0, 0, 0);
+            cableName.AddVertexAt(3, cableName.GetPoint2dAt(0).Add(new Vector2d(0, -10)), -1, 0, 0);
+            modSpace.AppendEntity(cableName);
+            acTrans.AddNewlyCreatedDBObject(cableName, true);
+
+            Line cableLine2 = new Line();
+            cableLine2.SetDatabaseDefaults();
+            cableLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            startPoint = new Point3d(endPoint.X, endPoint.Y - 10, 0);
+            endPoint = new Point3d(startPoint.X, startPoint.Y - 50, 0);
+            cableLine2.StartPoint = startPoint;
+            cableLine2.EndPoint = endPoint;
+            modSpace.AppendEntity(cableLine2);
+            acTrans.AddNewlyCreatedDBObject(cableLine2, true);
+
             return termPoly2;
         }
     }
