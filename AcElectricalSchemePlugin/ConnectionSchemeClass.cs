@@ -19,29 +19,41 @@ namespace AcElectricalSchemePlugin
 
         struct Unit
         {
-            public string cupBoardName;
+            public string cupboardName;
             public string tBoxName;
             public string designation;
             public string param;
             public string equipment;
             public string equipType;
             public string cableMark;
-            public string shade;
+            public string shield;
             public List<Terminal> terminals;
+            public List<string> boxTerminals;
+            public List<string> equipTerminals;
+            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, string _shield, List<Terminal> _terminals, List<string> _boxTerminals, List<string> _equipTerminals)
+            {
+                cupboardName = _cupboardName;
+                tBoxName = _tBoxName;
+                designation = _designation;
+                param = _param;
+                equipment = _equipment;
+                equipType = _equipType;
+                cableMark = _cableMark;
+                shield = _shield;
+                terminals = _terminals;
+                boxTerminals = _boxTerminals;
+                equipTerminals = _equipTerminals;
+            }
         }
 
         struct Terminal
         {
             public string boxTerminal1;
             public string boxTerminal2;
-            public string equipTerminal1;
-            public string equipTerminal2;
-            public Terminal(string terminal1, string terminal2, string equip1, string equip2)
+            public Terminal(string terminal1, string terminal2)
             {
                 boxTerminal1 = terminal1;
                 boxTerminal2 = terminal2;
-                equipTerminal1 = equip1;
-                equipTerminal2 = equip2;
             }
         }
 
@@ -124,34 +136,42 @@ namespace AcElectricalSchemePlugin
                     
                     Unit unit = new Unit();
                     List<Terminal> terminals = new List<Terminal>();
-                    terminals.Add(new Terminal("[XT3.6]FU1", "[XT3.6]1", "+", "-"));
+                    terminals.Add(new Terminal("[XT3.6]FU1", "[XT3.6]1"));
+                    unit.equipTerminals = new List<string>{"+","-"};
                     unit.terminals = terminals;
                     units.Add(unit);
 
                     unit = new Unit();
                     terminals = new List<Terminal>();
-                    terminals.Add(new Terminal("[XT3.6]FU2", "[XT3.6]2", "+", "-"));
+                    terminals.Add(new Terminal("[XT3.6]FU2", "[XT3.6]2"));
+                    unit.equipTerminals = new List<string> { "+", "-" };
                     unit.terminals = terminals;
                     units.Add(unit);
 
                     unit = new Unit();
                     terminals = new List<Terminal>();
-                    terminals.Add(new Terminal("[XT3.6]FU3", "[XT3.6]3", "+", "-"));
+                    terminals.Add(new Terminal("[XT3.6]FU3", "[XT3.6]3"));
+                    unit.equipTerminals = new List<string> { "+", "-" };
+                    unit.boxTerminals = new List<string> { "1", "2", "1", "2", "1", "2", "*" };
                     unit.terminals = terminals;
                     units.Add(unit);
 
                     unit = new Unit();
                     terminals = new List<Terminal>();
-                    terminals.Add(new Terminal("[XT24.1]FU1", "[XT24.1]1", "+", "-"));
-                    terminals.Add(new Terminal("[XT4.4]FU1", "[XT4.4]1", "+", "-"));
-                    terminals.Add(new Terminal("[XT3.6]FU5", "[XT3.6]5", "+", "-"));
+                    terminals.Add(new Terminal("[XT24.1]FU1", "[XT24.1]1"));
+                    terminals.Add(new Terminal("[XT4.4]FU1", "[XT4.4]1"));
+                    terminals.Add(new Terminal("[XT3.6]FU5", "[XT3.6]5"));
+                    unit.equipTerminals = new List<string> { "+", "-", "+", "-" };
+                    unit.boxTerminals = new List<string> { "1", "2", "*" };
                     unit.terminals = terminals;
                     units.Add(unit);
 
                     unit = new Unit();
                     terminals = new List<Terminal>();
-                    terminals.Add(new Terminal("[XT4.4]FU2", "[XT4.4]2", "+", "-"));
-                    terminals.Add(new Terminal("[XT3.6]FU6", "[XT3.6]6", "+", "-"));
+                    terminals.Add(new Terminal("[XT4.4]FU2", "[XT4.4]2"));
+                    terminals.Add(new Terminal("[XT3.6]FU6", "[XT3.6]6"));
+                    unit.equipTerminals = new List<string> { "+", "-", "+", "-", "+", "-" };
+                    unit.boxTerminals = new List<string> { "1", "2", "*" };
                     unit.terminals = terminals;
                     units.Add(unit);
 
@@ -449,6 +469,7 @@ namespace AcElectricalSchemePlugin
             {
                 double leftEdgeX = 0;
                 double rightEdgeX = 0;
+                Point3d lowestPoint = Point3d.Origin;
                 for (int i = 0; i < units[j].terminals.Count; i++)
                 {
                     string terminalTag = units[j].terminals[i].boxTerminal1.Split('[', ']')[1];
@@ -467,7 +488,7 @@ namespace AcElectricalSchemePlugin
                         modSpace.AppendEntity(text);
                         acTrans.AddNewlyCreatedDBObject(text, true);
 
-                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal1, terminal2, false);
+                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal1, terminal2, false, out lowestPoint);
                         leftEdgeX = prevTermPoly.GetPoint2dAt(0).X - 6;
                     }
                     else if (prevTerminal == terminalTag)
@@ -477,7 +498,7 @@ namespace AcElectricalSchemePlugin
                         Point2d p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(37, 0));
                         prevPoly.SetPointAt(2, p2);
                         
-                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly, terminal1, terminal2, true);
+                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly, terminal1, terminal2, true, out lowestPoint);
                         if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X - 6;
                     }
                     else
@@ -506,7 +527,7 @@ namespace AcElectricalSchemePlugin
                         modSpace.AppendEntity(text);
                         acTrans.AddNewlyCreatedDBObject(text, true);
 
-                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal1, terminal2, false);
+                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal1, terminal2, false, out lowestPoint);
                         if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X - 6;
                     }
                 }
@@ -543,11 +564,12 @@ namespace AcElectricalSchemePlugin
                 groundCircle.Radius = 0.36;
                 modSpace.AppendEntity(groundCircle);
                 acTrans.AddNewlyCreatedDBObject(groundCircle, true);
+
+                drawCable(acTrans, modSpace, new Point3d(leftEdgeX+3, lowestPoint.Y, 0), new Point3d(rightEdgeX-3, lowestPoint.Y, 0), units[j]);
             }
         }
-        private static Polyline drawTerminal(Transaction acTrans, BlockTableRecord modSpace, Polyline prevPoly, string term1, string term2, bool iteration)
+        private static Polyline drawTerminal(Transaction acTrans, BlockTableRecord modSpace, Polyline prevPoly, string term1, string term2, bool iteration, out Point3d lowestPoint)
         {
-            #region Terminals
             Polyline termPoly1 = new Polyline();
             termPoly1.SetDatabaseDefaults();
             termPoly1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -593,7 +615,6 @@ namespace AcElectricalSchemePlugin
             text.AlignmentPoint = text.Position;
             modSpace.AppendEntity(text);
             acTrans.AddNewlyCreatedDBObject(text, true);
-            #endregion
 
             Line cableLineUp1 = new Line();
             cableLineUp1.SetDatabaseDefaults();
@@ -611,19 +632,26 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableLineUp2);
             acTrans.AddNewlyCreatedDBObject(cableLineUp2, true);
 
+            lowestPoint = cableLineUp2.EndPoint;
+
+            return termPoly2;
+        }
+
+        private static void drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
+        {
             Line jumperLineUp = new Line();
             jumperLineUp.SetDatabaseDefaults();
             jumperLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            jumperLineUp.StartPoint = cableLineUp1.EndPoint;
-            jumperLineUp.EndPoint = cableLineUp2.EndPoint;
+            jumperLineUp.StartPoint = firstCable;
+            jumperLineUp.EndPoint = lastCable;
             modSpace.AppendEntity(jumperLineUp);
             acTrans.AddNewlyCreatedDBObject(jumperLineUp, true);
 
             Line cableLine1 = new Line();
             cableLine1.SetDatabaseDefaults();
             cableLine1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            Point3d startPoint = new Point3d(jumperLineUp.StartPoint.X+(jumperLineUp.EndPoint.X-jumperLineUp.StartPoint.X)/2, jumperLineUp.StartPoint.Y,0);
-            Point3d endPoint = new Point3d(startPoint.X, startPoint.Y-5, 0);
+            Point3d startPoint = new Point3d(jumperLineUp.StartPoint.X + (jumperLineUp.EndPoint.X - jumperLineUp.StartPoint.X) / 2, jumperLineUp.StartPoint.Y, 0);
+            Point3d endPoint = new Point3d(startPoint.X, startPoint.Y - 5, 0);
             cableLine1.StartPoint = startPoint;
             cableLine1.EndPoint = endPoint;
             modSpace.AppendEntity(cableLine1);
@@ -640,17 +668,254 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableName);
             acTrans.AddNewlyCreatedDBObject(cableName, true);
 
+            
             Line cableLine2 = new Line();
             cableLine2.SetDatabaseDefaults();
             cableLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             startPoint = new Point3d(endPoint.X, endPoint.Y - 10, 0);
-            endPoint = new Point3d(startPoint.X, startPoint.Y - 50, 0);
+            double cableLine2Length;
+            try
+            {
+                cableLine2Length = unit.boxTerminals.Count > 0 ? startPoint.Y - 40 : startPoint.Y - 80;
+            }
+            catch
+            {
+                cableLine2Length = startPoint.Y - 80;
+            }
+            endPoint = new Point3d(startPoint.X, cableLine2Length, 0);
             cableLine2.StartPoint = startPoint;
             cableLine2.EndPoint = endPoint;
             modSpace.AppendEntity(cableLine2);
             acTrans.AddNewlyCreatedDBObject(cableLine2, true);
 
-            return termPoly2;
+            Point3d point;
+            if (unit.boxTerminals != null && unit.boxTerminals.Count > 0)
+            {
+                point = drawTerminalBox(acTrans, modSpace, cableLine2, unit);
+            }
+            else
+            {
+                point = cableLine2.EndPoint;
+            }
+            Line jumperLineDown = new Line();
+            jumperLineDown.SetDatabaseDefaults();
+            jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            double x = point.X - ((unit.equipTerminals.Count-1) * 5) / 2;
+            jumperLineDown.StartPoint = new Point3d(x, point.Y, 0);
+            x = x + ((unit.equipTerminals.Count-1) * 5);
+            jumperLineDown.EndPoint = new Point3d(x, point.Y, 0);
+            modSpace.AppendEntity(jumperLineDown);
+            acTrans.AddNewlyCreatedDBObject(jumperLineDown, true);
+
+            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            {
+                Line cableLineDown = new Line();
+                cableLineDown.SetDatabaseDefaults();
+                cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableLineDown.StartPoint = jumperLineDown.StartPoint.Add(new Vector3d(i * 5, 0, 0));
+                cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -44, 0));
+                modSpace.AppendEntity(cableLineDown);
+                acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                Polyline terminal = new Polyline();
+                terminal.SetDatabaseDefaults();
+                terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                terminal.Closed = true;
+                terminal.AddVertexAt(0, new Point2d(cableLineDown.EndPoint.X - 2.75, cableLineDown.EndPoint.Y), 0, 0, 0);
+                terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -5)), 0, 0, 0);
+                terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -5)), 0, 0, 0);
+                modSpace.AppendEntity(terminal);
+                acTrans.AddNewlyCreatedDBObject(terminal, true);
+
+                DBText text = new DBText();
+                text.SetDatabaseDefaults();
+                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                text.Position = terminal.GetPoint3dAt(0).Add(new Vector3d(2.5, -3.5, 0));
+                text.TextString = unit.equipTerminals[i];
+                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                text.AlignmentPoint = text.Position;
+                modSpace.AppendEntity(text);
+                acTrans.AddNewlyCreatedDBObject(text, true);
+            }
+
+            Polyline equip = new Polyline();
+            equip.SetDatabaseDefaults();
+            equip.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            equip.Closed = true;
+            equip.AddVertexAt(0, new Point2d(jumperLineDown.StartPoint.X - 10, jumperLineDown.StartPoint.Y + 3.5), 0, 0, 0);
+            equip.AddVertexAt(1, new Point2d(jumperLineDown.EndPoint.X + 10, jumperLineDown.StartPoint.Y + 3.5), 0, 0, 0);
+            equip.AddVertexAt(2, equip.GetPoint2dAt(1).Add(new Vector2d(0, -60)), 0, 0, 0);
+            equip.AddVertexAt(3, equip.GetPoint2dAt(0).Add(new Vector2d(0, -60)), 0, 0, 0);
+            modSpace.AppendEntity(equip);
+            acTrans.AddNewlyCreatedDBObject(equip, true);
+        }
+
+        private static Point3d drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, Unit unit)
+        {
+            Line jumperLineDown = new Line();
+            jumperLineDown.SetDatabaseDefaults();
+            jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            double x = cableLine.EndPoint.X - ((unit.boxTerminals.Count-1) * 5) / 2;
+            jumperLineDown.StartPoint = new Point3d(x, cableLine.EndPoint.Y, 0);
+            x = x + ((unit.boxTerminals.Count-1) * 5);
+            jumperLineDown.EndPoint = new Point3d(x, cableLine.EndPoint.Y, 0);
+            modSpace.AppendEntity(jumperLineDown);
+            acTrans.AddNewlyCreatedDBObject(jumperLineDown, true);
+
+            double lowestPointY = 0;
+            double leftEdgeX = 0;
+            double rightEdgeX = 0;
+            for (int i = 0; i < unit.boxTerminals.Count; i++)
+            {
+                if (unit.boxTerminals[i] != "*")
+                {
+                    Line cableLineInput = new Line();
+                    cableLineInput.SetDatabaseDefaults();
+                    cableLineInput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    cableLineInput.StartPoint = new Point3d(jumperLineDown.StartPoint.X + i * 5, jumperLineDown.StartPoint.Y, 0);
+                    cableLineInput.EndPoint = new Point3d(cableLineInput.StartPoint.X, cableLineInput.StartPoint.Y - 8, 0);
+                    modSpace.AppendEntity(cableLineInput);
+                    acTrans.AddNewlyCreatedDBObject(cableLineInput, true);
+
+                    Polyline terminal = new Polyline();
+                    terminal.SetDatabaseDefaults();
+                    terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    terminal.Closed = true;
+                    terminal.AddVertexAt(0, new Point2d(cableLineInput.EndPoint.X - 2.75, cableLineInput.EndPoint.Y), 0, 0, 0);
+                    terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                    terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
+                    terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
+                    modSpace.AppendEntity(terminal);
+                    acTrans.AddNewlyCreatedDBObject(terminal, true);
+
+                    Line line = new Line();
+                    line.SetDatabaseDefaults();
+                    line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
+                    line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
+                    modSpace.AppendEntity(line);
+                    acTrans.AddNewlyCreatedDBObject(line, true);
+
+                    DBText text = new DBText();
+                    text.SetDatabaseDefaults();
+                    text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    text.Position = terminal.GetPoint3dAt(0).Add(new Vector3d(2.5, -3.5, 0));
+                    text.TextString = unit.boxTerminals[i];
+                    text.HorizontalMode = TextHorizontalMode.TextCenter;
+                    text.AlignmentPoint = text.Position;
+                    modSpace.AppendEntity(text);
+                    acTrans.AddNewlyCreatedDBObject(text, true);
+
+                    Line cableLineOutput = new Line();
+                    cableLineOutput.SetDatabaseDefaults();
+                    cableLineOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    cableLineOutput.StartPoint = cableLineInput.EndPoint.Add(new Vector3d(0, -34, 0));
+                    cableLineOutput.EndPoint = cableLineOutput.StartPoint.Add(new Vector3d(0, -8, 0));
+                    modSpace.AppendEntity(cableLineOutput);
+                    acTrans.AddNewlyCreatedDBObject(cableLineOutput, true);
+
+                    lowestPointY = cableLineOutput.EndPoint.Y;
+                    if (i == 0) leftEdgeX = cableLineInput.StartPoint.X - 3;
+                    rightEdgeX = cableLineInput.StartPoint.X + 3;
+                }
+                else
+                {
+                    Polyline terminal = new Polyline();
+                    terminal.SetDatabaseDefaults();
+                    terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    terminal.Closed = true;
+                    terminal.AddVertexAt(0, new Point2d(rightEdgeX - 0.75, jumperLineDown.EndPoint.Y - 8), 0, 0, 0);
+                    terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                    terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
+                    terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
+                    modSpace.AppendEntity(terminal);
+                    acTrans.AddNewlyCreatedDBObject(terminal, true);
+
+                    Line line = new Line();
+                    line.SetDatabaseDefaults();
+                    line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
+                    line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
+                    modSpace.AppendEntity(line);
+                    acTrans.AddNewlyCreatedDBObject(line, true);
+
+                    DBText text = new DBText();
+                    text.SetDatabaseDefaults();
+                    text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    text.Position = terminal.GetPoint3dAt(0).Add(new Vector3d(2.5, -3.5, 0));
+                    text.TextString = unit.boxTerminals[i];
+                    text.HorizontalMode = TextHorizontalMode.TextCenter;
+                    text.AlignmentPoint = text.Position;
+                    modSpace.AppendEntity(text);
+                    acTrans.AddNewlyCreatedDBObject(text, true);
+
+                    Point3d center = new Point3d(leftEdgeX + (rightEdgeX - leftEdgeX) / 2, jumperLineDown.StartPoint.Y - 4, 0);
+                    Vector3d normal = Vector3d.ZAxis;
+                    Vector3d majorAxis = new Vector3d((rightEdgeX - leftEdgeX) / 2, 0, 0);
+                    double radiusRatio = 1.64 / majorAxis.X;
+                    double startAngle = 0.0;
+                    double endAngle = Math.PI * 2;
+                    Ellipse groundEllipse = new Ellipse(center, normal, majorAxis, radiusRatio, startAngle, endAngle);
+                    modSpace.AppendEntity(groundEllipse);
+                    acTrans.AddNewlyCreatedDBObject(groundEllipse, true);
+
+                    Line groundLine1 = new Line();
+                    groundLine1.SetDatabaseDefaults();
+                    groundLine1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    groundLine1.StartPoint = new Point3d(groundEllipse.Center.X + groundEllipse.MajorAxis.X, jumperLineDown.StartPoint.Y - 4, 0);
+                    groundLine1.EndPoint = groundLine1.StartPoint.Add(new Vector3d(2.5, 0, 0));
+                    modSpace.AppendEntity(groundLine1);
+                    acTrans.AddNewlyCreatedDBObject(groundLine1, true);
+
+                    Line groundLine2 = new Line();
+                    groundLine2.SetDatabaseDefaults();
+                    groundLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    groundLine2.StartPoint = groundLine1.EndPoint;
+                    groundLine2.EndPoint = groundLine2.StartPoint.Add(new Vector3d(0, terminal.GetPoint2dAt(0).Y - groundLine2.StartPoint.Y, 0));
+                    modSpace.AppendEntity(groundLine2);
+                    acTrans.AddNewlyCreatedDBObject(groundLine2, true);
+
+                    jumperLineDown.EndPoint = jumperLineDown.EndPoint.Add(new Vector3d(-5, 0, 0));
+                }
+            }
+            Line jumperOutput = new Line();
+            jumperOutput.SetDatabaseDefaults();
+            jumperOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            jumperOutput.StartPoint = new Point3d(jumperLineDown.StartPoint.X, lowestPointY, 0);
+            jumperOutput.EndPoint = new Point3d(jumperLineDown.EndPoint.X, lowestPointY, 0);
+            modSpace.AppendEntity(jumperOutput);
+            acTrans.AddNewlyCreatedDBObject(jumperOutput, true);
+
+            Line cLineOutput = new Line();
+            cLineOutput.SetDatabaseDefaults();
+            cLineOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            cLineOutput.StartPoint = new Point3d(cableLine.EndPoint.X, jumperOutput.EndPoint.Y, 0);
+            cLineOutput.EndPoint = cLineOutput.StartPoint.Add(new Vector3d(0, -12, 0));
+            modSpace.AppendEntity(cLineOutput);
+            acTrans.AddNewlyCreatedDBObject(cLineOutput, true);
+
+            //Line jumperLineDown2 = new Line();
+            //jumperLineDown2.SetDatabaseDefaults();
+            //jumperLineDown2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            //x = cLineOutput.EndPoint.X - ((unit.equipTerminals.Count - 1) * 5) / 2;
+            //jumperLineDown2.StartPoint = new Point3d(x, cLineOutput.EndPoint.Y, 0);
+            //x = x + ((unit.equipTerminals.Count - 1) * 5);
+            //jumperLineDown2.EndPoint = new Point3d(x, cLineOutput.EndPoint.Y, 0);
+            //modSpace.AppendEntity(jumperLineDown2);
+            //acTrans.AddNewlyCreatedDBObject(jumperLineDown2, true);
+
+            //Polyline tbox = new Polyline();
+            //tbox.SetDatabaseDefaults();
+            //tbox.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            //tbox.Closed = true;
+            //tbox.AddVertexAt(0, new Point2d(jumperLineDown2.StartPoint.X - 7, jumperLineDown2.StartPoint.Y + 12), 0, 0, 0);
+            //tbox.AddVertexAt(1, new Point2d(jumperLineDown2.EndPoint.X + 3.5, jumperLineDown2.StartPoint.Y + 12), 0, 0, 0);
+            //tbox.AddVertexAt(2, tbox.GetPoint2dAt(1).Add(new Vector2d(0, -43.35)), 0, 0, 0);
+            //tbox.AddVertexAt(3, tbox.GetPoint2dAt(0).Add(new Vector2d(0, -43.35)), 0, 0, 0);
+            //modSpace.AppendEntity(tbox);
+            //acTrans.AddNewlyCreatedDBObject(tbox, true);
+            return cLineOutput.EndPoint;
         }
     }
 }
