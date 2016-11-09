@@ -17,6 +17,8 @@ namespace AcElectricalSchemePlugin
         private static Document acDoc;
         private static List<Unit> units;
         private static Editor editor;
+        private static Table currentTable;
+        private static bool firstSheet = true;
 
         struct Unit
         {
@@ -94,6 +96,7 @@ namespace AcElectricalSchemePlugin
         private static void connectionScheme()
         {
             Database acDb = acDoc.Database;
+           // acDb.TextStyleTableId = 
             using (DocumentLock docLock = acDoc.LockDocument())
             {
                 acDoc.LockDocument();
@@ -104,14 +107,14 @@ namespace AcElectricalSchemePlugin
                     BlockTableRecord acModSpace;
                     acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                     Point3d startPoint = new Point3d(1200, 2000, 0);
-                    drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint));
+                    drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
                     acTrans.Commit();
                     acTrans.Dispose();
                 }
             }
         }
 
-        private static Polyline drawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet)
+        private static Polyline drawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet, bool first)
         {
             Polyline shieldPoly = new Polyline();
             shieldPoly.SetDatabaseDefaults();
@@ -124,7 +127,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(shieldPoly);
             acTrans.AddNewlyCreatedDBObject(shieldPoly, true);
 
-            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 37, 0));
+            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 37, 0), first);
 
             Polyline gndPoly = new Polyline();
             gndPoly.SetDatabaseDefaults();
@@ -146,6 +149,33 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(text);
             acTrans.AddNewlyCreatedDBObject(text, true);
 
+            Table table = new Table();
+            table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-14, -272, 0));
+            table.SetSize(4, 1);
+           // table.Rows[0].Style = "Data";
+
+            table.SetTextHeight(0, 0, 2.5);
+            table.Cells[0, 0].TextString = "Тип оборудования";
+            table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(1, 0, 2.5);
+            table.Cells[1, 0].TextString = "Обозначение по проекту";
+            table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(2, 0, 2.5);
+            table.Cells[2, 0].TextString = "Параметры";
+            table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(3, 0, 2.5);
+            table.Cells[3, 0].TextString = "Оборудоание";
+            table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
+
+            table.Columns[0].Width = 31; 
+            table.GenerateLayout();
+            modSpace.AppendEntity(table);
+            acTrans.AddNewlyCreatedDBObject(table, true);
+            currentTable = table;
+
             return shieldPoly;
         }
 
@@ -166,7 +196,8 @@ namespace AcElectricalSchemePlugin
                 Point3d lowestPoint = Point3d.Origin;
                 if (prevCupboard != units[j].cupboardName)
                 {
-                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                    firstSheet = false;
+                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)), firstSheet);
                     tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                     prevPoly = tBoxPoly;
                     prevTermPoly = null;
@@ -202,11 +233,12 @@ namespace AcElectricalSchemePlugin
                             prevPoly.SetPointAt(1, p1);
                             Point2d p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(56, 0));
                             prevPoly.SetPointAt(2, p2);
-                            if (p1.X >= shield.GetPoint2dAt(1).X)
+                            if (p1.X >= (firstSheet ? shield.GetPoint2dAt(1).X - 170 : shield.GetPoint2dAt(1).X))
                             {
                                 trans.Abort();
                                 aborted = true;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)));
+                                firstSheet = false;
+                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)), firstSheet);
                                 tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
@@ -241,11 +273,12 @@ namespace AcElectricalSchemePlugin
                             text.AlignmentPoint = text.Position;
                             modSpace.AppendEntity(text);
                             acTrans.AddNewlyCreatedDBObject(text, true);
-                            if (tBoxPoly.GetPoint2dAt(1).X >= shield.GetPoint2dAt(1).X)
+                            if (tBoxPoly.GetPoint2dAt(1).X >= (firstSheet ? shield.GetPoint2dAt(1).X - 170 : shield.GetPoint2dAt(1).X))
                             {
                                 trans.Abort();
                                 aborted = true;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                firstSheet = false;
+                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)), firstSheet);
                                 tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
@@ -312,7 +345,16 @@ namespace AcElectricalSchemePlugin
                         modSpace.AppendEntity(groundCircle);
                         acTrans.AddNewlyCreatedDBObject(groundCircle, true);
 
-                        drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
+                        double width = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
+
+                        currentTable.InsertColumns(currentTable.Columns.Count, width+20, 1);
+                        currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
+                        currentTable.Cells[0, currentTable.Columns.Count-1].TextString = units[j].equipType;
+                        currentTable.Cells[1, currentTable.Columns.Count-1].TextString = units[j].designation;
+                        currentTable.Cells[2, currentTable.Columns.Count-1].TextString = units[j].param;
+                        currentTable.Cells[3, currentTable.Columns.Count-1].TextString = units[j].equipment;
+                        currentTable.GenerateLayout();
+
                         units.RemoveAt(j);
                         trans.Commit();
                     }
@@ -440,7 +482,7 @@ namespace AcElectricalSchemePlugin
             return termPoly2;
         }
 
-        private static void drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
+        private static double drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
         {
             Line jumperLineUp = new Line();
             jumperLineUp.SetDatabaseDefaults();
@@ -470,16 +512,6 @@ namespace AcElectricalSchemePlugin
             cableName.AddVertexAt(3, cableName.GetPoint2dAt(0).Add(new Vector2d(0, -10)), -1, 0, 0);
             modSpace.AppendEntity(cableName);
             acTrans.AddNewlyCreatedDBObject(cableName, true);
-            
-            //DBText textInName = new DBText();
-            //textInName.SetDatabaseDefaults();
-            //textInName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            //textInName.Position = cableName.GetPoint3dAt(0).Add(new Vector3d(15, -6, 0));
-            //textInName.TextString = unit.boxTerminals.Count==0 ? unit.cupboardName.Split(' ')[1] + "/" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
-            //textInName.HorizontalMode = TextHorizontalMode.TextCenter;
-            //textInName.AlignmentPoint = textInName.Position;
-            //modSpace.AppendEntity(textInName);
-            //acTrans.AddNewlyCreatedDBObject(textInName, true);
 
             MText textName = new MText();
             textName.SetDatabaseDefaults();
@@ -597,6 +629,8 @@ namespace AcElectricalSchemePlugin
             equip.AddVertexAt(3, equip.GetPoint2dAt(0).Add(new Vector2d(0, -60)), 0, 0, 0);
             modSpace.AppendEntity(equip);
             acTrans.AddNewlyCreatedDBObject(equip, true);
+
+            return (equip.GetPoint2dAt(1).X - equip.GetPoint2dAt(0).X);
         }
 
         private static Point3d drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, Unit unit)
@@ -877,10 +911,21 @@ namespace AcElectricalSchemePlugin
             return cLineOutput.EndPoint;
         }
 
-        private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point)
+        private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point, bool first)
         {
             ObjectIdCollection ids = new ObjectIdCollection();
-            string filename = "Рамка.dwg";
+            string filename;
+            string blockName;
+            if (first)
+            {
+                filename = "Frame.dwg";
+                blockName = "Frame";
+            }
+            else
+            {
+                filename = "FrameOther.dwg";
+                blockName = "FrameOther";
+            }
             using(Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -889,8 +934,8 @@ namespace AcElectricalSchemePlugin
                     using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
                     {
                         BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
-                        if (bt.Has("Frame"))
-                            ids.Add(bt["Frame"]);
+                        if (bt.Has(blockName))
+                            ids.Add(bt[blockName]);
                         trans.Commit();
                     }
                 }
@@ -901,14 +946,14 @@ namespace AcElectricalSchemePlugin
                     IdMapping iMap = new IdMapping();
                     acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
                     BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
-                    if (bt.Has("Frame"))
+                    if (bt.Has(blockName))
                     {
-                        BlockReference br = new BlockReference(point, bt["Frame"]);
+                        BlockReference br = new BlockReference(point, bt[blockName]);
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
                     }
                 }
-                else editor.WriteMessage("В файле не найден блок с именем \"Frame\"");
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
         }
     }
