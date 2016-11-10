@@ -19,7 +19,7 @@ namespace AcElectricalSchemePlugin
         private static List<Unit> units;
         private static Editor editor;
         private static Table currentTable = null;
-        private static bool firstSheet = true;
+        private static bool firstSheet;
         private static LinetypeTable lt;
         private static Polyline currentTBox;
         private static Unit currentUnit;
@@ -121,6 +121,10 @@ namespace AcElectricalSchemePlugin
                         drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
                         acTrans.Commit();
                         acTrans.Dispose();
+                        currentTable = null;
+                        currentTBox = null;
+                        currentTBoxName = null;
+                        currentLeader = null;
                     }
                 }
             }
@@ -134,8 +138,8 @@ namespace AcElectricalSchemePlugin
             shieldPoly.Closed = true;
             shieldPoly.AddVertexAt(0, new Point2d(prevSheet.X, prevSheet.Y), 0, 0, 0);
             shieldPoly.AddVertexAt(1, shieldPoly.GetPoint2dAt(0).Add(new Vector2d(764, 0)), 0, 0, 0);
-            shieldPoly.AddVertexAt(2, shieldPoly.GetPoint2dAt(1).Add(new Vector2d(0, -35)), 0, 0, 0);
-            shieldPoly.AddVertexAt(3, shieldPoly.GetPoint2dAt(0).Add(new Vector2d(0, -35)), 0, 0, 0);
+            shieldPoly.AddVertexAt(2, shieldPoly.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
+            shieldPoly.AddVertexAt(3, shieldPoly.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
             modSpace.AppendEntity(shieldPoly);
             acTrans.AddNewlyCreatedDBObject(shieldPoly, true);
 
@@ -571,9 +575,9 @@ namespace AcElectricalSchemePlugin
             textName.Contents = unit.boxTerminals.Count == 0 ? unit.cupboardName.Split(' ')[1] + "/" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
             modSpace.AppendEntity(textName);
             acTrans.AddNewlyCreatedDBObject(textName, true);
-            if (textName.Width<textName.ActualWidth)
+            if (textName.Width < textName.ActualWidth)
             {
-                textName.Contents = unit.boxTerminals.Count == 0 ? unit.cupboardName.Split(' ')[1] + " /" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
+                textName.Contents = unit.boxTerminals.Count == 0 ? unit.cupboardName.Split(' ')[1] + " /" + unit.designation : unit.cupboardName.Split(' ')[1] + " /" + unit.tBoxName;
                 //while (textName.Width<textName.ActualWidth)
                 //{
                 //    cableName.SetPointAt(2, cableName.GetPoint2dAt(2).Add(new Vector2d(0, -5)));
