@@ -17,14 +17,31 @@ namespace AcElectricalSchemePlugin
     {
         private static Document acDoc;
         private static List<Unit> units;
+        private static List<tBoxUnit> tBoxes;
         private static Editor editor;
         private static Table currentTable = null;
         private static bool firstSheet;
-        private static LinetypeTable lt;
-        private static Polyline currentTBox;
+        private static LinetypeTable lineTypeTable;
+        private static TextStyleTableRecord textStyle;
+        private static Polyline currentTBox = null;
         private static Unit currentUnit;
         private static DBText currentTBoxName = null;
         private static Leader currentLeader = null;
+        private static Table table = null;
+
+        struct tBoxUnit
+        {
+            public string Name;
+            public int Count;
+            public int LastTerminalNumber;
+
+            public tBoxUnit(string name, int count, int lastTerminalNumber)
+            {
+                Name = name;
+                Count = count;
+                LastTerminalNumber = lastTerminalNumber;
+            }
+        }
 
         struct Unit
         {
@@ -35,12 +52,11 @@ namespace AcElectricalSchemePlugin
             public string equipment;
             public string equipType;
             public string cableMark;
-            public string shield;
+            public bool shield;
             public List<Terminal> terminals;
-            public List<string> boxTerminals;
             public List<string> equipTerminals;
 
-            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, string _shield, List<Terminal> _terminals, List<string> _boxTerminals, List<string> _equipTerminals)
+            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<Terminal> _terminals, List<string> _equipTerminals)
             {
                 cupboardName = _cupboardName;
                 tBoxName = _tBoxName;
@@ -51,7 +67,6 @@ namespace AcElectricalSchemePlugin
                 cableMark = _cableMark;
                 shield = _shield;
                 terminals = _terminals;
-                boxTerminals = _boxTerminals;
                 equipTerminals = _equipTerminals;
             }
         }
@@ -73,6 +88,7 @@ namespace AcElectricalSchemePlugin
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
             OpenFileDialog file = new OpenFileDialog();
+            file.Filter = "(*.csv)|*.csv";
             if (file.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 string[] lines = System.IO.File.ReadLines(file.FileName, System.Text.Encoding.GetEncoding(1251)).ToArray();
@@ -85,17 +101,15 @@ namespace AcElectricalSchemePlugin
                         for (int j=8; j<18; j+=2)
                             if (text[j] != "" && text[j+1]!="")
                                 terminals.Add(new Terminal(text[j], text[j+1]));
-                        List<string> boxTerminals = new List<string>();
+                        List<string> equipTerminals = new List<string>();
                         for (int j = 18; j < 28; j++)
                             if (text[j] != "")
-                                boxTerminals.Add(text[j]);
-                        List<string> equipTerminals = new List<string>();
-                        for (int j = 28; j < 38; j++)
-                            if (text[j] != "")
                                 equipTerminals.Add(text[j]);
-                        units.Add(new Unit(text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], terminals, boxTerminals, equipTerminals));
+                        bool shield = text[7].ToUpper() == "ДА" || text[7].ToUpper() == "ЕСТЬ" ? true : false;
+                        units.Add(new Unit(text[0], text[1], text[2], text[3], text[4], text[5], text[6], shield, terminals, equipTerminals));
                     }
                     firstSheet = true;
+                    tBoxes = new List<tBoxUnit>();
                     connectionScheme();
                 }
             }
@@ -114,11 +128,25 @@ namespace AcElectricalSchemePlugin
                         acBlkTbl = acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord acModSpace;
                         acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                        lt = (LinetypeTable)acTrans.GetObject(acDb.LinetypeTableId, OpenMode.ForRead);
-                        if (!lt.Has("штриховая2"))
-                            acDb.LoadLineTypeFile("*", HostApplicationServices.Current.FindFile("acad.lin", acDb, FindFileHint.Default));
+                        lineTypeTable = (LinetypeTable)acTrans.GetObject(acDb.LinetypeTableId, OpenMode.ForRead);
+                        if (!lineTypeTable.Has("штриховая2"))
+                            try
+                            {
+                                acDb.LoadLineTypeFile("*", @"Data\acad.lin");
+                                lineTypeTable = (LinetypeTable)acTrans.GetObject(acDb.LinetypeTableId, OpenMode.ForRead);
+                            }
+                            catch
+                            {
+                                editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
+                            }
+
+                        textStyle = (TextStyleTableRecord)acTrans.GetObject(acDb.Textstyle, OpenMode.ForWrite);
+                        textStyle.FileName = @"Data\GOST_Common.ttf";
+                        acDoc.Editor.Regen();
+
                         Point3d startPoint = selection.Value;
                         drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
+                        acDoc.Editor.Regen();
                         acTrans.Commit();
                         acTrans.Dispose();
                         currentTable = null;
@@ -165,7 +193,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(text);
             acTrans.AddNewlyCreatedDBObject(text, true);
 
-            Table table = new Table();
+            table = new Table();
             table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-14, -272, 0));
             table.SetSize(4, 1);
             table.TableStyle = acdb.Tablestyle;
@@ -313,14 +341,14 @@ namespace AcElectricalSchemePlugin
                     if (!aborted)
                     {
                         rightEdgeX = prevTermPoly.GetPoint2dAt(1).X;
-                        if (units[j].shield.ToUpper() == "ДА" || units[j].shield == "ЕСТЬ")
+                        if (units[j].shield)
                         {
                             Polyline groundLasso = new Polyline();
                             groundLasso.SetDatabaseDefaults();
-                            if (lt.Has("штриховая2"))
-                                groundLasso.LinetypeId = lt["штриховая2"];
-                            else if (lt.Has("hidden2"))
-                                groundLasso.LinetypeId = lt["hidden2"];
+                            if (lineTypeTable.Has("штриховая2"))
+                                groundLasso.LinetypeId = lineTypeTable["штриховая2"];
+                            else if (lineTypeTable.Has("hidden2"))
+                                groundLasso.LinetypeId = lineTypeTable["hidden2"];
                             groundLasso.LinetypeScale = 5;
                             groundLasso.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             groundLasso.Closed = true;
@@ -333,10 +361,10 @@ namespace AcElectricalSchemePlugin
 
                             Line groundLine1 = new Line();
                             groundLine1.SetDatabaseDefaults();
-                            if (lt.Has("штриховая2"))
-                                groundLine1.LinetypeId = lt["штриховая2"];
-                            else if (lt.Has("hidden2"))
-                                groundLine1.LinetypeId = lt["hidden2"];
+                            if (lineTypeTable.Has("штриховая2"))
+                                groundLine1.LinetypeId = lineTypeTable["штриховая2"];
+                            else if (lineTypeTable.Has("hidden2"))
+                                groundLine1.LinetypeId = lineTypeTable["hidden2"];
                             groundLine1.LinetypeScale = 5;
                             groundLine1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             groundLine1.StartPoint = groundLasso.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
@@ -346,10 +374,10 @@ namespace AcElectricalSchemePlugin
 
                             Circle acCirc = new Circle();
                             acCirc.SetDatabaseDefaults();
-                            if (lt.Has("штриховая2"))
-                                acCirc.LinetypeId = lt["штриховая2"];
-                            else if (lt.Has("hidden2"))
-                                acCirc.LinetypeId = lt["hidden2"];
+                            if (lineTypeTable.Has("штриховая2"))
+                                acCirc.LinetypeId = lineTypeTable["штриховая2"];
+                            else if (lineTypeTable.Has("hidden2"))
+                                acCirc.LinetypeId = lineTypeTable["hidden2"];
                             acCirc.LinetypeScale = 5;
                             acCirc.Center = groundLasso.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
                             acCirc.Radius = 0.37;
@@ -370,10 +398,10 @@ namespace AcElectricalSchemePlugin
 
                             Line groundLine2 = new Line();
                             groundLine2.SetDatabaseDefaults();
-                            if (lt.Has("штриховая2"))
-                                groundLine2.LinetypeId = lt["штриховая2"];
-                            else if (lt.Has("hidden2"))
-                                groundLine2.LinetypeId = lt["hidden2"];
+                            if (lineTypeTable.Has("штриховая2"))
+                                groundLine2.LinetypeId = lineTypeTable["штриховая2"];
+                            else if (lineTypeTable.Has("hidden2"))
+                                groundLine2.LinetypeId = lineTypeTable["hidden2"];
                             groundLine2.LinetypeScale = 5;
                             groundLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             groundLine2.StartPoint = groundLine1.EndPoint;
@@ -383,10 +411,10 @@ namespace AcElectricalSchemePlugin
 
                             Circle groundCircle = new Circle();
                             groundCircle.SetDatabaseDefaults();
-                            if (lt.Has("штриховая2"))
-                                groundCircle.LinetypeId = lt["штриховая2"];
-                            else if (lt.Has("hidden2"))
-                                groundCircle.LinetypeId = lt["hidden2"];
+                            if (lineTypeTable.Has("штриховая2"))
+                                groundCircle.LinetypeId = lineTypeTable["штриховая2"];
+                            else if (lineTypeTable.Has("hidden2"))
+                                groundCircle.LinetypeId = lineTypeTable["hidden2"];
                             groundCircle.LinetypeScale = 5;
                             groundCircle.Center = new Point3d(groundLine2.EndPoint.X, groundLine2.EndPoint.Y + 0.36, 0);
                             groundCircle.Radius = 0.36;
@@ -397,7 +425,7 @@ namespace AcElectricalSchemePlugin
 
                         currentUnit = units[j];
 
-                        currentTable.InsertColumns(currentTable.Columns.Count, width+20, 1);
+                        currentTable.InsertColumns(currentTable.Columns.Count, width+40, 1);
                         currentTable.UnmergeCells(currentTable.Rows[0]);
                         currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
                         currentTable.Cells[0, currentTable.Columns.Count-1].TextString = units[j].equipType==""?"-":units[j].equipType;
@@ -496,15 +524,13 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableLineUp1);
             acTrans.AddNewlyCreatedDBObject(cableLineUp1, true);
            
-            DBText textLine1 = new DBText();
+            MText textLine1 = new MText();
             textLine1.SetDatabaseDefaults();
             textLine1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            textLine1.Position = cableLineUp1.EndPoint.Add(new Vector3d(0, 20, 0));
-            textLine1.TextString = cableMark + "-" + cableNumber;
+            textLine1.Location = cableLineUp1.EndPoint.Add(new Vector3d(-1, 2, 0));
+            textLine1.Contents = cableMark + "-" + cableNumber;
             textLine1.Rotation = 1.5708;
-            textLine1.VerticalMode = TextVerticalMode.TextBottom;
-            textLine1.HorizontalMode = TextHorizontalMode.TextCenter;
-            textLine1.AlignmentPoint = textLine1.Position;
+            textLine1.Attachment = AttachmentPoint.BottomLeft;
             modSpace.AppendEntity(textLine1);
             acTrans.AddNewlyCreatedDBObject(textLine1, true);
 
@@ -516,17 +542,24 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableLineUp2);
             acTrans.AddNewlyCreatedDBObject(cableLineUp2, true);
 
-            DBText textLine2 = new DBText();
+            MText textLine2 = new MText();
             textLine2.SetDatabaseDefaults();
             textLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            textLine2.Position = cableLineUp2.EndPoint.Add(new Vector3d(0, 20, 0));
-            textLine2.TextString = cableMark + "-" + (cableNumber + 1);
+            textLine2.Location = cableLineUp2.EndPoint.Add(new Vector3d(-1, 2, 0));
+            textLine2.Contents = cableMark + "-" + (cableNumber + 1);
             textLine2.Rotation = 1.5708;
-            textLine2.VerticalMode = TextVerticalMode.TextBottom;
-            textLine2.HorizontalMode = TextHorizontalMode.TextCenter;
-            textLine2.AlignmentPoint = textLine2.Position;
+            textLine2.Attachment = AttachmentPoint.BottomLeft;
             modSpace.AppendEntity(textLine2);
             acTrans.AddNewlyCreatedDBObject(textLine2, true);
+
+            while (cableLineUp1.Length - 8 < textLine1.ActualWidth || cableLineUp2.Length - 8 < textLine2.ActualWidth)
+            {
+                cableLineUp1.EndPoint = cableLineUp1.EndPoint.Add(new Vector3d(0, -1, 0));
+                textLine1.Location = cableLineUp1.EndPoint.Add(new Vector3d(-1, 2, 0));
+                
+                cableLineUp2.EndPoint = cableLineUp2.EndPoint.Add(new Vector3d(0, -1, 0));
+                textLine2.Location = cableLineUp2.EndPoint.Add(new Vector3d(-1, 2, 0));
+            }
 
             lowestPoint = cableLineUp2.EndPoint;
 
@@ -535,6 +568,9 @@ namespace AcElectricalSchemePlugin
 
         private static double drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
         {
+            double leftEdgeX = 0;
+            double rightEdgeX = 0;
+
             Line jumperLineUp = new Line();
             jumperLineUp.SetDatabaseDefaults();
             jumperLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -565,39 +601,32 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(cableName, true);
 
             double X = cableName.GetPoint2dAt(0).X + (cableName.GetPoint2dAt(1).X - cableName.GetPoint2dAt(0).X)/2;
-            double Y = cableName.GetPoint2dAt(3).Y + (cableName.GetPoint2dAt(0).Y - cableName.GetPoint2dAt(3).Y) / 2;
+            double Y = cableName.GetPoint2dAt(0).Y - 2;
             Point3d cableNameCentre = new Point3d(X, Y, 0);
             MText textName = new MText();
             textName.SetDatabaseDefaults();
+            textName.TextStyleId = textStyle.Id;
             textName.Location = cableNameCentre;
-            textName.Attachment = AttachmentPoint.MiddleCenter;
+            textName.Attachment = AttachmentPoint.TopCenter;
             textName.Width = 25;
-            textName.Contents = unit.boxTerminals.Count == 0 ? unit.cupboardName.Split(' ')[1] + "/" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
+            textName.Contents = unit.tBoxName == string.Empty ? unit.cupboardName.Split(' ')[1] + "/" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
             modSpace.AppendEntity(textName);
             acTrans.AddNewlyCreatedDBObject(textName, true);
             if (textName.Width < textName.ActualWidth)
             {
-                textName.Contents = unit.boxTerminals.Count == 0 ? unit.cupboardName.Split(' ')[1] + " /" + unit.designation : unit.cupboardName.Split(' ')[1] + " /" + unit.tBoxName;
-                //while (textName.Width<textName.ActualWidth)
-                //{
-                //    cableName.SetPointAt(2, cableName.GetPoint2dAt(2).Add(new Vector2d(0, -5)));
-                //    cableName.SetPointAt(3, cableName.GetPoint2dAt(3).Add(new Vector2d(0, -5)));
-                //}
+                textName.Contents = unit.tBoxName == string.Empty ? unit.cupboardName.Split(' ')[1] + " /" + unit.designation : unit.cupboardName.Split(' ')[1] + " /" + unit.tBoxName;
+                while (textName.ActualHeight > cableName.GetPoint2dAt(0).Y - cableName.GetPoint2dAt(3).Y - 4)
+                {
+                    cableName.SetPointAt(2, cableName.GetPoint2dAt(2).Add(new Vector2d(0, -1)));
+                    cableName.SetPointAt(3, cableName.GetPoint2dAt(3).Add(new Vector2d(0, -1)));
+                }
             }
 
             Line cableLine2 = new Line();
             cableLine2.SetDatabaseDefaults();
             cableLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             startPoint = new Point3d(endPoint.X, cableName.GetPoint2dAt(2).Y, 0);
-            double cableLine2Length;
-            try
-            {
-                cableLine2Length = unit.boxTerminals.Count > 0 ? startPoint.Y - 40 : startPoint.Y - 80;
-            }
-            catch
-            {
-                cableLine2Length = startPoint.Y - 80;
-            }
+            double cableLine2Length = unit.tBoxName != string.Empty ? startPoint.Y - 40 : startPoint.Y - 80;
             endPoint = new Point3d(startPoint.X, cableLine2Length, 0);
             cableLine2.StartPoint = startPoint;
             cableLine2.EndPoint = endPoint;
@@ -617,13 +646,14 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(cableMark, true);
             
             Point3d point;
-            if (unit.boxTerminals != null && unit.boxTerminals.Count > 0)
+            if (unit.tBoxName != string.Empty)
             {
                 point = drawTerminalBox(acTrans, modSpace, cableLine2, unit);
             }
             else
             {
                 point = cableLine2.EndPoint;
+                currentTBoxName = null;
             }
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
@@ -677,14 +707,34 @@ namespace AcElectricalSchemePlugin
                 text.AlignmentPoint = text.Position;
                 modSpace.AppendEntity(text);
                 acTrans.AddNewlyCreatedDBObject(text, true);
-            }
 
+                if (i == 0) leftEdgeX = cableLineDown.StartPoint.X - 3;
+                rightEdgeX = cableLineDown.StartPoint.X + 3;
+            }
+            if (unit.shield)
+            {
+                Polyline groundLasso = new Polyline();
+                groundLasso.SetDatabaseDefaults();
+                if (lineTypeTable.Has("штриховая2"))
+                    groundLasso.LinetypeId = lineTypeTable["штриховая2"];
+                else if (lineTypeTable.Has("hidden2"))
+                    groundLasso.LinetypeId = lineTypeTable["hidden2"];
+                groundLasso.LinetypeScale = 5;
+                groundLasso.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                groundLasso.Closed = true;
+                groundLasso.AddVertexAt(0, new Point2d(leftEdgeX + 3, jumperLineDown.StartPoint.Y - 3), 0, 0, 0);
+                groundLasso.AddVertexAt(1, new Point2d(rightEdgeX - 3, jumperLineDown.StartPoint.Y - 3), -1, 0, 0);
+                groundLasso.AddVertexAt(2, groundLasso.GetPoint2dAt(1).Add(new Vector2d(0, -3.28)), 0, 0, 0);
+                groundLasso.AddVertexAt(3, groundLasso.GetPoint2dAt(0).Add(new Vector2d(0, -3.28)), -1, 0, 0);
+                modSpace.AppendEntity(groundLasso);
+                acTrans.AddNewlyCreatedDBObject(groundLasso, true);
+            }
             Polyline equip = new Polyline();
             equip.SetDatabaseDefaults();
-            if (lt.Has("штриховая2"))
-                equip.LinetypeId = lt["штриховая2"];
-            else if (lt.Has("hidden2"))
-                equip.LinetypeId = lt["hidden2"];
+            if (lineTypeTable.Has("штриховая2"))
+                equip.LinetypeId = lineTypeTable["штриховая2"];
+            else if (lineTypeTable.Has("hidden2"))
+                equip.LinetypeId = lineTypeTable["hidden2"];
             equip.LinetypeScale = 5;
             equip.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             equip.Closed = true;
@@ -694,6 +744,9 @@ namespace AcElectricalSchemePlugin
             equip.AddVertexAt(3, equip.GetPoint2dAt(0).Add(new Vector2d(0, -60)), 0, 0, 0);
             modSpace.AppendEntity(equip);
             acTrans.AddNewlyCreatedDBObject(equip, true);
+            
+            if (equip.GetPoint2dAt(3).Y < table.Position.Y)
+                table.Position = table.Position.Add(new Vector3d(0, - 10, 0));
 
             return (equip.GetPoint2dAt(1).X - equip.GetPoint2dAt(0).X);
         }
@@ -703,9 +756,9 @@ namespace AcElectricalSchemePlugin
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
             jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            double x = cableLine.EndPoint.X - ((unit.boxTerminals.Count - 1) * 5) / 2;
+            double x = cableLine.EndPoint.X - unit.equipTerminals.Count * 5 / 2;
             jumperLineDown.StartPoint = new Point3d(x, cableLine.EndPoint.Y, 0);
-            x = x + ((unit.boxTerminals.Count - 1) * 5);
+            x = x + unit.equipTerminals.Count * 5;
             jumperLineDown.EndPoint = new Point3d(x, cableLine.EndPoint.Y, 0);
             modSpace.AppendEntity(jumperLineDown);
             acTrans.AddNewlyCreatedDBObject(jumperLineDown, true);
@@ -713,249 +766,159 @@ namespace AcElectricalSchemePlugin
             double lowestPointY = 0;
             double leftEdgeX = 0;
             double rightEdgeX = 0;
-            for (int i = 0; i < unit.boxTerminals.Count; i++)
+            tBoxUnit tBox;
+            int index = 0;
+            bool exist = false;
+            if (tBoxes.Exists(tbox => tbox.Name == unit.tBoxName))
             {
-                if (unit.boxTerminals[i] != "*")
-                {
-                    Line cableLineInput = new Line();
-                    cableLineInput.SetDatabaseDefaults();
-                    cableLineInput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    cableLineInput.StartPoint = new Point3d(jumperLineDown.StartPoint.X + i * 5, jumperLineDown.StartPoint.Y, 0);
-                    cableLineInput.EndPoint = new Point3d(cableLineInput.StartPoint.X, cableLineInput.StartPoint.Y - 8, 0);
-                    modSpace.AppendEntity(cableLineInput);
-                    acTrans.AddNewlyCreatedDBObject(cableLineInput, true);
-
-                    Polyline terminal = new Polyline();
-                    terminal.SetDatabaseDefaults();
-                    terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    terminal.Closed = true;
-                    terminal.AddVertexAt(0, new Point2d(cableLineInput.EndPoint.X - 2.75, cableLineInput.EndPoint.Y), 0, 0, 0);
-                    terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
-                    terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
-                    terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
-                    modSpace.AppendEntity(terminal);
-                    acTrans.AddNewlyCreatedDBObject(terminal, true);
-
-                    DBText textLine = new DBText();
-                    textLine.SetDatabaseDefaults();
-                    textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    textLine.Position = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 20, 0));
-                    textLine.TextString = unit.designation + "-" + (i + 1);
-                    textLine.Rotation = 1.5708;
-                    textLine.VerticalMode = TextVerticalMode.TextBottom;
-                    textLine.HorizontalMode = TextHorizontalMode.TextCenter;
-                    textLine.AlignmentPoint = textLine.Position;
-                    modSpace.AppendEntity(textLine);
-                    acTrans.AddNewlyCreatedDBObject(textLine, true);
-
-                    Line line = new Line();
-                    line.SetDatabaseDefaults();
-                    line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
-                    line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
-                    modSpace.AppendEntity(line);
-                    acTrans.AddNewlyCreatedDBObject(line, true);
-
-                    DBText text = new DBText();
-                    text.SetDatabaseDefaults();
-                    text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
-                    text.TextString = unit.boxTerminals[i];
-                    text.HorizontalMode = TextHorizontalMode.TextCenter;
-                    text.AlignmentPoint = text.Position;
-                    modSpace.AppendEntity(text);
-                    acTrans.AddNewlyCreatedDBObject(text, true);
-
-                    Line cableLineOutput = new Line();
-                    cableLineOutput.SetDatabaseDefaults();
-                    cableLineOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    cableLineOutput.StartPoint = cableLineInput.EndPoint.Add(new Vector3d(0, -34, 0));
-                    cableLineOutput.EndPoint = cableLineOutput.StartPoint.Add(new Vector3d(0, -8, 0));
-                    modSpace.AppendEntity(cableLineOutput);
-                    acTrans.AddNewlyCreatedDBObject(cableLineOutput, true);
-
-                    lowestPointY = cableLineOutput.EndPoint.Y;
-                    if (i == 0) leftEdgeX = cableLineInput.StartPoint.X - 3;
-                    rightEdgeX = cableLineInput.StartPoint.X + 3;
-                }
-                else
-                {
-                    Polyline terminal = new Polyline();
-                    terminal.SetDatabaseDefaults();
-                    terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    terminal.Closed = true;
-                    terminal.AddVertexAt(0, new Point2d(rightEdgeX - 0.75, jumperLineDown.EndPoint.Y - 8), 0, 0, 0);
-                    terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
-                    terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
-                    terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
-                    modSpace.AppendEntity(terminal);
-                    acTrans.AddNewlyCreatedDBObject(terminal, true);
-
-                    DBText textLine = new DBText();
-                    textLine.SetDatabaseDefaults();
-                    textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    textLine.Position = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 20, 0));
-                    textLine.TextString = "шина ф. заземл.";
-                    textLine.Rotation = 1.5708;
-                    textLine.VerticalMode = TextVerticalMode.TextBottom;
-                    textLine.HorizontalMode = TextHorizontalMode.TextCenter;
-                    textLine.AlignmentPoint = textLine.Position;
-                    modSpace.AppendEntity(textLine);
-                    acTrans.AddNewlyCreatedDBObject(textLine, true);
-
-                    Line line = new Line();
-                    line.SetDatabaseDefaults();
-                    line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
-                    line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
-                    modSpace.AppendEntity(line);
-                    acTrans.AddNewlyCreatedDBObject(line, true);
-
-                    //DBText text = new DBText();
-                    //text.SetDatabaseDefaults();
-                    //text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    //text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
-                    //text.TextString = unit.boxTerminals[i];
-                    //text.HorizontalMode = TextHorizontalMode.TextCenter;
-                    //text.AlignmentPoint = text.Position;
-                    //modSpace.AppendEntity(text);
-                    //acTrans.AddNewlyCreatedDBObject(text, true);
-
-                    Polyline groundLassoUp = new Polyline();
-                    groundLassoUp.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLassoUp.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLassoUp.LinetypeId = lt["hidden2"];
-                    groundLassoUp.LinetypeScale = 5;
-                    groundLassoUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLassoUp.Closed = true;
-                    groundLassoUp.AddVertexAt(0, new Point2d(leftEdgeX + 3, jumperLineDown.StartPoint.Y - 3), 0, 0, 0);
-                    groundLassoUp.AddVertexAt(1, new Point2d(rightEdgeX - 3, jumperLineDown.StartPoint.Y - 3), -1, 0, 0);
-                    groundLassoUp.AddVertexAt(2, groundLassoUp.GetPoint2dAt(1).Add(new Vector2d(0, -3.28)), 0, 0, 0);
-                    groundLassoUp.AddVertexAt(3, groundLassoUp.GetPoint2dAt(0).Add(new Vector2d(0, -3.28)), -1, 0, 0);
-                    modSpace.AppendEntity(groundLassoUp);
-                    acTrans.AddNewlyCreatedDBObject(groundLassoUp, true);
-
-                    Line groundLineUp1 = new Line();
-                    groundLineUp1.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLineUp1.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLineUp1.LinetypeId = lt["hidden2"];
-                    groundLineUp1.LinetypeScale = 5;
-                    groundLineUp1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLineUp1.StartPoint = groundLassoUp.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
-                    groundLineUp1.EndPoint = groundLineUp1.StartPoint.Add(new Vector3d(2.5, 0, 0));
-                    modSpace.AppendEntity(groundLineUp1);
-                    acTrans.AddNewlyCreatedDBObject(groundLineUp1, true);
-
-                    Circle acCircUp = new Circle();
-                    acCircUp.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        acCircUp.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        acCircUp.LinetypeId = lt["hidden2"];
-                    acCircUp.LinetypeScale = 5;
-                    acCircUp.Center = groundLassoUp.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
-                    acCircUp.Radius = 0.37;
-                    modSpace.AppendEntity(acCircUp);
-                    acTrans.AddNewlyCreatedDBObject(acCircUp, true);
-
-                    ObjectIdCollection acObjIdCollUp = new ObjectIdCollection();
-                    acObjIdCollUp.Add(acCircUp.ObjectId);
-
-                    Hatch acHatchUp = new Hatch();
-                    modSpace.AppendEntity(acHatchUp);
-                    acTrans.AddNewlyCreatedDBObject(acHatchUp, true);
-                    acHatchUp.SetDatabaseDefaults();
-                    acHatchUp.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-                    acHatchUp.Associative = true;
-                    acHatchUp.AppendLoop(HatchLoopTypes.Outermost, acObjIdCollUp);
-                    acHatchUp.EvaluateHatch(true);
-
-                    Line groundLineUp2 = new Line();
-                    groundLineUp2.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLineUp2.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLineUp2.LinetypeId = lt["hidden2"];
-                    groundLineUp2.LinetypeScale = 5;
-                    groundLineUp2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLineUp2.StartPoint = groundLineUp1.EndPoint;
-                    groundLineUp2.EndPoint = groundLineUp2.StartPoint.Add(new Vector3d(0, terminal.GetPoint2dAt(0).Y - groundLineUp2.StartPoint.Y, 0));
-                    modSpace.AppendEntity(groundLineUp2);
-                    acTrans.AddNewlyCreatedDBObject(groundLineUp2, true);
-
-                    jumperLineDown.EndPoint = jumperLineDown.EndPoint.Add(new Vector3d(-5, 0, 0));
-
-                    Polyline groundLassoDown = new Polyline();
-                    groundLassoDown.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLassoDown.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLassoDown.LinetypeId = lt["hidden2"];
-                    groundLassoDown.LinetypeScale = 5;
-                    groundLassoDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLassoDown.Closed = true;
-                    groundLassoDown.AddVertexAt(0, new Point2d(leftEdgeX + 3, terminal.GetPoint2dAt(2).Y - 3), 0, 0, 0);
-                    groundLassoDown.AddVertexAt(1, new Point2d(rightEdgeX - 3, terminal.GetPoint2dAt(2).Y - 3), -1, 0, 0);
-                    groundLassoDown.AddVertexAt(2, groundLassoDown.GetPoint2dAt(1).Add(new Vector2d(0, -3.28)), 0, 0, 0);
-                    groundLassoDown.AddVertexAt(3, groundLassoDown.GetPoint2dAt(0).Add(new Vector2d(0, -3.28)), -1, 0, 0);
-                    modSpace.AppendEntity(groundLassoDown);
-                    acTrans.AddNewlyCreatedDBObject(groundLassoDown, true);
-
-                    Line groundLineDown1 = new Line();
-                    groundLineDown1.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLineDown1.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLineDown1.LinetypeId = lt["hidden2"];
-                    groundLineDown1.LinetypeScale = 5;
-                    groundLineDown1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLineDown1.StartPoint = groundLassoDown.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
-                    groundLineDown1.EndPoint = groundLineDown1.StartPoint.Add(new Vector3d(2.5, 0, 0));
-                    modSpace.AppendEntity(groundLineDown1);
-                    acTrans.AddNewlyCreatedDBObject(groundLineDown1, true);
-
-                    Circle acCircDown = new Circle();
-                    acCircDown.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        acCircDown.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        acCircDown.LinetypeId = lt["hidden2"];
-                    acCircDown.LinetypeScale = 5;
-                    acCircDown.Center = groundLassoDown.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
-                    acCircDown.Radius = 0.37;
-                    modSpace.AppendEntity(acCircDown);
-                    acTrans.AddNewlyCreatedDBObject(acCircDown, true);
-
-                    ObjectIdCollection acObjIdCollDown = new ObjectIdCollection();
-                    acObjIdCollDown.Add(acCircDown.ObjectId);
-
-                    Hatch acHatchDown = new Hatch();
-                    modSpace.AppendEntity(acHatchDown);
-                    acTrans.AddNewlyCreatedDBObject(acHatchDown, true);
-                    acHatchDown.SetDatabaseDefaults();
-                    acHatchDown.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-                    acHatchDown.Associative = true;
-                    acHatchDown.AppendLoop(HatchLoopTypes.Outermost, acObjIdCollDown);
-                    acHatchDown.EvaluateHatch(true);
-
-                    Line groundLineDown2 = new Line();
-                    groundLineDown2.SetDatabaseDefaults();
-                    if (lt.Has("штриховая2"))
-                        groundLineDown2.LinetypeId = lt["штриховая2"];
-                    else if (lt.Has("hidden2"))
-                        groundLineDown2.LinetypeId = lt["hidden2"];
-                    groundLineDown2.LinetypeScale = 5;
-                    groundLineDown2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    groundLineDown2.StartPoint = groundLineDown1.EndPoint;
-                    groundLineDown2.EndPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(groundLineDown1.Length, 0 , 0));
-                    modSpace.AppendEntity(groundLineDown2);
-                    acTrans.AddNewlyCreatedDBObject(groundLineDown2, true);
-                }
+                index = tBoxes.IndexOf(tBoxes.Find(tbox => tbox.Name == unit.tBoxName));
+                tBox = tBoxes[index];
+                exist = true;
             }
+            else tBox = new tBoxUnit(unit.tBoxName, 0, 1);
+            double lowestPoint = 0;
+            List<Polyline> polys = new List<Polyline>();
+            List<MText> texts = new List<MText>();
+            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            {
+                Line cableLineInput = new Line();
+                cableLineInput.SetDatabaseDefaults();
+                cableLineInput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableLineInput.StartPoint = new Point3d(jumperLineDown.StartPoint.X + i * 5, jumperLineDown.StartPoint.Y, 0);
+                cableLineInput.EndPoint = new Point3d(cableLineInput.StartPoint.X, cableLineInput.StartPoint.Y - 8, 0);
+                modSpace.AppendEntity(cableLineInput);
+                acTrans.AddNewlyCreatedDBObject(cableLineInput, true);
+
+                Polyline terminal = new Polyline();
+                terminal.SetDatabaseDefaults();
+                terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                terminal.Closed = true;
+                terminal.AddVertexAt(0, new Point2d(cableLineInput.EndPoint.X - 2.75, cableLineInput.EndPoint.Y), 0, 0, 0);
+                terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                terminal.AddVertexAt(2, terminal.GetPoint2dAt(1).Add(new Vector2d(0, -34)), 0, 0, 0);
+                terminal.AddVertexAt(3, terminal.GetPoint2dAt(0).Add(new Vector2d(0, -34)), 0, 0, 0);
+                modSpace.AppendEntity(terminal);
+                acTrans.AddNewlyCreatedDBObject(terminal, true);
+                
+                MText textLine = new MText();
+                textLine.SetDatabaseDefaults();
+                textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
+                textLine.Contents = unit.designation + "-" + (i + 1);
+                textLine.Rotation = 1.5708;
+                textLine.Attachment = AttachmentPoint.BottomLeft;
+                modSpace.AppendEntity(textLine);
+                acTrans.AddNewlyCreatedDBObject(textLine, true);
+                
+                polys.Add(terminal);
+                texts.Add(textLine);
+
+                while (textLine.ActualWidth > Math.Abs(terminal.GetPoint2dAt(1).Y) - Math.Abs(terminal.GetPoint2dAt(2).Y) - 7)
+                {
+                    terminal.SetPointAt(2, terminal.GetPoint2dAt(2).Add(new Vector2d(0, -1)));
+                    terminal.SetPointAt(3, terminal.GetPoint2dAt(3).Add(new Vector2d(0, -1)));
+                    textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
+                }
+                if (i == 0) lowestPoint = terminal.GetPoint2dAt(2).Y;
+                else if (lowestPoint > terminal.GetPoint2dAt(2).Y) 
+                    lowestPoint = terminal.GetPoint2dAt(2).Y;
+            }
+
+            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            {
+                //Polyline terminal = (Polyline)acTrans.GetObject(polys[i].Id, OpenMode.ForWrite);
+                //MText textLine = (MText)acTrans.GetObject(texts[i].Id, OpenMode.ForWrite);
+                Polyline terminal = polys[i];
+                MText textLine = texts[i];
+
+                while (lowestPoint < terminal.GetPoint2dAt(2).Y)
+                {
+                    terminal.SetPointAt(2, terminal.GetPoint2dAt(2).Add(new Vector2d(0, -1)));
+                    terminal.SetPointAt(3, terminal.GetPoint2dAt(3).Add(new Vector2d(0, -1)));
+                    textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
+                }
+
+                Line line = new Line();
+                line.SetDatabaseDefaults();
+                line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
+                line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
+                modSpace.AppendEntity(line);
+                acTrans.AddNewlyCreatedDBObject(line, true);
+
+                DBText text = new DBText();
+                text.SetDatabaseDefaults();
+                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
+                text.TextString = tBox.LastTerminalNumber.ToString();
+                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                text.AlignmentPoint = text.Position;
+                modSpace.AppendEntity(text);
+                acTrans.AddNewlyCreatedDBObject(text, true);
+                tBox.LastTerminalNumber++;
+
+                Line cableLineOutput = new Line();
+                cableLineOutput.SetDatabaseDefaults();
+                cableLineOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableLineOutput.StartPoint = new Point3d(jumperLineDown.StartPoint.X + i * 5, terminal.GetPoint2dAt(2).Y, 0);
+                cableLineOutput.EndPoint = cableLineOutput.StartPoint.Add(new Vector3d(0, -8, 0));
+                modSpace.AppendEntity(cableLineOutput);
+                acTrans.AddNewlyCreatedDBObject(cableLineOutput, true);
+
+                lowestPointY = cableLineOutput.EndPoint.Y;
+                if (i == 0) leftEdgeX = cableLineOutput.StartPoint.X - 3;
+                rightEdgeX = cableLineOutput.StartPoint.X + 3;
+            }
+
+            if (unit.shield)
+            {
+                Polyline terminal = new Polyline();
+                terminal.SetDatabaseDefaults();
+                terminal.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                terminal.Closed = true;
+                terminal.AddVertexAt(0, new Point2d(rightEdgeX - 0.75, jumperLineDown.EndPoint.Y - 8), 0, 0, 0);
+                terminal.AddVertexAt(1, terminal.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                terminal.AddVertexAt(2, new Point2d(terminal.GetPoint2dAt(0).X+5, lowestPoint), 0, 0, 0);
+                terminal.AddVertexAt(3, new Point2d(terminal.GetPoint2dAt(0).X, lowestPoint), 0, 0, 0);
+                modSpace.AppendEntity(terminal);
+                acTrans.AddNewlyCreatedDBObject(terminal, true);
+
+                DBText textLine = new DBText();
+                textLine.SetDatabaseDefaults();
+                textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                textLine.Position = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 20, 0));
+                textLine.TextString = "шина ф. заземл.";
+                textLine.Rotation = 1.5708;
+                textLine.VerticalMode = TextVerticalMode.TextBottom;
+                textLine.HorizontalMode = TextHorizontalMode.TextCenter;
+                textLine.AlignmentPoint = textLine.Position;
+                modSpace.AppendEntity(textLine);
+                acTrans.AddNewlyCreatedDBObject(textLine, true);
+
+                Line line = new Line();
+                line.SetDatabaseDefaults();
+                line.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                line.StartPoint = terminal.GetPoint3dAt(3).Add(new Vector3d(0, 5, 0));
+                line.EndPoint = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 5, 0));
+                modSpace.AppendEntity(line);
+                acTrans.AddNewlyCreatedDBObject(line, true);
+
+                //DBText text = new DBText();
+                //text.SetDatabaseDefaults();
+                //text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                //text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
+                //text.TextString = unit.boxTerminals[i];
+                //text.HorizontalMode = TextHorizontalMode.TextCenter;
+                //text.AlignmentPoint = text.Position;
+                //modSpace.AppendEntity(text);
+                //acTrans.AddNewlyCreatedDBObject(text, true);
+
+                jumperLineDown.EndPoint = jumperLineDown.EndPoint.Add(new Vector3d(-5, 0, 0));
+
+                drawGndLasso(acTrans, modSpace, leftEdgeX, rightEdgeX, terminal.GetPoint2dAt(0).X, terminal.GetPoint2dAt(1).X, terminal.GetPoint2dAt(0).Y, true);
+                drawGndLasso(acTrans, modSpace, leftEdgeX, rightEdgeX, terminal.GetPoint2dAt(3).X, terminal.GetPoint2dAt(2).X, terminal.GetPoint2dAt(3).Y, false);
+            }
+
             Line jumperOutput = new Line();
             jumperOutput.SetDatabaseDefaults();
             jumperOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -980,8 +943,8 @@ namespace AcElectricalSchemePlugin
                 tbox.Closed = true;
                 tbox.AddVertexAt(0, new Point2d(jumperLineDown.StartPoint.X - 7, jumperLineDown.StartPoint.Y + 2), 0, 0, 0);
                 tbox.AddVertexAt(1, new Point2d(jumperLineDown.EndPoint.X + 9, jumperLineDown.StartPoint.Y + 2), 0, 0, 0);
-                tbox.AddVertexAt(2, tbox.GetPoint2dAt(1).Add(new Vector2d(0, -53.35)), 0, 0, 0);
-                tbox.AddVertexAt(3, tbox.GetPoint2dAt(0).Add(new Vector2d(0, -53.35)), 0, 0, 0);
+                tbox.AddVertexAt(2, new Point2d(jumperLineDown.EndPoint.X + 9, jumperOutput.StartPoint.Y - 2), 0, 0, 0);
+                tbox.AddVertexAt(3, new Point2d(jumperLineDown.StartPoint.X - 7, jumperOutput.StartPoint.Y - 2), 0, 0, 0);
                 modSpace.AppendEntity(tbox);
                 acTrans.AddNewlyCreatedDBObject(tbox, true);
                 currentTBox = tbox;
@@ -997,19 +960,20 @@ namespace AcElectricalSchemePlugin
                 tBoxText.AlignmentPoint = tBoxText.Position;
                 modSpace.AppendEntity(tBoxText);
                 acTrans.AddNewlyCreatedDBObject(tBoxText, true);
-                
+
+                tBox.Count++;
                 DBText tBoxName = new DBText();
                 tBoxName.SetDatabaseDefaults();
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 tBoxName.Position = tbox.GetPoint3dAt(1).Add(new Vector3d(8, 5, 0));
-                tBoxName.TextString = unit.tBoxName;
+                tBoxName.TextString = tBox.Name+"."+tBox.Count.ToString();
                 tBoxName.VerticalMode = TextVerticalMode.TextBottom;
                 tBoxName.HorizontalMode = TextHorizontalMode.TextCenter;
                 tBoxName.AlignmentPoint = tBoxName.Position;
                 modSpace.AppendEntity(tBoxName);
                 acTrans.AddNewlyCreatedDBObject(tBoxName, true);
                 currentTBoxName = tBoxName;
-
+                
                 Leader acLdr = new Leader();
                 acLdr.SetDatabaseDefaults();
                 acLdr.AppendVertex(tbox.GetPoint3dAt(1).Add(new Vector3d(-5, 0, 0)));
@@ -1023,14 +987,17 @@ namespace AcElectricalSchemePlugin
             else
             {
                 currentTBox.SetPointAt(1, new Point2d(jumperLineDown.EndPoint.X + 9, jumperLineDown.StartPoint.Y + 2));
-                currentTBox.SetPointAt(2, currentTBox.GetPoint2dAt(1).Add(new Vector2d(0, -53.35)));
+                currentTBox.SetPointAt(2, new Point2d(jumperLineDown.EndPoint.X + 9, jumperOutput.StartPoint.Y - 2));
+                if (currentTBox.GetPoint2dAt(3).Y > jumperLineDown.StartPoint.Y)
+                    currentTBox.SetPointAt(3, new Point2d(currentTBox.GetPoint2dAt(3).X, jumperOutput.StartPoint.Y - 2));
+
 
                 currentTBoxName.Erase();
                 DBText tBoxName = new DBText();
                 tBoxName.SetDatabaseDefaults();
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 tBoxName.Position = currentTBox.GetPoint3dAt(1).Add(new Vector3d(8, 5, 0));
-                tBoxName.TextString = unit.tBoxName;
+                tBoxName.TextString = tBox.Name + "." + tBox.Count.ToString();
                 tBoxName.VerticalMode = TextVerticalMode.TextBottom;
                 tBoxName.HorizontalMode = TextHorizontalMode.TextCenter;
                 tBoxName.AlignmentPoint = tBoxName.Position;
@@ -1049,6 +1016,10 @@ namespace AcElectricalSchemePlugin
                 acTrans.AddNewlyCreatedDBObject(acLdr, true);
                 currentLeader = acLdr;
             }
+
+            if (exist) tBoxes[index] = tBox;
+            else tBoxes.Add(tBox);
+
             return cLineOutput.EndPoint;
         }
 
@@ -1059,12 +1030,12 @@ namespace AcElectricalSchemePlugin
             string blockName;
             if (first)
             {
-                filename = "Frame.dwg";
+                filename = @"Data\Frame.dwg";
                 blockName = "Frame";
             }
             else
             {
-                filename = "FrameOther.dwg";
+                filename = @"Data\FrameOther.dwg";
                 blockName = "FrameOther";
             }
             using(Database sourceDb = new Database(false, true))
@@ -1096,6 +1067,75 @@ namespace AcElectricalSchemePlugin
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
+        }
+
+        private static void drawGndLasso(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double lPoint, double rPoint, double yPoint, bool Upper)
+        {
+            Polyline groundLasso = new Polyline();
+            groundLasso.SetDatabaseDefaults();
+            if (lineTypeTable.Has("штриховая2"))
+                groundLasso.LinetypeId = lineTypeTable["штриховая2"];
+            else if (lineTypeTable.Has("hidden2"))
+                groundLasso.LinetypeId = lineTypeTable["hidden2"];
+            groundLasso.LinetypeScale = 5;
+            groundLasso.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            groundLasso.Closed = true;
+            groundLasso.AddVertexAt(0, new Point2d(leftEdgeX + 3, Upper ? yPoint + 6.28 : yPoint - 3), 0, 0, 0);
+            groundLasso.AddVertexAt(1, new Point2d(rightEdgeX - 3, Upper ? yPoint + 6.28 : yPoint - 3), -1, 0, 0);
+            groundLasso.AddVertexAt(2, groundLasso.GetPoint2dAt(1).Add(new Vector2d(0, -3.28)), 0, 0, 0);
+            groundLasso.AddVertexAt(3, groundLasso.GetPoint2dAt(0).Add(new Vector2d(0, -3.28)), -1, 0, 0);
+            modSpace.AppendEntity(groundLasso);
+            acTrans.AddNewlyCreatedDBObject(groundLasso, true);
+
+            Circle acCirc = new Circle();
+            acCirc.SetDatabaseDefaults();
+            if (lineTypeTable.Has("штриховая2"))
+                acCirc.LinetypeId = lineTypeTable["штриховая2"];
+            else if (lineTypeTable.Has("hidden2"))
+                acCirc.LinetypeId = lineTypeTable["hidden2"];
+            acCirc.LinetypeScale = 5;
+            acCirc.Center = groundLasso.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
+            acCirc.Radius = 0.37;
+            modSpace.AppendEntity(acCirc);
+            acTrans.AddNewlyCreatedDBObject(acCirc, true);
+
+            ObjectIdCollection acObjIdColl = new ObjectIdCollection();
+            acObjIdColl.Add(acCirc.ObjectId);
+
+            Hatch acHatch = new Hatch();
+            modSpace.AppendEntity(acHatch);
+            acTrans.AddNewlyCreatedDBObject(acHatch, true);
+            acHatch.SetDatabaseDefaults();
+            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            acHatch.Associative = true;
+            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+            acHatch.EvaluateHatch(true);
+
+            Line groundLine1 = new Line();
+            groundLine1.SetDatabaseDefaults();
+            if (lineTypeTable.Has("штриховая2"))
+                groundLine1.LinetypeId = lineTypeTable["штриховая2"];
+            else if (lineTypeTable.Has("hidden2"))
+                groundLine1.LinetypeId = lineTypeTable["hidden2"];
+            groundLine1.LinetypeScale = 5;
+            groundLine1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            groundLine1.StartPoint = groundLasso.GetPoint3dAt(1).Add(new Vector3d(1.64, -1.64, 0));
+            groundLine1.EndPoint = new Point3d(lPoint + (rPoint - lPoint) / 2, groundLine1.StartPoint.Y, 0);
+            modSpace.AppendEntity(groundLine1);
+            acTrans.AddNewlyCreatedDBObject(groundLine1, true);
+
+            Line groundLine2 = new Line();
+            groundLine2.SetDatabaseDefaults();
+            if (lineTypeTable.Has("штриховая2"))
+                groundLine2.LinetypeId = lineTypeTable["штриховая2"];
+            else if (lineTypeTable.Has("hidden2"))
+                groundLine2.LinetypeId = lineTypeTable["hidden2"];
+            groundLine2.LinetypeScale = 5;
+            groundLine2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            groundLine2.StartPoint = groundLine1.EndPoint;
+            groundLine2.EndPoint = new Point3d(lPoint + (rPoint - lPoint) / 2, yPoint, 0);
+            modSpace.AppendEntity(groundLine2);
+            acTrans.AddNewlyCreatedDBObject(groundLine2, true);
         }
     }
 }
