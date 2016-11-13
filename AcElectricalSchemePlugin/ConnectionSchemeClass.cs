@@ -813,7 +813,7 @@ namespace AcElectricalSchemePlugin
                 polys.Add(terminal);
                 texts.Add(textLine);
 
-                while (textLine.ActualWidth > Math.Abs(terminal.GetPoint2dAt(1).Y) - Math.Abs(terminal.GetPoint2dAt(2).Y) - 7)
+                while (textLine.ActualWidth > terminal.GetPoint2dAt(1).Y - terminal.GetPoint2dAt(2).Y - 7)
                 {
                     terminal.SetPointAt(2, terminal.GetPoint2dAt(2).Add(new Vector2d(0, -1)));
                     terminal.SetPointAt(3, terminal.GetPoint2dAt(3).Add(new Vector2d(0, -1)));
