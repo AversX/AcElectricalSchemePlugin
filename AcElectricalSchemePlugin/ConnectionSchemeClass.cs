@@ -62,6 +62,10 @@ namespace AcElectricalSchemePlugin
             public bool shield;
             public List<string> terminals;
             public List<string> equipTerminals;
+            public Line cableMarkLine;
+            public Line outputCableLine;
+            public MText cableName;
+            public bool newSheet; 
 
             public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _equipTerminals)
             {
@@ -75,6 +79,10 @@ namespace AcElectricalSchemePlugin
                 shield = _shield;
                 terminals = _terminals;
                 equipTerminals = _equipTerminals;
+                cableMarkLine = null;
+                outputCableLine = null;
+                cableName = null;
+                newSheet = false;
             }
         }
 
@@ -106,7 +114,18 @@ namespace AcElectricalSchemePlugin
                 }
             }
         }
-
+        private static List<int> findGroups(int index)
+        {
+            List<int> result = new List<int>();
+            result.Add(index);
+            for (int i = index+1; i < units.Count; i++)
+            {
+                if (units[index].tBoxName == units[i].tBoxName && units[index].tBoxName != "" && units[i].tBoxName != "")
+                    result.Add(i);
+                else break;
+            }
+            return result.Count == 1 ? null : result;
+        }
         public static void DrawScheme()
         {
             units = new List<Unit>();
@@ -176,6 +195,53 @@ namespace AcElectricalSchemePlugin
                         textStyle.FileName = @"Data\GOST_Common.ttf";
                         Point3d startPoint = selection.Value;
                         drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
+                        double lowestPoint = units[0].cableMarkLine.EndPoint.Y;
+                        for (int i = 1; i < units.Count; i++)
+                            if (units[i].cableMarkLine.EndPoint.Y < lowestPoint)
+                                lowestPoint = units[i].cableMarkLine.EndPoint.Y;
+                        for (int i = 0; i < units.Count; i++)
+                        {
+                            while (units[i].cableMarkLine.EndPoint.Y > lowestPoint)
+                            {
+                                units[i].cableMarkLine.EndPoint = units[i].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
+                                units[i].cableName.Location = units[i].cableMarkLine.EndPoint.Add(new Vector3d(-1, (units[i].cableMarkLine.StartPoint.Y - units[i].cableMarkLine.EndPoint.Y) / 2, 0));
+                            }
+                        }
+                        int k = 0;
+                        currentTable = tables[k];
+                        for (int i = 0; i < units.Count; i++)
+                        {
+                            if (units[i].newSheet)
+                                currentTable = tables[++k];
+                            drawOther(acTrans, acModSpace, i);
+                            currentUnit = units[i];
+                        }
+                        for (int i = 0; i < units.Count;)
+                        {
+                            List<int> group = findGroups(i);
+                            if (group != null)
+                            {
+                                Line line = (Line)acTrans.GetObject(units[group[0]].outputCableLine.Id, OpenMode.ForRead);
+                                double l = line.EndPoint.Y;
+                                for (int j = 1; j < group.Count; j++)
+                                {
+                                    line = (Line)acTrans.GetObject(units[group[j]].outputCableLine.Id, OpenMode.ForRead);
+                                    if (line.EndPoint.Y < lowestPoint)
+                                    {
+                                        l = line.EndPoint.Y;
+                                    }
+                                }
+                                for (int j = 0; j < group.Count; j++)
+                                {
+                                    line = (Line)acTrans.GetObject(units[group[j]].outputCableLine.Id, OpenMode.ForWrite);
+                                    while (line.EndPoint.Y > l)
+                                        line.EndPoint = line.EndPoint.Add(new Vector3d(0, -1, 0));
+                                }
+                                i += group.Count;
+                            }
+                            else i++;
+                        }
+                        
                         acDoc.Editor.Regen();
                         currentTable = null;
                         currentTBox = null;
@@ -225,7 +291,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(shieldPoly);
             acTrans.AddNewlyCreatedDBObject(shieldPoly, true);
 
-            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 37, 0), first);
+            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 10, 0), first);
 
             Polyline gndPoly = new Polyline();
             gndPoly.SetDatabaseDefaults();
@@ -290,7 +356,7 @@ namespace AcElectricalSchemePlugin
             string prevTerminal=string.Empty;
             string prevCupboard = units[0].cupboardName;
             bool newJ = false;
-            for (int j = 0; j < units.Count;)
+            for (int j = 0; j < units.Count; j++)
             {
                 cableLineUps = new List<Line>();
                 cableLineText = new List<MText>();
@@ -309,7 +375,9 @@ namespace AcElectricalSchemePlugin
                     prevTerminal = string.Empty;
                     prevCupboard = units[j].cupboardName;
                     newJ = false;
-                    width = 0;
+                    Unit unit = units[j];
+                    unit.newSheet = true;
+                    units[j] = unit;
                 }
                 using (Transaction trans = acdb.TransactionManager.StartTransaction())
                 {
@@ -353,7 +421,7 @@ namespace AcElectricalSchemePlugin
                                 p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(6, 0));
                                 prevPoly.SetPointAt(2, p2);
                             }
-                            if (p1.X >= (firstSheet ? shield.GetPoint2dAt(1).X - 200 : shield.GetPoint2dAt(1).X))
+                            if (p1.X >= shield.GetPoint2dAt(1).X - 170)
                             {
                                 trans.Abort();
                                 currentTBoxName = null;
@@ -365,7 +433,9 @@ namespace AcElectricalSchemePlugin
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
                                 newJ = false;
-                                width = 0;
+                                Unit unit = units[j];
+                                unit.newSheet = true;
+                                units[j] = unit;
                                 break;
                             }
                             prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly, terminal, newJ?60:6, out lowestPoint, units[j].designation, i+1);
@@ -399,23 +469,8 @@ namespace AcElectricalSchemePlugin
                             text.AlignmentPoint = text.Position;
                             modSpace.AppendEntity(text);
                             acTrans.AddNewlyCreatedDBObject(text, true);
-                            
-                            //MText text = new MText();
-                            //text.SetDatabaseDefaults();
-                            //text.TextStyleId = textStyle.Id;
-                            //text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            //text.Location = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
-                            //text.Contents = terminalTag;
-                            //text.Attachment = AttachmentPoint.TopCenter;
-                            //modSpace.AppendEntity(text);
-                            //acTrans.AddNewlyCreatedDBObject(text, true);
 
-                            //while (text.ActualWidth > tBoxPoly.GetPoint2dAt(1).X-tBoxPoly.GetPoint2dAt(0).X-8)
-                            //{
-                            //    tBoxPoly.
-                            //}
-
-                            if (tBoxPoly.GetPoint2dAt(1).X >= (firstSheet ? shield.GetPoint2dAt(1).X - 200 : shield.GetPoint2dAt(1).X - 50)) 
+                            if (tBoxPoly.GetPoint2dAt(1).X >= shield.GetPoint2dAt(1).X - 170) 
                             {
                                 trans.Abort();
                                 currentTBoxName = null;
@@ -426,8 +481,10 @@ namespace AcElectricalSchemePlugin
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
-                                width = 0;
                                 newJ = false;
+                                Unit unit = units[j];
+                                unit.newSheet = true;
+                                units[j] = unit;
                                 break;
                             }
                             prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal, 15, out lowestPoint, units[j].designation, i+1);
@@ -519,28 +576,10 @@ namespace AcElectricalSchemePlugin
                             modSpace.AppendEntity(groundCircle);
                             acTrans.AddNewlyCreatedDBObject(groundCircle, true);
                         }
-                        Polyline poly = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
-
+                        units[j] = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
                         trans.Commit();
-
-                        double C = poly.GetPoint2dAt(0).X;
-                        double D = poly.GetPoint2dAt(1).X;
-                        double A = currentTable.Position.X;
-                        double B = currentTable.Position.X + currentTable.Width;
-                        width = 2 * (C - B) + (D - C);
-                        currentTable.InsertColumns(currentTable.Columns.Count, width, 1);
-                        currentTable.UnmergeCells(currentTable.Rows[0]);
-                        currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = textStyle.Id;
-                        currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
-                        currentTable.Cells[0, currentTable.Columns.Count - 1].TextString = units[j].equipType == "" ? "-" : units[j].equipType;
-                        currentTable.Cells[1, currentTable.Columns.Count - 1].TextString = units[j].designation;
-                        currentTable.Cells[2, currentTable.Columns.Count - 1].TextString = units[j].param;
-                        currentTable.Cells[3, currentTable.Columns.Count - 1].TextString = units[j].equipment;
-                        currentTable.GenerateLayout();
-                        
-                        currentUnit = units[j];
-                        units.RemoveAt(j);
                     }
+                    else j--;
                 }
                 newJ = true;
             }
@@ -645,11 +684,8 @@ namespace AcElectricalSchemePlugin
             return termPoly;
         }
 
-        private static Polyline drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
+        private static Unit drawCable(Transaction acTrans, BlockTableRecord modSpace, Point3d firstCable, Point3d lastCable, Unit unit)
         {
-            double leftEdgeX = 0;
-            double rightEdgeX = 0;
-
             Line jumperLineUp = new Line();
             jumperLineUp.SetDatabaseDefaults();
             jumperLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -731,10 +767,21 @@ namespace AcElectricalSchemePlugin
                 cableMark.Location = cableLine2.EndPoint.Add(new Vector3d(-1, (cableLine2.StartPoint.Y - cableLine2.EndPoint.Y)/2, 0));
             }
 
+            unit.cableMarkLine = cableLine2;
+            unit.cableName = cableMark;
+            return unit;
+        }
+
+        private static Polyline drawOther(Transaction acTrans, BlockTableRecord modSpace, int ind)
+        {
+            double leftEdgeX = 0;
+            double rightEdgeX = 0;
+            Line cableLine2 = units[ind].cableMarkLine;
+
             Point3d point;
-            if (unit.tBoxName != string.Empty)
+            if (units[ind].tBoxName != string.Empty)
             {
-                point = drawTerminalBox(acTrans, modSpace, cableLine2, unit);
+                point = drawTerminalBox(acTrans, modSpace, cableLine2, ind);
             }
             else
             {
@@ -744,9 +791,9 @@ namespace AcElectricalSchemePlugin
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
             jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            double x = point.X - ((unit.equipTerminals.Count-1) * 5) / 2;
+            double x = point.X - ((units[ind].equipTerminals.Count - 1) * 5) / 2;
             jumperLineDown.StartPoint = new Point3d(x, point.Y, 0);
-            x = x + ((unit.equipTerminals.Count-1) * 5);
+            x = x + ((units[ind].equipTerminals.Count - 1) * 5);
             jumperLineDown.EndPoint = new Point3d(x, point.Y, 0);
             modSpace.AppendEntity(jumperLineDown);
             acTrans.AddNewlyCreatedDBObject(jumperLineDown, true);
@@ -754,7 +801,7 @@ namespace AcElectricalSchemePlugin
             List<Line> lines = new List<Line>();
             List<MText> texts = new List<MText>();
             double lowestPoint = 0;
-            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            for (int i = 0; i < units[ind].equipTerminals.Count; i++)
             {
                 Line cableLineDown = new Line();
                 cableLineDown.SetDatabaseDefaults();
@@ -769,7 +816,7 @@ namespace AcElectricalSchemePlugin
                 textLine.TextStyleId = textStyle.Id;
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textLine.Location = cableLineDown.EndPoint.Add(new Vector3d(-1, 1, 0));
-                textLine.Contents = unit.designation + "-" + (i+1);
+                textLine.Contents = units[ind].designation + "-" + (i + 1);
                 textLine.Rotation = 1.5708;
                 textLine.Attachment = AttachmentPoint.BottomLeft;
                 modSpace.AppendEntity(textLine);
@@ -790,8 +837,8 @@ namespace AcElectricalSchemePlugin
                 if (i == 0) leftEdgeX = cableLineDown.StartPoint.X - 3;
                 rightEdgeX = cableLineDown.StartPoint.X + 3;
             }
-            
-            for (int i = 0; i < unit.equipTerminals.Count; i++)
+
+            for (int i = 0; i < units[ind].equipTerminals.Count; i++)
             {
                 Line cableLineDown = lines[i];
                 MText textLine = texts[i];
@@ -818,14 +865,14 @@ namespace AcElectricalSchemePlugin
                 text.TextStyleId = textStyle.Id;
                 text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 text.Position = terminal.GetPoint3dAt(0).Add(new Vector3d(2.5, -3.5, 0));
-                text.TextString = unit.equipTerminals[i];
+                text.TextString = units[ind].equipTerminals[i];
                 text.HorizontalMode = TextHorizontalMode.TextCenter;
                 text.AlignmentPoint = text.Position;
                 modSpace.AppendEntity(text);
                 acTrans.AddNewlyCreatedDBObject(text, true);
             }
 
-            if (unit.shield)
+            if (units[ind].shield)
             {
                 Polyline groundLasso = new Polyline();
                 groundLasso.SetDatabaseDefaults();
@@ -859,18 +906,34 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(equip);
             acTrans.AddNewlyCreatedDBObject(equip, true);
 
-            if (equip.GetPoint2dAt(3).Y < currentTable.Position.Y)
-                currentTable.Position = currentTable.Position.Add(new Vector3d(0, -10, 0));
+            while (equip.GetPoint2dAt(3).Y <= currentTable.Position.Y)
+                currentTable.Position = currentTable.Position.Add(new Vector3d(0, -1, 0));
+            currentTable.Position = currentTable.Position.Add(new Vector3d(0, -2, 0));
+
+            double C = equip.GetPoint2dAt(0).X;
+            double D = equip.GetPoint2dAt(1).X;
+            double A = currentTable.Position.X;
+            double B = currentTable.Position.X + currentTable.Width;
+            width = 2 * (C - B) + (D - C);
+            currentTable.InsertColumns(currentTable.Columns.Count, width, 1);
+            currentTable.UnmergeCells(currentTable.Rows[0]);
+            currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = textStyle.Id;
+            currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
+            currentTable.Cells[0, currentTable.Columns.Count - 1].TextString = units[ind].equipType == "" ? "-" : units[ind].equipType;
+            currentTable.Cells[1, currentTable.Columns.Count - 1].TextString = units[ind].designation;
+            currentTable.Cells[2, currentTable.Columns.Count - 1].TextString = units[ind].param;
+            currentTable.Cells[3, currentTable.Columns.Count - 1].TextString = units[ind].equipment;
+            currentTable.GenerateLayout();
 
             return equip;
         }
 
-        private static Point3d drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, Unit unit)
+        private static Point3d drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, int ind)
         {
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
             jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            int count = unit.shield ? unit.equipTerminals.Count : unit.equipTerminals.Count - 1;
+            int count = units[ind].shield ? units[ind].equipTerminals.Count : units[ind].equipTerminals.Count - 1;
             double x = cableLine.EndPoint.X - count * 5 / 2;
             jumperLineDown.StartPoint = new Point3d(x, cableLine.EndPoint.Y, 0);
             x = x + count * 5;
@@ -884,17 +947,17 @@ namespace AcElectricalSchemePlugin
             tBoxUnit tBox;
             int index = 0;
             bool exist = false;
-            if (tBoxes.Exists(tbox => tbox.Name == unit.tBoxName))
+            if (tBoxes.Exists(tbox => tbox.Name == units[ind].tBoxName))
             {
-                index = tBoxes.IndexOf(tBoxes.Find(tbox => tbox.Name == unit.tBoxName));
+                index = tBoxes.IndexOf(tBoxes.Find(tbox => tbox.Name == units[ind].tBoxName));
                 tBox = tBoxes[index];
                 exist = true;
             }
-            else tBox = new tBoxUnit(unit.tBoxName, 0, 1);
+            else tBox = new tBoxUnit(units[ind].tBoxName, 0, 1);
             double lowestPoint = 0;
             List<Polyline> polys = new List<Polyline>();
             List<MText> texts = new List<MText>();
-            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            for (int i = 0; i < units[ind].equipTerminals.Count; i++)
             {
                 Line cableLineInput = new Line();
                 cableLineInput.SetDatabaseDefaults();
@@ -920,7 +983,7 @@ namespace AcElectricalSchemePlugin
                 textLine.TextStyleId = textStyle.Id;
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
-                textLine.Contents = unit.designation + "-" + (i + 1);
+                textLine.Contents = units[ind].designation + "-" + (i + 1);
                 textLine.Rotation = 1.5708;
                 textLine.Attachment = AttachmentPoint.BottomLeft;
                 modSpace.AppendEntity(textLine);
@@ -940,7 +1003,7 @@ namespace AcElectricalSchemePlugin
                     lowestPoint = terminal.GetPoint2dAt(2).Y;
             }
 
-            for (int i = 0; i < unit.equipTerminals.Count; i++)
+            for (int i = 0; i < units[ind].equipTerminals.Count; i++)
             {
                 Polyline terminal = polys[i];
                 MText textLine = texts[i];
@@ -985,7 +1048,7 @@ namespace AcElectricalSchemePlugin
                 rightEdgeX = cableLineOutput.StartPoint.X + 3;
             }
 
-            if (unit.shield)
+            if (units[ind].shield)
             {
                 Polyline terminal = new Polyline();
                 terminal.SetDatabaseDefaults();
@@ -1023,7 +1086,6 @@ namespace AcElectricalSchemePlugin
                 drawGndLasso(acTrans, modSpace, leftEdgeX, rightEdgeX, terminal.GetPoint2dAt(3).X, terminal.GetPoint2dAt(2).X, terminal.GetPoint2dAt(3).Y, false);
             }
             
-
             Line jumperOutput = new Line();
             jumperOutput.SetDatabaseDefaults();
             jumperOutput.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -1039,8 +1101,11 @@ namespace AcElectricalSchemePlugin
             cLineOutput.EndPoint = cLineOutput.StartPoint.Add(new Vector3d(0, -12, 0));
             modSpace.AppendEntity(cLineOutput);
             acTrans.AddNewlyCreatedDBObject(cLineOutput, true);
+            Unit unit = units[ind];
+            unit.outputCableLine = cLineOutput;
+            units[ind] = unit;
 
-            if (currentTBoxName == null || currentUnit.tBoxName != unit.tBoxName)
+            if (currentTBoxName == null || currentUnit.tBoxName != units[ind].tBoxName)
             {
                 Polyline tbox = new Polyline();
                 tbox.SetDatabaseDefaults();
@@ -1096,9 +1161,10 @@ namespace AcElectricalSchemePlugin
             {
                 currentTBox.SetPointAt(1, new Point2d(jumperLineDown.EndPoint.X + 9, jumperLineDown.StartPoint.Y + 2));
                 currentTBox.SetPointAt(2, new Point2d(jumperLineDown.EndPoint.X + 9, jumperOutput.StartPoint.Y - 2));
-                if (currentTBox.GetPoint2dAt(3).Y > jumperLineDown.StartPoint.Y)
-                    currentTBox.SetPointAt(3, new Point2d(currentTBox.GetPoint2dAt(3).X, jumperOutput.StartPoint.Y - 2));
-
+                if (currentTBox.GetPoint2dAt(3).Y > currentTBox.GetPoint2dAt(2).Y)
+                    currentTBox.SetPointAt(3, new Point2d(currentTBox.GetPoint2dAt(3).X, currentTBox.GetPoint2dAt(2).Y));
+                else
+                    currentTBox.SetPointAt(2, new Point2d(currentTBox.GetPoint2dAt(2).X, currentTBox.GetPoint2dAt(3).Y));
 
                 currentTBoxName.Erase();
                 MText tBoxName = new MText();
