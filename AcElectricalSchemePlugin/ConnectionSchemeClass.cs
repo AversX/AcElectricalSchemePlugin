@@ -25,19 +25,20 @@ namespace AcElectricalSchemePlugin
         private static TextStyleTableRecord textStyle;
         private static Polyline currentTBox = null;
         private static Unit currentUnit;
-        private static DBText currentTBoxName = null;
+        private static MText currentTBoxName = null;
         private static Leader currentLeader = null;
-        private static Table table = null;
         private static double width = 0;
         private static List<Line> cableLineUps;
         private static List<MText> cableLineText;
+        private static List<Table> tables = new List<Table>();
 
         struct tBoxUnit
         {
             public string Name;
             public int Count;
             public int LastTerminalNumber;
-            public DBText textName;
+            public MText textName;
+            public Leader ldr;
 
             public tBoxUnit(string name, int count, int lastTerminalNumber)
             {
@@ -45,6 +46,7 @@ namespace AcElectricalSchemePlugin
                 Count = count;
                 LastTerminalNumber = lastTerminalNumber;
                 textName = null;
+                ldr = null;
             }
         }
 
@@ -139,6 +141,7 @@ namespace AcElectricalSchemePlugin
                     }
                     firstSheet = true;
                     tBoxes = new List<tBoxUnit>();
+                    tables = new List<Table>();
                     connectionScheme();
                 }
             }
@@ -182,10 +185,22 @@ namespace AcElectricalSchemePlugin
                         {
                             if (tBoxes[i].Count == 1)
                             {
-                                DBText text = tBoxes[i].textName;
-                                string str = text.TextString;
-                                str = str.Remove(text.TextString.Length - 2);
-                                text.TextString = str;
+                                MText text = tBoxes[i].textName;
+                                string str = text.Contents;
+                                str = str.Remove(text.Contents.Length - 2);
+                                text.Contents = str;
+
+                                Leader ldr = tBoxes[i].ldr;
+                                Point3d point = ldr.VertexAt(1);
+                                ldr.SetVertexAt(2, new Point3d(point.X + text.ActualWidth + 1, point.Y, 0));
+                            }
+                        }
+                        for (int i = 0; i < tables.Count; i++ )
+                        {
+                            if (!acBlkTbl.Has(tables[i].Id))
+                            {
+                                acModSpace.AppendEntity(tables[i]);
+                                acTrans.AddNewlyCreatedDBObject(tables[i], true);
                             }
                         }
                         acDoc.Editor.Regen();
@@ -193,6 +208,7 @@ namespace AcElectricalSchemePlugin
                         acTrans.Dispose();
                     }
                 }
+                acDb.Audit(true, true);
             }
         }
 
@@ -232,7 +248,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(text);
             acTrans.AddNewlyCreatedDBObject(text, true);
 
-            table = new Table();
+            Table table = new Table();
             table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-30, -272, 0));
             table.SetSize(4, 1);
             table.TableStyle = acdb.Tablestyle;
@@ -258,11 +274,10 @@ namespace AcElectricalSchemePlugin
             table.Cells[3, 0].TextStyleId = textStyle.Id;
             table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
 
-            table.Columns[0].Width = 30; 
+            table.Columns[0].Width = 30;
             table.GenerateLayout();
-            modSpace.AppendEntity(table);
-            acTrans.AddNewlyCreatedDBObject(table, true);
             currentTable = table;
+            tables.Add(table);
 
             return shieldPoly;
         }
@@ -294,6 +309,7 @@ namespace AcElectricalSchemePlugin
                     prevTerminal = string.Empty;
                     prevCupboard = units[j].cupboardName;
                     newJ = false;
+                    width = 0;
                 }
                 using (Transaction trans = acdb.TransactionManager.StartTransaction())
                 {
@@ -349,6 +365,7 @@ namespace AcElectricalSchemePlugin
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
                                 newJ = false;
+                                width = 0;
                                 break;
                             }
                             prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly, terminal, newJ?60:6, out lowestPoint, units[j].designation, i+1);
@@ -409,6 +426,7 @@ namespace AcElectricalSchemePlugin
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
+                                width = 0;
                                 newJ = false;
                                 break;
                             }
@@ -503,18 +521,14 @@ namespace AcElectricalSchemePlugin
                         }
                         Polyline poly = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
 
-                        currentUnit = units[j];
-                        if (width==0)
-                        {
-                            double C = poly.GetPoint2dAt(0).X;
-                            double D = poly.GetPoint2dAt(1).X;
-                            double B = poly.GetPoint2dAt(0).X;
-                            double A = currentTable.Position.X;
-                            width = D - C - (30 - (B - A));
-                        }
-                        else width = poly.GetPoint2dAt(1).X-(table.Position.X+table.Width);
+                        trans.Commit();
 
-                        currentTable.InsertColumns(currentTable.Columns.Count, width + 5, 1);
+                        double C = poly.GetPoint2dAt(0).X;
+                        double D = poly.GetPoint2dAt(1).X;
+                        double A = currentTable.Position.X;
+                        double B = currentTable.Position.X + currentTable.Width;
+                        width = 2 * (C - B) + (D - C);
+                        currentTable.InsertColumns(currentTable.Columns.Count, width, 1);
                         currentTable.UnmergeCells(currentTable.Rows[0]);
                         currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = textStyle.Id;
                         currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
@@ -523,8 +537,9 @@ namespace AcElectricalSchemePlugin
                         currentTable.Cells[2, currentTable.Columns.Count - 1].TextString = units[j].param;
                         currentTable.Cells[3, currentTable.Columns.Count - 1].TextString = units[j].equipment;
                         currentTable.GenerateLayout();
+                        
+                        currentUnit = units[j];
                         units.RemoveAt(j);
-                        trans.Commit();
                     }
                 }
                 newJ = true;
@@ -775,6 +790,7 @@ namespace AcElectricalSchemePlugin
                 if (i == 0) leftEdgeX = cableLineDown.StartPoint.X - 3;
                 rightEdgeX = cableLineDown.StartPoint.X + 3;
             }
+            
             for (int i = 0; i < unit.equipTerminals.Count; i++)
             {
                 Line cableLineDown = lines[i];
@@ -838,13 +854,13 @@ namespace AcElectricalSchemePlugin
             equip.Closed = true;
             equip.AddVertexAt(0, new Point2d(jumperLineDown.StartPoint.X - 10, jumperLineDown.StartPoint.Y + 3.5), 0, 0, 0);
             equip.AddVertexAt(1, new Point2d(jumperLineDown.EndPoint.X + 10, jumperLineDown.StartPoint.Y + 3.5), 0, 0, 0);
-            equip.AddVertexAt(2, equip.GetPoint2dAt(1).Add(new Vector2d(0, -60)), 0, 0, 0);
-            equip.AddVertexAt(3, equip.GetPoint2dAt(0).Add(new Vector2d(0, -60)), 0, 0, 0);
+            equip.AddVertexAt(2, new Point2d(jumperLineDown.EndPoint.X + 10, lowestPoint - 8.5), 0, 0, 0);
+            equip.AddVertexAt(3, new Point2d(jumperLineDown.StartPoint.X - 10, lowestPoint - 8.5), 0, 0, 0);
             modSpace.AppendEntity(equip);
             acTrans.AddNewlyCreatedDBObject(equip, true);
-            
-            if (equip.GetPoint2dAt(3).Y < table.Position.Y)
-                table.Position = table.Position.Add(new Vector3d(0, - 10, 0));
+
+            if (equip.GetPoint2dAt(3).Y < currentTable.Position.Y)
+                currentTable.Position = currentTable.Position.Add(new Vector3d(0, -10, 0));
 
             return equip;
         }
@@ -982,16 +998,14 @@ namespace AcElectricalSchemePlugin
                 modSpace.AppendEntity(terminal);
                 acTrans.AddNewlyCreatedDBObject(terminal, true);
 
-                DBText textLine = new DBText();
+                MText textLine = new MText();
                 textLine.SetDatabaseDefaults();
                 textLine.TextStyleId = textStyle.Id;
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                textLine.Position = terminal.GetPoint3dAt(2).Add(new Vector3d(0, 20, 0));
-                textLine.TextString = "шина ф. заземл.";
+                textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
+                textLine.Contents = "шина ф. заземл.";
                 textLine.Rotation = 1.5708;
-                textLine.VerticalMode = TextVerticalMode.TextBottom;
-                textLine.HorizontalMode = TextHorizontalMode.TextCenter;
-                textLine.AlignmentPoint = textLine.Position;
+                textLine.Attachment = AttachmentPoint.BottomLeft;
                 modSpace.AppendEntity(textLine);
                 acTrans.AddNewlyCreatedDBObject(textLine, true);
 
@@ -1003,16 +1017,6 @@ namespace AcElectricalSchemePlugin
                 modSpace.AppendEntity(line);
                 acTrans.AddNewlyCreatedDBObject(line, true);
 
-                //DBText text = new DBText();
-                //text.SetDatabaseDefaults();
-                //text.TextStyleId = textStyle.Id;
-                //text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                //text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
-                //text.TextString = unit.boxTerminals[i];
-                //text.HorizontalMode = TextHorizontalMode.TextCenter;
-                //text.AlignmentPoint = text.Position;
-                //modSpace.AppendEntity(text);
-                //acTrans.AddNewlyCreatedDBObject(text, true);
                 jumperLineDown.EndPoint = jumperLineDown.EndPoint.Add(new Vector3d(-5, 0, 0));
 
                 drawGndLasso(acTrans, modSpace, leftEdgeX, rightEdgeX, terminal.GetPoint2dAt(0).X, terminal.GetPoint2dAt(1).X, terminal.GetPoint2dAt(0).Y, true);
@@ -1064,15 +1068,13 @@ namespace AcElectricalSchemePlugin
                 acTrans.AddNewlyCreatedDBObject(tBoxText, true);
 
                 tBox.Count++;
-                DBText tBoxName = new DBText();
+                MText tBoxName = new MText();
                 tBoxName.SetDatabaseDefaults();
                 tBoxName.TextStyleId = textStyle.Id;
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                tBoxName.Position = tbox.GetPoint3dAt(1).Add(new Vector3d(8, 5, 0));
-                tBoxName.TextString = tBox.Name+"."+tBox.Count.ToString();
-                tBoxName.VerticalMode = TextVerticalMode.TextBottom;
-                tBoxName.HorizontalMode = TextHorizontalMode.TextCenter;
-                tBoxName.AlignmentPoint = tBoxName.Position;
+                tBoxName.Location = tbox.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
+                tBoxName.Contents = tBox.Name+"."+tBox.Count.ToString();
+                tBoxName.Attachment = AttachmentPoint.BottomLeft;
                 modSpace.AppendEntity(tBoxName);
                 acTrans.AddNewlyCreatedDBObject(tBoxName, true);
                 currentTBoxName = tBoxName;
@@ -1082,8 +1084,10 @@ namespace AcElectricalSchemePlugin
                 acLdr.SetDatabaseDefaults();
                 acLdr.AppendVertex(tbox.GetPoint3dAt(1).Add(new Vector3d(-5, 0, 0)));
                 acLdr.AppendVertex(tbox.GetPoint3dAt(1).Add(new Vector3d(0, 5, 0)));
-                acLdr.AppendVertex(tbox.GetPoint3dAt(1).Add(new Vector3d(14, 5, 0)));
+                acLdr.AppendVertex(tbox.GetPoint3dAt(1).Add(new Vector3d(tBoxName.ActualWidth+1, 5, 0)));
                 acLdr.HasArrowHead = false;
+                tBox.ldr = acLdr;
+
                 modSpace.AppendEntity(acLdr);
                 acTrans.AddNewlyCreatedDBObject(acLdr, true);
                 currentLeader = acLdr;
@@ -1097,15 +1101,13 @@ namespace AcElectricalSchemePlugin
 
 
                 currentTBoxName.Erase();
-                DBText tBoxName = new DBText();
+                MText tBoxName = new MText();
                 tBoxName.SetDatabaseDefaults();
                 tBoxName.TextStyleId = textStyle.Id;
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                tBoxName.Position = currentTBox.GetPoint3dAt(1).Add(new Vector3d(8, 5, 0));
-                tBoxName.TextString = tBox.Name + "." + tBox.Count.ToString();
-                tBoxName.VerticalMode = TextVerticalMode.TextBottom;
-                tBoxName.HorizontalMode = TextHorizontalMode.TextCenter;
-                tBoxName.AlignmentPoint = tBoxName.Position;
+                tBoxName.Location = currentTBox.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
+                tBoxName.Contents = tBox.Name + "." + tBox.Count.ToString();
+                tBoxName.Attachment = AttachmentPoint.BottomLeft;
                 modSpace.AppendEntity(tBoxName);
                 acTrans.AddNewlyCreatedDBObject(tBoxName, true);
                 currentTBoxName = tBoxName;
@@ -1116,11 +1118,12 @@ namespace AcElectricalSchemePlugin
                 acLdr.SetDatabaseDefaults();
                 acLdr.AppendVertex(currentTBox.GetPoint3dAt(1).Add(new Vector3d(-5, 0, 0)));
                 acLdr.AppendVertex(currentTBox.GetPoint3dAt(1).Add(new Vector3d(0, 5, 0)));
-                acLdr.AppendVertex(currentTBox.GetPoint3dAt(1).Add(new Vector3d(14, 5, 0)));
+                acLdr.AppendVertex(currentTBox.GetPoint3dAt(1).Add(new Vector3d(tBoxName.ActualWidth+1, 5, 0)));
                 acLdr.HasArrowHead = false;
                 modSpace.AppendEntity(acLdr);
                 acTrans.AddNewlyCreatedDBObject(acLdr, true);
                 currentLeader = acLdr;
+                tBox.ldr = acLdr;
             }
 
             if (exist) tBoxes[index] = tBox;
