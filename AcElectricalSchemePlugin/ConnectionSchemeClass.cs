@@ -63,7 +63,6 @@ namespace AcElectricalSchemePlugin
             public List<string> terminals;
             public List<string> equipTerminals;
             public Line cableMarkLine;
-            public Line outputCableLine;
             public MText cableName;
             public bool newSheet; 
 
@@ -80,7 +79,6 @@ namespace AcElectricalSchemePlugin
                 terminals = _terminals;
                 equipTerminals = _equipTerminals;
                 cableMarkLine = null;
-                outputCableLine = null;
                 cableName = null;
                 newSheet = false;
             }
@@ -120,7 +118,7 @@ namespace AcElectricalSchemePlugin
             result.Add(index);
             for (int i = index+1; i < units.Count; i++)
             {
-                if (units[index].tBoxName == units[i].tBoxName && units[index].tBoxName != "" && units[i].tBoxName != "")
+                if (units[index].tBoxName == units[i].tBoxName && units[index].tBoxName != "" && units[i].tBoxName != "" && !units[i].newSheet)
                     result.Add(i);
                 else break;
             }
@@ -195,24 +193,24 @@ namespace AcElectricalSchemePlugin
                         textStyle.FileName = @"Data\GOST_Common.ttf";
                         Point3d startPoint = selection.Value;
                         drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
-                        double lowestPoint = units[0].cableMarkLine.EndPoint.Y;
-                        for (int i = 1; i < units.Count; i++)
-                            if (units[i].cableMarkLine.EndPoint.Y < lowestPoint)
-                                lowestPoint = units[i].cableMarkLine.EndPoint.Y;
-                        for (int i = 0; i < units.Count; i++)
+                        for (int i = 0; i < units.Count; )
                         {
-                            while (units[i].cableMarkLine.EndPoint.Y > lowestPoint)
+                            List<int> group = findGroups(i);
+                            if (group != null)
                             {
-                                units[i].cableMarkLine.EndPoint = units[i].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
-                                units[i].cableName.Location = units[i].cableMarkLine.EndPoint.Add(new Vector3d(-1, (units[i].cableMarkLine.StartPoint.Y - units[i].cableMarkLine.EndPoint.Y) / 2, 0));
+                                double lowPoint = units[group[0]].cableMarkLine.EndPoint.Y;
+                                for (int j = 1; j < group.Count; j++)
+                                    if (units[group[j]].cableMarkLine.EndPoint.Y < lowPoint)
+                                        lowPoint = units[group[j]].cableMarkLine.EndPoint.Y;
+                                for (int j = 0; j < group.Count; j++)
+                                    while (units[group[j]].cableMarkLine.EndPoint.Y > lowPoint)
+                                        units[group[j]].cableMarkLine.EndPoint = units[group[j]].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
+                                i += group.Count;
                             }
+                            else i++;
                         }
-                        int k = 0;
-                        currentTable = tables[k];
                         for (int i = 0; i < units.Count; i++)
                         {
-                            if (units[i].newSheet)
-                                currentTable = tables[++k];
                             drawOther(acTrans, acModSpace, i);
                             currentUnit = units[i];
                         }
@@ -221,27 +219,25 @@ namespace AcElectricalSchemePlugin
                             List<int> group = findGroups(i);
                             if (group != null)
                             {
-                                Line line = (Line)acTrans.GetObject(units[group[0]].outputCableLine.Id, OpenMode.ForRead);
-                                double l = line.EndPoint.Y;
+                                double lowPoint = units[group[0]].cableMarkLine.EndPoint.Y;
                                 for (int j = 1; j < group.Count; j++)
-                                {
-                                    line = (Line)acTrans.GetObject(units[group[j]].outputCableLine.Id, OpenMode.ForRead);
-                                    if (line.EndPoint.Y < lowestPoint)
-                                    {
-                                        l = line.EndPoint.Y;
-                                    }
-                                }
+                                    if (units[group[j]].cableMarkLine.EndPoint.Y < lowPoint)
+                                        lowPoint = units[group[j]].cableMarkLine.EndPoint.Y;
                                 for (int j = 0; j < group.Count; j++)
-                                {
-                                    line = (Line)acTrans.GetObject(units[group[j]].outputCableLine.Id, OpenMode.ForWrite);
-                                    while (line.EndPoint.Y > l)
-                                        line.EndPoint = line.EndPoint.Add(new Vector3d(0, -1, 0));
-                                }
+                                    while (units[group[j]].cableMarkLine.EndPoint.Y > lowPoint)
+                                        units[group[j]].cableMarkLine.EndPoint = units[group[j]].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
                                 i += group.Count;
                             }
                             else i++;
                         }
-                        
+                        int k = 0;
+                        currentTable = tables[k];
+                        for (int i = 0; i < units.Count; i++)
+                        {
+                            if (units[i].newSheet)
+                                currentTable = tables[++k];
+                            drawEquip(acTrans, acModSpace, i);
+                        }
                         acDoc.Editor.Regen();
                         currentTable = null;
                         currentTBox = null;
@@ -716,7 +712,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(cableName, true);
 
             double X = cableName.GetPoint2dAt(0).X + (cableName.GetPoint2dAt(1).X - cableName.GetPoint2dAt(0).X)/2;
-            double Y = cableName.GetPoint2dAt(0).Y - 2;
+            double Y = cableName.GetPoint2dAt(2).Y + (cableName.GetPoint2dAt(1).Y - cableName.GetPoint2dAt(2).Y) / 2;
             Point3d cableNameCentre = new Point3d(X, Y, 0);
             MText textName = new MText();
             textName.SetDatabaseDefaults();
@@ -728,8 +724,11 @@ namespace AcElectricalSchemePlugin
             textName.Contents = unit.tBoxName == string.Empty ? unit.cupboardName.Split(' ')[1] + "/" + unit.designation : unit.cupboardName.Split(' ')[1] + "/" + unit.tBoxName;
             modSpace.AppendEntity(textName);
             acTrans.AddNewlyCreatedDBObject(textName, true);
-            if (textName.Width < textName.ActualWidth)
+            if (cableName.GetPoint2dAt(1).X - cableName.GetPoint2dAt(0).X < textName.ActualWidth)
             {
+                Y = cableName.GetPoint2dAt(0).Y - 2;
+                cableNameCentre = new Point3d(X, Y, 0);
+                textName.Location = cableNameCentre;
                 textName.Contents = unit.tBoxName == string.Empty ? unit.cupboardName.Split(' ')[1] + "/ " + unit.designation : unit.cupboardName.Split(' ')[1] + "/ " + unit.tBoxName;
                 textName.Attachment = AttachmentPoint.TopCenter;
                 while (textName.ActualHeight > cableName.GetPoint2dAt(0).Y - cableName.GetPoint2dAt(3).Y - 4)
@@ -772,29 +771,33 @@ namespace AcElectricalSchemePlugin
             return unit;
         }
 
-        private static Polyline drawOther(Transaction acTrans, BlockTableRecord modSpace, int ind)
+        private static void drawOther(Transaction acTrans, BlockTableRecord modSpace, int ind)
         {
-            double leftEdgeX = 0;
-            double rightEdgeX = 0;
             Line cableLine2 = units[ind].cableMarkLine;
 
-            Point3d point;
             if (units[ind].tBoxName != string.Empty)
             {
-                point = drawTerminalBox(acTrans, modSpace, cableLine2, ind);
+                Unit unit = units[ind];
+                unit.cableMarkLine = drawTerminalBox(acTrans, modSpace, cableLine2, ind);
+                units[ind] = unit;
             }
             else
             {
-                point = cableLine2.EndPoint;
                 currentTBoxName = null;
             }
+        }
+
+        private static void drawEquip(Transaction acTrans, BlockTableRecord modSpace, int ind)
+        {
+            double leftEdgeX = 0;
+            double rightEdgeX = 0;
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
             jumperLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            double x = point.X - ((units[ind].equipTerminals.Count - 1) * 5) / 2;
-            jumperLineDown.StartPoint = new Point3d(x, point.Y, 0);
+            double x = units[ind].cableMarkLine.EndPoint.X - ((units[ind].equipTerminals.Count - 1) * 5) / 2;
+            jumperLineDown.StartPoint = new Point3d(x, units[ind].cableMarkLine.EndPoint.Y, 0);
             x = x + ((units[ind].equipTerminals.Count - 1) * 5);
-            jumperLineDown.EndPoint = new Point3d(x, point.Y, 0);
+            jumperLineDown.EndPoint = new Point3d(x, units[ind].cableMarkLine.EndPoint.Y, 0);
             modSpace.AppendEntity(jumperLineDown);
             acTrans.AddNewlyCreatedDBObject(jumperLineDown, true);
 
@@ -924,11 +927,9 @@ namespace AcElectricalSchemePlugin
             currentTable.Cells[2, currentTable.Columns.Count - 1].TextString = units[ind].param;
             currentTable.Cells[3, currentTable.Columns.Count - 1].TextString = units[ind].equipment;
             currentTable.GenerateLayout();
-
-            return equip;
         }
 
-        private static Point3d drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, int ind)
+        private static Line drawTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Line cableLine, int ind)
         {
             Line jumperLineDown = new Line();
             jumperLineDown.SetDatabaseDefaults();
@@ -1102,10 +1103,9 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cLineOutput);
             acTrans.AddNewlyCreatedDBObject(cLineOutput, true);
             Unit unit = units[ind];
-            unit.outputCableLine = cLineOutput;
             units[ind] = unit;
 
-            if (currentTBoxName == null || currentUnit.tBoxName != units[ind].tBoxName)
+            if (currentTBoxName == null || currentUnit.tBoxName != units[ind].tBoxName || units[ind].newSheet)
             {
                 Polyline tbox = new Polyline();
                 tbox.SetDatabaseDefaults();
@@ -1195,7 +1195,7 @@ namespace AcElectricalSchemePlugin
             if (exist) tBoxes[index] = tBox;
             else tBoxes.Add(tBox);
 
-            return cLineOutput.EndPoint;
+            return cLineOutput;
         }
 
         private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point, bool first)
