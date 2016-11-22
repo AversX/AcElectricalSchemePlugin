@@ -9,9 +9,6 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.EditorInput;
 
-//using System.Data.OleDb;
-//using System.Data;
-
 namespace AcElectricalSchemePlugin
 {
     public class AcPlugin : IExtensionApplication
