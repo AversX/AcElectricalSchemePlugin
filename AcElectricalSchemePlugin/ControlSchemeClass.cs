@@ -57,69 +57,70 @@ namespace AcElectricalSchemePlugin
             }
             else doCount = DO.Value;
 
-            PromptEntityResult aiao = acDoc.Editor.GetEntity("Выберите текстовое поле содержащее название клеммника AI/AO");
+            PromptEntityResult aiao = acDoc.Editor.GetEntity("Выберите крайнюю правую линию листа с клеммниками AI/AO: ");
             if (aiao.Status != PromptStatus.OK)
             {
                 return;
             }
-            PromptEntityResult dido = acDoc.Editor.GetEntity("Выберите текстовое поле содержащее название клеммника DI/DO");
-            if (dido.Status != PromptStatus.OK)
-            {
-                return;
-            }
-
+            
             using (DocumentLock docLock = acDoc.LockDocument())
             {
                 using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
                 {
-                    List<DBText> aiaoLinks = new List<DBText>();
-                    DBText AIAO = (DBText)acTrans.GetObject(aiao.ObjectId, OpenMode.ForRead);
-                    TypedValue[] filterlist = new TypedValue[2];
-                    filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
-                    filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Связи");
-                    SelectionFilter filter = new SelectionFilter(filterlist);
-                    Point3d point = AIAO.Position.Add(new Vector3d(-100, -100, 0));
-                    PromptSelectionResult selRes = editor.SelectWindow(AIAO.Position, point, filter);
-                    if (selRes.Status != PromptStatus.OK)
+                    BlockTable acBlkTbl;
+                    acBlkTbl = acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acModSpace;
+                    acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    Line line = (Line)acTrans.GetObject(aiao.ObjectId, OpenMode.ForRead);
+                    Point3d point = line.StartPoint.Y > line.EndPoint.Y ? line.StartPoint : line.EndPoint;
+                    //for (int i =0; i<aiCount; i++)
                     {
-                        editor.WriteMessage("\nОшибка поиска!\n");
+                        insertModule(acTrans, acModSpace, acDb, point);
+
                     }
-                    else for (int i = 0; i < selRes.Value.Count; i++)
-                        {
-                            DBText text = (DBText)acTrans.GetObject(selRes.Value[i].ObjectId, OpenMode.ForWrite);
-                            aiaoLinks.Add(text);
-                        }
+                    acTrans.Commit();
+                }
+            }
+        }
 
-                    List<DBText> didoLinks = new List<DBText>();
-                    DBText DIDO = (DBText)acTrans.GetObject(dido.ObjectId, OpenMode.ForRead);
-                    filterlist = new TypedValue[2];
-                    filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
-                    filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Связи");
-                    filter = new SelectionFilter(filterlist);
-                    point = DIDO.Position.Add(new Vector3d(-100, -100, 0));
-                    selRes = editor.SelectWindow(DIDO.Position, point, filter);
-                    if (selRes.Status != PromptStatus.OK)
+        private static void insertModule(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point)
+        {
+            ObjectIdCollection ids = new ObjectIdCollection();
+            string filename = @"Data\AI.dwg";
+            string blockName = "AI";
+            using (Database sourceDb = new Database(false, true))
+            {
+                if (System.IO.File.Exists(filename))
+                {
+                    sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                    using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
                     {
-                        editor.WriteMessage("\nОшибка поиска!\n");
+                        BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                        if (bt.Has(blockName))
+                            ids.Add(bt[blockName]);
+                        trans.Commit();
                     }
-                    else for (int i = 0; i < selRes.Value.Count; i++)
-                        {
-                            DBText text = (DBText)acTrans.GetObject(selRes.Value[i].ObjectId, OpenMode.ForWrite);
-                            didoLinks.Add(text);
-                        }
-
-                    aiaoLinks = aiaoLinks.OrderByDescending(x => x.Position.Y).ThenByDescending(x => x.Position.X).ToList();
-                    didoLinks = didoLinks.OrderByDescending(x => x.Position.Y).ThenByDescending(x => x.Position.X).ToList();
-
-                    int k= 7;
-                    for(int i=0; i<aiaoLinks.Count-1;)
+                }
+                else editor.WriteMessage("Не найден файл {0}", filename);
+                if (ids.Count > 0)
+                {
+                    acTrans.TransactionManager.QueueForGraphicsFlush();
+                    IdMapping iMap = new IdMapping();
+                    acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
+                    BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
+                    if (bt.Has(blockName))
                     {
-                        if (aiaoLinks[i].TextString.Split('/')[1]==aiaoLinks[i+1].TextString.Split('/')[1])
+                        BlockReference br = new BlockReference(point, bt[blockName]);
+                        modSpace.AppendEntity(br);
+                        acTrans.AddNewlyCreatedDBObject(br, true);
+                        foreach(ObjectId id in br.AttributeCollection)
                         {
-
+                            AttributeReference ar = (AttributeReference)acTrans.GetObject(id, OpenMode.ForWrite);
+                            ar.TextString = "1";
                         }
                     }
                 }
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
         }
     }
