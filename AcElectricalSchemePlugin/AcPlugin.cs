@@ -44,7 +44,7 @@ namespace AcElectricalSchemePlugin
         [CommandMethod("Control", CommandFlags.Session)]
         public void Control()
         {
-            ControlSchemeClass.fixLinks();
+            ControlSchemeClass.drawControlScheme();
         }
     }
 }
