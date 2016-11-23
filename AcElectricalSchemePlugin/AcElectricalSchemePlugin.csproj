@@ -61,6 +61,7 @@
     <Compile Include="AcPlugin.cs" />
     <Compile Include="CableMarkClass.cs" />
     <Compile Include="ConnectionSchemeClass.cs" />
+    <Compile Include="ControlSchemeClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
