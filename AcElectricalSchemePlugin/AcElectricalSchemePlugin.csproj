@@ -90,6 +90,9 @@
     <None Include="Data\ETAO.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\ETD.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Frame.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
