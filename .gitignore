@@ -279,3 +279,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+AcElectricalSchemePlugin/3.dwl
+*.dwl2
