@@ -65,39 +65,49 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\acad.lin" />
-    <None Include="Data\AI.dwg" />
-    <None Include="Data\AO.dwg" />
-    <None Include="Data\DI.dwg" />
-    <None Include="Data\DI1.dwg" />
-    <None Include="Data\DI2.dwg">
+    <None Include="Data\acad.lin">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DIF.dwg" />
-    <None Include="Data\DIS.dwg">
+    <None Include="Data\AI.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DO.dwg">
+    <None Include="Data\AO.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DO1.dwg">
+    <None Include="Data\DI1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DO2.dwg">
+    <None Include="Data\DI2.dwg" />
+    <None Include="Data\DIF.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DO24V.dwg">
+    <None Include="Data\DIS.dwg" />
+    <None Include="Data\DO1.dwg" />
+    <None Include="Data\DO2.dwg" />
+    <None Include="Data\DO24V1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DOF.dwg">
+    <None Include="Data\DO24V2.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\ETAI.dwg" />
-    <None Include="Data\ETAO.dwg" />
-    <None Include="Data\ETD.dwg" />
-    <None Include="Data\Frame.dwg" />
-    <None Include="Data\FrameOther.dwg" />
-    <None Include="Data\GOST_Common.ttf" />
+    <None Include="Data\ETAI.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\ETAO.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\ETD.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Frame.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\FrameOther.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\GOST_Common.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
