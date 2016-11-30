@@ -24,9 +24,13 @@ namespace AcElectricalSchemePlugin
         private static int currentSheet = 8;
         private static Point3d currentPoint;
         private static List<Point3d> ets;
+        private static Point3d block24_3;
         private static Point3d block246;
         private static Point3d block241;
         private static Point3d block242;
+        private static Point3d block243;
+        private static Point3d block244;
+        private static Point3d drawPoint;
         private static int currentD = 4;
         private static int[] currentPinAIAO = { 2, 2, 2, 2 };
 
@@ -53,16 +57,6 @@ namespace AcElectricalSchemePlugin
             else etCount = ET.Value;
 
             ets = new List<Point3d>();
-            for (int i = 0; i < etCount; i++)
-            {
-                PromptPointResult point = editor.GetPoint("\nВыберите правый верхний угол последнего модуля в ET №: " + (i + 1));
-                if (point.Status != PromptStatus.OK)
-                {
-                    editor.WriteMessage("Неверный ввод...");
-                    return;
-                }
-                else ets.Add(point.Value);
-            }
 
             PromptIntegerResult AI = editor.GetInteger("\nВведите количество модулей AI: ");
             if (AI.Status != PromptStatus.OK)
@@ -118,37 +112,21 @@ namespace AcElectricalSchemePlugin
             if (etCount == 2 && diCount + doCount > 10) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей DI и DO превышает 10, будут расчитаны только первые 10 модулей.");
             else if (etCount == 3 && diCount + doCount > 16) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей DI и DO превышает 16, будут расчитаны только первые 16 модулей.");
             
-            PromptPointResult startPoint = editor.GetPoint("Выберите точку старта отрисовки");
+            PromptPointResult startPoint = editor.GetPoint("Выберите левый верхний угол первого листа в чертеже");
             if (startPoint.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("Неверный ввод...");
                 return;
             }
-            else currentPoint = startPoint.Value.Add(new Vector3d(50,0,0));
+            else setPoints(startPoint.Value);
 
-            PromptPointResult aiaoPoint = editor.GetPoint("Выберите левый верхний угол блока 24.6");
-            if (aiaoPoint.Status != PromptStatus.OK)
-            {
-                editor.WriteMessage("Неверный ввод...");
-                return;
-            }
-            else block246 = aiaoPoint.Value.Add(new Vector3d(0, -25.9834, 0));
-
-            PromptPointResult diDownPoint = editor.GetPoint("Выберите левый нижний угол блока 24.1");
-            if (diDownPoint.Status != PromptStatus.OK)
-            {
-                editor.WriteMessage("Неверный ввод...");
-                return;
-            }
-            else block241 = diDownPoint.Value.Add(new Vector3d(5.857, 0, 0));
-
-            PromptPointResult diUpPoint = editor.GetPoint("Выберите левый нижний угол блока 24.2");
-            if (diUpPoint.Status != PromptStatus.OK)
-            {
-                editor.WriteMessage("Неверный ввод...");
-                return;
-            }
-            else block242 = diUpPoint.Value.Add(new Vector3d(5.857, 0, 0));
+            if (currentSheet==8) currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+            else currentPoint = currentPoint.Add(new Vector3d(-544, 0, 0));
+            block246 = block246.Add(new Vector3d(0, -25.9834, 0));
+            block241 = block241.Add(new Vector3d(5.857, 0, 0));
+            block242 = block242.Add(new Vector3d(5.857, 0, 0));
+            block243 = block243.Add(new Vector3d(5.857, 0, 0));
+            block244 = block244.Add(new Vector3d(5.857, 0, 0));
 
             using (DocumentLock docLock = acDoc.LockDocument())
             {
@@ -200,65 +178,76 @@ namespace AcElectricalSchemePlugin
                         }
                         else
                         {
-                            if (i == maxCount) { currentD++; maxCount = 16; currentET++; }
-                            insertDI(acTrans, acModSpace, acDb, i);
-                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
-                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            if (currentET != 2)
+                            {
+                                if (etCount == 3)
+                                {
+                                    currentET++;
+                                    currentD++;
+                                    maxCount = 16;
+                                }
+                                else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                            }
                         } 
                     }
-                    //currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
-                    //int currentModNum = 4 + diCount;
-                    //for (double i = diCount; i < do24vCount+diCount; i+=0.5)
-                    //{
-                    //    if (i < maxCount)
-                    //    {
-                    //        insertDO24V(acTrans, acModSpace, acDb, currentModNum);
-                    //        if (i % 10 == 0)
-                    //        {
-                    //            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModNum, "DO");
-                    //            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    //            currentModNum++;
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        if (i == maxCount) { currentD++; maxCount = 16; currentET++; }
-                    //        insertDO24V(acTrans, acModSpace, acDb, currentModNum);
-                    //        if (i % 10 == 0)
-                    //        {
-                    //            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModNum, "DO");
-                    //            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    //            currentModNum++;
-                    //        }
-                    //    } 
-                    //}
-                    //if (do24vCount % 10 != 0)
-                    //{
-                    //    insertDO24V2(acTrans, acModSpace, acDb, currentModNum);
-                    //    insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModNum, "DO");
-                    //    ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    //    currentModNum++;
-                    //    do24vCount += 0.5;
-                    //}
-                    //for (int i = diCount + (int)do24vCount; i < doCount + do24vCount+ diCount; i++)
-                    //{
-                    //    if (i < maxCount)
-                    //    {
-                    //        insertDO(acTrans, acModSpace, acDb, i);
-                    //        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                    //        insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
-                    //        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    //    }
-                    //    else
-                    //    {
-                    //        if (i == maxCount) { currentD++; maxCount = 16; currentET++; }
-                    //        insertDO(acTrans, acModSpace, acDb, i);
-                    //        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                    //        insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
-                    //        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    //    } 
-                    //}
+                    currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+                    int currentModule = 0;
+                    for (int i = diCount; i < do24vCount + diCount; i++)
+                    {
+                        if (i < maxCount)
+                        {
+                            insertDO24V(acTrans, acModSpace, acDb, i);
+                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                        }
+                        else
+                        {
+                            if (currentET != 2)
+                            {
+                                if (etCount == 3)
+                                {
+                                    currentET++;
+                                    currentD++;
+                                    maxCount = 16;
+                                }
+                                else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                            }
+                        }
+                        currentModule = i;
+                    }
+                    currentModule++;
+                    if (do24vCount % 10 != 0)
+                    {
+                        insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
+                        insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
+                        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                        currentModule++;
+                        do24vCount += 0.5;
+                    }
+                    for (int i = currentModule; i < diCount + doCount; i++)
+                    {
+                        if (i < maxCount)
+                        {
+                            insertDO(acTrans, acModSpace, acDb, i);
+                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                        }
+                        else
+                        {
+                            if (currentET != 2)
+                            {
+                                if (etCount == 3)
+                                {
+                                    currentET++;
+                                    currentD++;
+                                    maxCount = 16;
+                                }
+                                else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                            }
+                        }
+                    }
                     acTrans.Commit();
                 }
             }
@@ -1387,7 +1376,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusUp2.TextString = "(-1XR" + currentD.ToString() + "." + (moduleNumber + 4) + ":9:A2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -1412,7 +1401,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.2:FU{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:2/3." + currentSheet + ")";
+                                                linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:26/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2244,40 +2233,41 @@ namespace AcElectricalSchemePlugin
         }
         private static void insertDO24V(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
             cableDownPlus.Layer = "0";
             cableDownPlus.Color = Color.FromRgb(255, 0, 0);
-            cableDownPlus.StartPoint = block241;
+            cableDownPlus.StartPoint = block243;
             cableDownPlus.EndPoint = cableDownPlus.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableDownPlus);
             acTrans.AddNewlyCreatedDBObject(cableDownPlus, true);
 
-            Circle acCircDown = new Circle();
-            acCircDown.SetDatabaseDefaults();
-            acCircDown.Center = cableDownPlus.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircDown.Radius = 0.75;
-            modSpace.AppendEntity(acCircDown);
-            acTrans.AddNewlyCreatedDBObject(acCircDown, true);
+            Circle acCirc = new Circle();
+            acCirc.SetDatabaseDefaults();
+            acCirc.Center = cableDownPlus.EndPoint.Add(new Vector3d(0, 3.9489, 0));
+            acCirc.Radius = 0.75;
+            modSpace.AppendEntity(acCirc);
+            acTrans.AddNewlyCreatedDBObject(acCirc, true);
 
             ObjectIdCollection acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircDown.ObjectId);
+            acObjIdColl.Add(acCirc.ObjectId);
 
-            Hatch acHatchDown = new Hatch();
-            modSpace.AppendEntity(acHatchDown);
-            acTrans.AddNewlyCreatedDBObject(acHatchDown, true);
-            acHatchDown.SetDatabaseDefaults();
-            acHatchDown.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchDown.Associative = true;
-            acHatchDown.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchDown.EvaluateHatch(true);
-            acHatchDown.Color = Color.FromRgb(255, 255, 255);
+            Hatch acHatch = new Hatch();
+            modSpace.AppendEntity(acHatch);
+            acTrans.AddNewlyCreatedDBObject(acHatch, true);
+            acHatch.SetDatabaseDefaults();
+            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            acHatch.Associative = true;
+            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+            acHatch.EvaluateHatch(true);
+            acHatch.Color = Color.FromRgb(255, 255, 255);
 
             Line cableBranchHDown = new Line();
             cableBranchHDown.SetDatabaseDefaults();
             cableBranchHDown.Layer = "0";
             cableBranchHDown.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHDown.StartPoint = acCircDown.Center;
+            cableBranchHDown.StartPoint = acCirc.Center;
             cableBranchHDown.EndPoint = cableBranchHDown.StartPoint.Add(new Vector3d(4, 0, 0));
             modSpace.AppendEntity(cableBranchHDown);
             acTrans.AddNewlyCreatedDBObject(cableBranchHDown, true);
@@ -2331,9 +2321,11 @@ namespace AcElectricalSchemePlugin
             linkPLusDown2.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkPLusDown2);
             acTrans.AddNewlyCreatedDBObject(linkPLusDown2, true);
+            #endregion
 
-            block241 = block241.Add(new Vector3d(8, 0, 0));
+            block243 = block243.Add(new Vector3d(8, 0, 0));
 
+            #region down-
             Line cableLineMinusDown = new Line();
             cableLineMinusDown.SetDatabaseDefaults();
             cableLineMinusDown.Layer = "0";
@@ -2342,6 +2334,44 @@ namespace AcElectricalSchemePlugin
             cableLineMinusDown.EndPoint = cableLineMinusDown.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableLineMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableLineMinusDown, true);
+
+            acCirc = new Circle();
+            acCirc.SetDatabaseDefaults();
+            acCirc.Center = cableLineMinusDown.EndPoint.Add(new Vector3d(0, 3.9489, 0));
+            acCirc.Radius = 0.75;
+            modSpace.AppendEntity(acCirc);
+            acTrans.AddNewlyCreatedDBObject(acCirc, true);
+
+            acObjIdColl = new ObjectIdCollection();
+            acObjIdColl.Add(acCirc.ObjectId);
+
+            acHatch = new Hatch();
+            modSpace.AppendEntity(acHatch);
+            acTrans.AddNewlyCreatedDBObject(acHatch, true);
+            acHatch.SetDatabaseDefaults();
+            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            acHatch.Associative = true;
+            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+            acHatch.EvaluateHatch(true);
+            acHatch.Color = Color.FromRgb(255, 255, 255);
+
+            Line cableBranchHMinusDown = new Line();
+            cableBranchHMinusDown.SetDatabaseDefaults();
+            cableBranchHMinusDown.Layer = "0";
+            cableBranchHMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchHMinusDown.StartPoint = acCirc.Center;
+            cableBranchHMinusDown.EndPoint = cableBranchHMinusDown.StartPoint.Add(new Vector3d(4, 0, 0));
+            modSpace.AppendEntity(cableBranchHMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusDown, true);
+
+            Line cableBranchMinusDown = new Line();
+            cableBranchMinusDown.SetDatabaseDefaults();
+            cableBranchMinusDown.Layer = "0";
+            cableBranchMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchMinusDown.StartPoint = cableBranchHMinusDown.EndPoint;
+            cableBranchMinusDown.EndPoint = cableBranchMinusDown.StartPoint.Add(new Vector3d(0, -3.9489, 0));
+            modSpace.AppendEntity(cableBranchMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchMinusDown, true);
 
             DBText cableMarkMinusDown = new DBText();
             cableMarkMinusDown.SetDatabaseDefaults();
@@ -2356,39 +2386,46 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableMarkMinusDown, true);
 
-            DBText linkMinusDown = new DBText();
-            linkMinusDown.SetDatabaseDefaults();
-            linkMinusDown.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusDown.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusDown.Rotation = 1.57;
-            linkMinusDown.Height = 2.5;
-            linkMinusDown.WidthFactor = 0.7;
-            linkMinusDown.Color = Color.FromRgb(255, 255, 255);
-            linkMinusDown.Justify = AttachmentPoint.MiddleRight;
-            linkMinusDown.AlignmentPoint = linkMinusDown.Position;
-            linkMinusDown.Layer = "0";
-            modSpace.AppendEntity(linkMinusDown);
-            acTrans.AddNewlyCreatedDBObject(linkMinusDown, true);
+            DBText linkMinusDown1 = new DBText();
+            linkMinusDown1.SetDatabaseDefaults();
+            linkMinusDown1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown1.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown1.Rotation = 1.57;
+            linkMinusDown1.Height = 2.5;
+            linkMinusDown1.WidthFactor = 0.7;
+            linkMinusDown1.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown1.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown1.AlignmentPoint = linkMinusDown1.Position;
+            linkMinusDown1.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown1);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown1, true);
 
-            block241 = block241.Add(new Vector3d(9.1624, 0, 0));
+            DBText linkMinusDown2 = new DBText();
+            linkMinusDown2.SetDatabaseDefaults();
+            linkMinusDown2.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown2.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown2.Rotation = 1.57;
+            linkMinusDown2.Height = 2.5;
+            linkMinusDown2.WidthFactor = 0.7;
+            linkMinusDown2.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown2.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown2.AlignmentPoint = linkMinusDown2.Position;
+            linkMinusDown2.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown2, true);
+            #endregion
 
-            Line cableBranchHPlusUp = new Line();
-            cableBranchHPlusUp.SetDatabaseDefaults();
-            cableBranchHPlusUp.Layer = "0";
-            cableBranchHPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHPlusUp.StartPoint = block242.Add(new Vector3d(0, -12.678, 0));
-            cableBranchHPlusUp.EndPoint = cableBranchHPlusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHPlusUp, true);
+            block243 = block243.Add(new Vector3d(9.1624, 0, 0));
 
-            Line cableBranchPlusUp = new Line();
-            cableBranchPlusUp.SetDatabaseDefaults();
-            cableBranchPlusUp.Layer = "0";
-            cableBranchPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchPlusUp.StartPoint = cableBranchHPlusUp.EndPoint;
-            cableBranchPlusUp.EndPoint = cableBranchPlusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchPlusUp, true);
+            #region up+
+            Line cablePlusUp = new Line();
+            cablePlusUp.SetDatabaseDefaults();
+            cablePlusUp.Layer = "0";
+            cablePlusUp.Color = Color.FromRgb(255, 0, 0);
+            cablePlusUp.StartPoint = block244;
+            cablePlusUp.EndPoint = cablePlusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
+            modSpace.AppendEntity(cablePlusUp);
+            acTrans.AddNewlyCreatedDBObject(cablePlusUp, true);
 
             DBText cableMarkPlusUp = new DBText();
             cableMarkPlusUp.SetDatabaseDefaults();
@@ -2403,22 +2440,24 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkPlusUp);
             acTrans.AddNewlyCreatedDBObject(cableMarkPlusUp, true);
 
-            DBText linkPLusUp2 = new DBText();
-            linkPLusUp2.SetDatabaseDefaults();
-            linkPLusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkPLusUp2.Position = cableBranchPlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkPLusUp2.Rotation = 1.57;
-            linkPLusUp2.Height = 2.5;
-            linkPLusUp2.WidthFactor = 0.7;
-            linkPLusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkPLusUp2.AlignmentPoint = linkPLusUp2.Position;
-            linkPLusUp2.Layer = "0";
-            linkPLusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkPLusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkPLusUp2, true);
+            DBText linkPLusUp1 = new DBText();
+            linkPLusUp1.SetDatabaseDefaults();
+            linkPLusUp1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkPLusUp1.Position = cablePlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkPLusUp1.Rotation = 1.57;
+            linkPLusUp1.Height = 2.5;
+            linkPLusUp1.WidthFactor = 0.7;
+            linkPLusUp1.Justify = AttachmentPoint.MiddleRight;
+            linkPLusUp1.AlignmentPoint = linkPLusUp1.Position;
+            linkPLusUp1.Layer = "0";
+            linkPLusUp1.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(linkPLusUp1);
+            acTrans.AddNewlyCreatedDBObject(linkPLusUp1, true);
+            #endregion
 
-            block242 = block242.Add(new Vector3d(8, 0, 0));
+            block244 = block244.Add(new Vector3d(8, 0, 0));
 
+            #region up-
             Line cableMinusUp = new Line();
             cableMinusUp.SetDatabaseDefaults();
             cableMinusUp.Layer = "0";
@@ -2427,44 +2466,6 @@ namespace AcElectricalSchemePlugin
             cableMinusUp.EndPoint = cableMinusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableMinusUp);
             acTrans.AddNewlyCreatedDBObject(cableMinusUp, true);
-
-            Circle acCircMinusUp = new Circle();
-            acCircMinusUp.SetDatabaseDefaults();
-            acCircMinusUp.Center = cableMinusUp.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircMinusUp.Radius = 0.75;
-            modSpace.AppendEntity(acCircMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acCircMinusUp, true);
-
-            acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircMinusUp.ObjectId);
-
-            Hatch acHatchMinusUp = new Hatch();
-            modSpace.AppendEntity(acHatchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acHatchMinusUp, true);
-            acHatchMinusUp.SetDatabaseDefaults();
-            acHatchMinusUp.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchMinusUp.Associative = true;
-            acHatchMinusUp.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchMinusUp.EvaluateHatch(true);
-            acHatchMinusUp.Color = Color.FromRgb(255, 255, 255);
-
-            Line cableBranchHMinusUp = new Line();
-            cableBranchHMinusUp.SetDatabaseDefaults();
-            cableBranchHMinusUp.Layer = "0";
-            cableBranchHMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchHMinusUp.StartPoint = acCircMinusUp.Center;
-            cableBranchHMinusUp.EndPoint = cableBranchHMinusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusUp, true);
-
-            Line cableBranchMinusUp = new Line();
-            cableBranchMinusUp.SetDatabaseDefaults();
-            cableBranchMinusUp.Layer = "0";
-            cableBranchMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchMinusUp.StartPoint = cableBranchHMinusUp.EndPoint;
-            cableBranchMinusUp.EndPoint = cableBranchMinusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchMinusUp, true);
 
             DBText cableMarkMinusUp = new DBText();
             cableMarkMinusUp.SetDatabaseDefaults();
@@ -2492,26 +2493,13 @@ namespace AcElectricalSchemePlugin
             linkMinusUp1.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkMinusUp1);
             acTrans.AddNewlyCreatedDBObject(linkMinusUp1, true);
+            #endregion
 
-            DBText linkMinusUp2 = new DBText();
-            linkMinusUp2.SetDatabaseDefaults();
-            linkMinusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusUp2.Position = cableBranchMinusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusUp2.Rotation = 1.57;
-            linkMinusUp2.Height = 2.5;
-            linkMinusUp2.WidthFactor = 0.7;
-            linkMinusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkMinusUp2.AlignmentPoint = linkMinusUp2.Position;
-            linkMinusUp2.Layer = "0";
-            linkMinusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkMinusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkMinusUp2, true);
-
-            block242 = block242.Add(new Vector3d(9.1624, 0, 0));
+            block244 = block244.Add(new Vector3d(9.1624, 0, 0));
 
             ObjectIdCollection ids = new ObjectIdCollection();
-            string filename = @"Data\DI1.dwg";
-            string blockName = "DI1";
+            string filename = @"Data\DO24V1.dwg";
+            string blockName = "DO24V1";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -2575,7 +2563,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2L" + (moduleNumber + 1) + "+";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkPlusDown.TextString = attRef.TextString;
@@ -2587,7 +2575,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 1);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkMinusDown.TextString = attRef.TextString;
@@ -2599,10 +2587,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2611,10 +2599,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":20/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2623,7 +2611,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
+                                                attRef.TextString = "2M" + (moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkMinusUp.TextString = attRef.TextString;
@@ -2635,10 +2623,34 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.4:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                            }
+                                            break;
+                                        }
+                                    case "UPCABLE+":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "2L" + (moduleNumber + 11) + "+";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                cableMarkPlusDown.TextString = attRef.TextString;
+                                            }
+                                            break;
+                                        }
+                                    case "UPLINK+":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = string.Format("(-XT24.4:FU{0}/3.3)", moduleNumber + 11);
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                linkMinusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2675,6 +2687,17 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "XT":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "SH":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -2698,8 +2721,8 @@ namespace AcElectricalSchemePlugin
             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
 
             ids = new ObjectIdCollection();
-            filename = @"Data\DI2.dwg";
-            blockName = "DI2";
+            filename = @"Data\DO24V1.dwg";
+            blockName = "DO24V1";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -2763,7 +2786,18 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2L" + (moduleNumber + 1) + "+";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "DOWNCABLE-":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2774,10 +2808,22 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                linkPLusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                            }
+                                            break;
+                                        }
+                                    case "DOWNLINK-":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                linkMinusDown2.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2786,7 +2832,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
+                                                attRef.TextString = "2M" + (moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2797,10 +2843,9 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.4:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2809,11 +2854,9 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 11) + "+";
+                                                attRef.TextString = "2L" + (moduleNumber + 11) + "+";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                cableMarkPlusUp.TextString = attRef.TextString;
-                                                cableMarkPlusUp.TextString = attRef.TextString;
                                             }
                                             break;
                                         }
@@ -2822,10 +2865,9 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:FU{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.4:FU{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -2834,7 +2876,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2845,7 +2887,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2XR" + currentD.ToString() + "." + (moduleNumber + 4);
+                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2856,7 +2898,29 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2G" + currentD.ToString() + "." + (moduleNumber + 4);
+                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4);
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "R1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "R2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2867,40 +2931,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "VD1":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "VD2":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "R":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2923,57 +2954,21 @@ namespace AcElectricalSchemePlugin
                         currentSheet++;
                     }
                 }
-                else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
         }
-        private static void insertDO24V2(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
+
+        private static void insertDO24Vhalf(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
             cableDownPlus.Layer = "0";
             cableDownPlus.Color = Color.FromRgb(255, 0, 0);
-            cableDownPlus.StartPoint = block241;
+            cableDownPlus.StartPoint = block243;
             cableDownPlus.EndPoint = cableDownPlus.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableDownPlus);
             acTrans.AddNewlyCreatedDBObject(cableDownPlus, true);
-
-            Circle acCircDown = new Circle();
-            acCircDown.SetDatabaseDefaults();
-            acCircDown.Center = cableDownPlus.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircDown.Radius = 0.75;
-            modSpace.AppendEntity(acCircDown);
-            acTrans.AddNewlyCreatedDBObject(acCircDown, true);
-
-            ObjectIdCollection acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircDown.ObjectId);
-
-            Hatch acHatchDown = new Hatch();
-            modSpace.AppendEntity(acHatchDown);
-            acTrans.AddNewlyCreatedDBObject(acHatchDown, true);
-            acHatchDown.SetDatabaseDefaults();
-            acHatchDown.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchDown.Associative = true;
-            acHatchDown.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchDown.EvaluateHatch(true);
-            acHatchDown.Color = Color.FromRgb(255, 255, 255);
-
-            Line cableBranchHDown = new Line();
-            cableBranchHDown.SetDatabaseDefaults();
-            cableBranchHDown.Layer = "0";
-            cableBranchHDown.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHDown.StartPoint = acCircDown.Center;
-            cableBranchHDown.EndPoint = cableBranchHDown.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHDown);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHDown, true);
-
-            Line cableBranchDown = new Line();
-            cableBranchDown.SetDatabaseDefaults();
-            cableBranchDown.Layer = "0";
-            cableBranchDown.Color = Color.FromRgb(255, 0, 0);
-            cableBranchDown.StartPoint = cableBranchHDown.EndPoint;
-            cableBranchDown.EndPoint = cableBranchDown.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchDown);
-            acTrans.AddNewlyCreatedDBObject(cableBranchDown, true);
 
             DBText cableMarkPlusDown = new DBText();
             cableMarkPlusDown.SetDatabaseDefaults();
@@ -3001,23 +2996,11 @@ namespace AcElectricalSchemePlugin
             linkPLusDown1.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkPLusDown1);
             acTrans.AddNewlyCreatedDBObject(linkPLusDown1, true);
+            #endregion
 
-            DBText linkPLusDown2 = new DBText();
-            linkPLusDown2.SetDatabaseDefaults();
-            linkPLusDown2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkPLusDown2.Position = cableBranchDown.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkPLusDown2.Rotation = 1.57;
-            linkPLusDown2.Height = 2.5;
-            linkPLusDown2.WidthFactor = 0.7;
-            linkPLusDown2.Justify = AttachmentPoint.MiddleRight;
-            linkPLusDown2.AlignmentPoint = linkPLusDown2.Position;
-            linkPLusDown2.Layer = "0";
-            linkPLusDown2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkPLusDown2);
-            acTrans.AddNewlyCreatedDBObject(linkPLusDown2, true);
+            block243 = block243.Add(new Vector3d(8, 0, 0));
 
-            block241 = block241.Add(new Vector3d(8, 0, 0));
-
+            #region down-
             Line cableLineMinusDown = new Line();
             cableLineMinusDown.SetDatabaseDefaults();
             cableLineMinusDown.Layer = "0";
@@ -3026,6 +3009,62 @@ namespace AcElectricalSchemePlugin
             cableLineMinusDown.EndPoint = cableLineMinusDown.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableLineMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableLineMinusDown, true);
+
+            Circle acCirc = new Circle();
+            acCirc.SetDatabaseDefaults();
+            acCirc.Center = cableLineMinusDown.EndPoint.Add(new Vector3d(0, 3.9489, 0));
+            acCirc.Radius = 0.75;
+            modSpace.AppendEntity(acCirc);
+            acTrans.AddNewlyCreatedDBObject(acCirc, true);
+
+            ObjectIdCollection acObjIdColl = new ObjectIdCollection();
+            acObjIdColl.Add(acCirc.ObjectId);
+
+            Hatch acHatch = new Hatch();
+            modSpace.AppendEntity(acHatch);
+            acTrans.AddNewlyCreatedDBObject(acHatch, true);
+            acHatch.SetDatabaseDefaults();
+            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            acHatch.Associative = true;
+            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+            acHatch.EvaluateHatch(true);
+            acHatch.Color = Color.FromRgb(255, 255, 255);
+
+            Line cableBranchHMinusDown = new Line();
+            cableBranchHMinusDown.SetDatabaseDefaults();
+            cableBranchHMinusDown.Layer = "0";
+            cableBranchHMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchHMinusDown.StartPoint = acCirc.Center;
+            cableBranchHMinusDown.EndPoint = cableBranchHMinusDown.StartPoint.Add(new Vector3d(4, 0, 0));
+            modSpace.AppendEntity(cableBranchHMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusDown, true);
+
+            Line cableBranchMinusDown = new Line();
+            cableBranchMinusDown.SetDatabaseDefaults();
+            cableBranchMinusDown.Layer = "0";
+            cableBranchMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchMinusDown.StartPoint = cableBranchHMinusDown.EndPoint;
+            cableBranchMinusDown.EndPoint = cableBranchMinusDown.StartPoint.Add(new Vector3d(0, -3.9489, 0));
+            modSpace.AppendEntity(cableBranchMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchMinusDown, true);
+
+            Line cableBranchHMinusDown2 = new Line();
+            cableBranchHMinusDown2.SetDatabaseDefaults();
+            cableBranchHMinusDown2.Layer = "0";
+            cableBranchHMinusDown2.Color = Color.FromRgb(255, 0, 0);
+            cableBranchHMinusDown2.StartPoint = acCirc.Center;
+            cableBranchHMinusDown2.EndPoint = cableBranchHMinusDown2.StartPoint.Add(new Vector3d(-4, 0, 0));
+            modSpace.AppendEntity(cableBranchHMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusDown2, true);
+
+            Line cableBranchMinusDown2 = new Line();
+            cableBranchMinusDown2.SetDatabaseDefaults();
+            cableBranchMinusDown2.Layer = "0";
+            cableBranchMinusDown2.Color = Color.FromRgb(255, 0, 0);
+            cableBranchMinusDown2.StartPoint = cableBranchHMinusDown2.EndPoint;
+            cableBranchMinusDown.EndPoint = cableBranchMinusDown2.StartPoint.Add(new Vector3d(0, -3.9489, 0));
+            modSpace.AppendEntity(cableBranchMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(cableBranchMinusDown2, true);
 
             DBText cableMarkMinusDown = new DBText();
             cableMarkMinusDown.SetDatabaseDefaults();
@@ -3040,39 +3079,60 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableMarkMinusDown, true);
 
-            DBText linkMinusDown = new DBText();
-            linkMinusDown.SetDatabaseDefaults();
-            linkMinusDown.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusDown.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusDown.Rotation = 1.57;
-            linkMinusDown.Height = 2.5;
-            linkMinusDown.WidthFactor = 0.7;
-            linkMinusDown.Color = Color.FromRgb(255, 255, 255);
-            linkMinusDown.Justify = AttachmentPoint.MiddleRight;
-            linkMinusDown.AlignmentPoint = linkMinusDown.Position;
-            linkMinusDown.Layer = "0";
-            modSpace.AppendEntity(linkMinusDown);
-            acTrans.AddNewlyCreatedDBObject(linkMinusDown, true);
+            DBText linkMinusDown1 = new DBText();
+            linkMinusDown1.SetDatabaseDefaults();
+            linkMinusDown1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown1.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown1.Rotation = 1.57;
+            linkMinusDown1.Height = 2.5;
+            linkMinusDown1.WidthFactor = 0.7;
+            linkMinusDown1.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown1.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown1.AlignmentPoint = linkMinusDown1.Position;
+            linkMinusDown1.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown1);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown1, true);
 
-            block241 = block241.Add(new Vector3d(9.1624, 0, 0));
+            DBText linkMinusDown2 = new DBText();
+            linkMinusDown2.SetDatabaseDefaults();
+            linkMinusDown2.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown2.Position = cableBranchMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown2.Rotation = 1.57;
+            linkMinusDown2.Height = 2.5;
+            linkMinusDown2.WidthFactor = 0.7;
+            linkMinusDown2.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown2.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown2.AlignmentPoint = linkMinusDown2.Position;
+            linkMinusDown2.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown2, true);
+            
+            DBText linkMinusDown3 = new DBText();
+            linkMinusDown3.SetDatabaseDefaults();
+            linkMinusDown3.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown3.Position = cableBranchMinusDown2.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown3.Rotation = 1.57;
+            linkMinusDown3.Height = 2.5;
+            linkMinusDown3.WidthFactor = 0.7;
+            linkMinusDown3.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown3.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown3.AlignmentPoint = linkMinusDown3.Position;
+            linkMinusDown3.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown3);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown3, true);
+            #endregion
 
-            Line cableBranchHPlusUp = new Line();
-            cableBranchHPlusUp.SetDatabaseDefaults();
-            cableBranchHPlusUp.Layer = "0";
-            cableBranchHPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHPlusUp.StartPoint = block242.Add(new Vector3d(0, -12.678, 0));
-            cableBranchHPlusUp.EndPoint = cableBranchHPlusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHPlusUp, true);
+            block243 = block243.Add(new Vector3d(9.1624, 0, 0));
 
-            Line cableBranchPlusUp = new Line();
-            cableBranchPlusUp.SetDatabaseDefaults();
-            cableBranchPlusUp.Layer = "0";
-            cableBranchPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchPlusUp.StartPoint = cableBranchHPlusUp.EndPoint;
-            cableBranchPlusUp.EndPoint = cableBranchPlusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchPlusUp, true);
+            #region up+
+            Line cablePlusUp = new Line();
+            cablePlusUp.SetDatabaseDefaults();
+            cablePlusUp.Layer = "0";
+            cablePlusUp.Color = Color.FromRgb(255, 0, 0);
+            cablePlusUp.StartPoint = block244;
+            cablePlusUp.EndPoint = cablePlusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
+            modSpace.AppendEntity(cablePlusUp);
+            acTrans.AddNewlyCreatedDBObject(cablePlusUp, true);
 
             DBText cableMarkPlusUp = new DBText();
             cableMarkPlusUp.SetDatabaseDefaults();
@@ -3087,22 +3147,24 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkPlusUp);
             acTrans.AddNewlyCreatedDBObject(cableMarkPlusUp, true);
 
-            DBText linkPLusUp2 = new DBText();
-            linkPLusUp2.SetDatabaseDefaults();
-            linkPLusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkPLusUp2.Position = cableBranchPlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkPLusUp2.Rotation = 1.57;
-            linkPLusUp2.Height = 2.5;
-            linkPLusUp2.WidthFactor = 0.7;
-            linkPLusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkPLusUp2.AlignmentPoint = linkPLusUp2.Position;
-            linkPLusUp2.Layer = "0";
-            linkPLusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkPLusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkPLusUp2, true);
+            DBText linkPLusUp1 = new DBText();
+            linkPLusUp1.SetDatabaseDefaults();
+            linkPLusUp1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkPLusUp1.Position = cablePlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkPLusUp1.Rotation = 1.57;
+            linkPLusUp1.Height = 2.5;
+            linkPLusUp1.WidthFactor = 0.7;
+            linkPLusUp1.Justify = AttachmentPoint.MiddleRight;
+            linkPLusUp1.AlignmentPoint = linkPLusUp1.Position;
+            linkPLusUp1.Layer = "0";
+            linkPLusUp1.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(linkPLusUp1);
+            acTrans.AddNewlyCreatedDBObject(linkPLusUp1, true);
+            #endregion
 
-            block242 = block242.Add(new Vector3d(8, 0, 0));
+            block244 = block244.Add(new Vector3d(8, 0, 0));
 
+            #region up-
             Line cableMinusUp = new Line();
             cableMinusUp.SetDatabaseDefaults();
             cableMinusUp.Layer = "0";
@@ -3111,44 +3173,6 @@ namespace AcElectricalSchemePlugin
             cableMinusUp.EndPoint = cableMinusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableMinusUp);
             acTrans.AddNewlyCreatedDBObject(cableMinusUp, true);
-
-            Circle acCircMinusUp = new Circle();
-            acCircMinusUp.SetDatabaseDefaults();
-            acCircMinusUp.Center = cableMinusUp.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircMinusUp.Radius = 0.75;
-            modSpace.AppendEntity(acCircMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acCircMinusUp, true);
-
-            acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircMinusUp.ObjectId);
-
-            Hatch acHatchMinusUp = new Hatch();
-            modSpace.AppendEntity(acHatchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acHatchMinusUp, true);
-            acHatchMinusUp.SetDatabaseDefaults();
-            acHatchMinusUp.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchMinusUp.Associative = true;
-            acHatchMinusUp.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchMinusUp.EvaluateHatch(true);
-            acHatchMinusUp.Color = Color.FromRgb(255, 255, 255);
-
-            Line cableBranchHMinusUp = new Line();
-            cableBranchHMinusUp.SetDatabaseDefaults();
-            cableBranchHMinusUp.Layer = "0";
-            cableBranchHMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchHMinusUp.StartPoint = acCircMinusUp.Center;
-            cableBranchHMinusUp.EndPoint = cableBranchHMinusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusUp, true);
-
-            Line cableBranchMinusUp = new Line();
-            cableBranchMinusUp.SetDatabaseDefaults();
-            cableBranchMinusUp.Layer = "0";
-            cableBranchMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchMinusUp.StartPoint = cableBranchHMinusUp.EndPoint;
-            cableBranchMinusUp.EndPoint = cableBranchMinusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchMinusUp, true);
 
             DBText cableMarkMinusUp = new DBText();
             cableMarkMinusUp.SetDatabaseDefaults();
@@ -3176,26 +3200,13 @@ namespace AcElectricalSchemePlugin
             linkMinusUp1.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkMinusUp1);
             acTrans.AddNewlyCreatedDBObject(linkMinusUp1, true);
+            #endregion
 
-            DBText linkMinusUp2 = new DBText();
-            linkMinusUp2.SetDatabaseDefaults();
-            linkMinusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusUp2.Position = cableBranchMinusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusUp2.Rotation = 1.57;
-            linkMinusUp2.Height = 2.5;
-            linkMinusUp2.WidthFactor = 0.7;
-            linkMinusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkMinusUp2.AlignmentPoint = linkMinusUp2.Position;
-            linkMinusUp2.Layer = "0";
-            linkMinusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkMinusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkMinusUp2, true);
-
-            block242 = block242.Add(new Vector3d(9.1624, 0, 0));
+            block244 = block244.Add(new Vector3d(9.1624, 0, 0));
 
             ObjectIdCollection ids = new ObjectIdCollection();
-            string filename = @"Data\DI1.dwg";
-            string blockName = "DI1";
+            string filename = @"Data\DO24V1.dwg";
+            string blockName = "DO24V1";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -3259,7 +3270,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2L" + (moduleNumber + 1) + "+";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkPlusDown.TextString = attRef.TextString;
@@ -3271,7 +3282,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 1);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkMinusDown.TextString = attRef.TextString;
@@ -3283,10 +3294,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3295,10 +3306,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":20/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3307,7 +3318,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
+                                                attRef.TextString = "2M" + (moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkMinusUp.TextString = attRef.TextString;
@@ -3319,10 +3330,34 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.4:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                            }
+                                            break;
+                                        }
+                                    case "UPCABLE+":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "2L" + (moduleNumber + 11) + "+";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                cableMarkPlusDown.TextString = attRef.TextString;
+                                            }
+                                            break;
+                                        }
+                                    case "UPLINK+":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = string.Format("(-XT24.4:FU{0}/3.3)", moduleNumber + 11);
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                linkMinusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3359,6 +3394,17 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "XT":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "SH":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -3382,8 +3428,8 @@ namespace AcElectricalSchemePlugin
             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
 
             ids = new ObjectIdCollection();
-            filename = @"Data\DI2.dwg";
-            blockName = "DI2";
+            filename = @"Data\DO24V2.dwg";
+            blockName = "DO24V2";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -3442,74 +3488,49 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
-                                    case "DOWNCABLE+":
+                                    case "DOWNCABLE1-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
                                             break;
                                         }
-                                    case "DOWNLINK+":
+                                    case "DOWNCABLE2-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                            }
-                                            break;
-                                        }
-                                    case "UPCABLE-":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
                                             break;
                                         }
-                                    case "UPLINK-":
+                                    case "DOWNLINK1-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":10/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
-                                    case "UPCABLE+":
+                                    case "DOWNLINK2-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 11) + "+";
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                cableMarkPlusUp.TextString = attRef.TextString;
-                                                cableMarkPlusUp.TextString = attRef.TextString;
-                                            }
-                                            break;
-                                        }
-                                    case "UPLINK+":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:FU{0}/3.3)", moduleNumber + 11);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:2/3." + currentSheet + ")";
+                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3557,39 +3578,6 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
-                                    case "VD1":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "VD2":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "R":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
                                     case "SH":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -3607,57 +3595,20 @@ namespace AcElectricalSchemePlugin
                         currentSheet++;
                     }
                 }
-                else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
         }
         private static void insertDO(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
             cableDownPlus.Layer = "0";
             cableDownPlus.Color = Color.FromRgb(255, 0, 0);
-            cableDownPlus.StartPoint = block241;
+            cableDownPlus.StartPoint = block243;
             cableDownPlus.EndPoint = cableDownPlus.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableDownPlus);
             acTrans.AddNewlyCreatedDBObject(cableDownPlus, true);
-
-            Circle acCircDown = new Circle();
-            acCircDown.SetDatabaseDefaults();
-            acCircDown.Center = cableDownPlus.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircDown.Radius = 0.75;
-            modSpace.AppendEntity(acCircDown);
-            acTrans.AddNewlyCreatedDBObject(acCircDown, true);
-
-            ObjectIdCollection acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircDown.ObjectId);
-
-            Hatch acHatchDown = new Hatch();
-            modSpace.AppendEntity(acHatchDown);
-            acTrans.AddNewlyCreatedDBObject(acHatchDown, true);
-            acHatchDown.SetDatabaseDefaults();
-            acHatchDown.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchDown.Associative = true;
-            acHatchDown.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchDown.EvaluateHatch(true);
-            acHatchDown.Color = Color.FromRgb(255, 255, 255);
-
-            Line cableBranchHDown = new Line();
-            cableBranchHDown.SetDatabaseDefaults();
-            cableBranchHDown.Layer = "0";
-            cableBranchHDown.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHDown.StartPoint = acCircDown.Center;
-            cableBranchHDown.EndPoint = cableBranchHDown.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHDown);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHDown, true);
-
-            Line cableBranchDown = new Line();
-            cableBranchDown.SetDatabaseDefaults();
-            cableBranchDown.Layer = "0";
-            cableBranchDown.Color = Color.FromRgb(255, 0, 0);
-            cableBranchDown.StartPoint = cableBranchHDown.EndPoint;
-            cableBranchDown.EndPoint = cableBranchDown.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchDown);
-            acTrans.AddNewlyCreatedDBObject(cableBranchDown, true);
 
             DBText cableMarkPlusDown = new DBText();
             cableMarkPlusDown.SetDatabaseDefaults();
@@ -3685,23 +3636,11 @@ namespace AcElectricalSchemePlugin
             linkPLusDown1.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkPLusDown1);
             acTrans.AddNewlyCreatedDBObject(linkPLusDown1, true);
+            #endregion
 
-            DBText linkPLusDown2 = new DBText();
-            linkPLusDown2.SetDatabaseDefaults();
-            linkPLusDown2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkPLusDown2.Position = cableBranchDown.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkPLusDown2.Rotation = 1.57;
-            linkPLusDown2.Height = 2.5;
-            linkPLusDown2.WidthFactor = 0.7;
-            linkPLusDown2.Justify = AttachmentPoint.MiddleRight;
-            linkPLusDown2.AlignmentPoint = linkPLusDown2.Position;
-            linkPLusDown2.Layer = "0";
-            linkPLusDown2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkPLusDown2);
-            acTrans.AddNewlyCreatedDBObject(linkPLusDown2, true);
+            block243 = block243.Add(new Vector3d(8, 0, 0));
 
-            block241 = block241.Add(new Vector3d(8, 0, 0));
-
+            #region down-
             Line cableLineMinusDown = new Line();
             cableLineMinusDown.SetDatabaseDefaults();
             cableLineMinusDown.Layer = "0";
@@ -3710,6 +3649,62 @@ namespace AcElectricalSchemePlugin
             cableLineMinusDown.EndPoint = cableLineMinusDown.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableLineMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableLineMinusDown, true);
+
+            Circle acCirc = new Circle();
+            acCirc.SetDatabaseDefaults();
+            acCirc.Center = cableLineMinusDown.EndPoint.Add(new Vector3d(0, 3.9489, 0));
+            acCirc.Radius = 0.75;
+            modSpace.AppendEntity(acCirc);
+            acTrans.AddNewlyCreatedDBObject(acCirc, true);
+
+            ObjectIdCollection acObjIdColl = new ObjectIdCollection();
+            acObjIdColl.Add(acCirc.ObjectId);
+
+            Hatch acHatch = new Hatch();
+            modSpace.AppendEntity(acHatch);
+            acTrans.AddNewlyCreatedDBObject(acHatch, true);
+            acHatch.SetDatabaseDefaults();
+            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            acHatch.Associative = true;
+            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+            acHatch.EvaluateHatch(true);
+            acHatch.Color = Color.FromRgb(255, 255, 255);
+
+            Line cableBranchHMinusDown = new Line();
+            cableBranchHMinusDown.SetDatabaseDefaults();
+            cableBranchHMinusDown.Layer = "0";
+            cableBranchHMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchHMinusDown.StartPoint = acCirc.Center;
+            cableBranchHMinusDown.EndPoint = cableBranchHMinusDown.StartPoint.Add(new Vector3d(4, 0, 0));
+            modSpace.AppendEntity(cableBranchHMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusDown, true);
+
+            Line cableBranchMinusDown = new Line();
+            cableBranchMinusDown.SetDatabaseDefaults();
+            cableBranchMinusDown.Layer = "0";
+            cableBranchMinusDown.Color = Color.FromRgb(255, 0, 0);
+            cableBranchMinusDown.StartPoint = cableBranchHMinusDown.EndPoint;
+            cableBranchMinusDown.EndPoint = cableBranchMinusDown.StartPoint.Add(new Vector3d(0, -3.9489, 0));
+            modSpace.AppendEntity(cableBranchMinusDown);
+            acTrans.AddNewlyCreatedDBObject(cableBranchMinusDown, true);
+
+            Line cableBranchHMinusDown2 = new Line();
+            cableBranchHMinusDown2.SetDatabaseDefaults();
+            cableBranchHMinusDown2.Layer = "0";
+            cableBranchHMinusDown2.Color = Color.FromRgb(255, 0, 0);
+            cableBranchHMinusDown2.StartPoint = acCirc.Center;
+            cableBranchHMinusDown2.EndPoint = cableBranchHMinusDown2.StartPoint.Add(new Vector3d(-4, 0, 0));
+            modSpace.AppendEntity(cableBranchHMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusDown2, true);
+
+            Line cableBranchMinusDown2 = new Line();
+            cableBranchMinusDown2.SetDatabaseDefaults();
+            cableBranchMinusDown2.Layer = "0";
+            cableBranchMinusDown2.Color = Color.FromRgb(255, 0, 0);
+            cableBranchMinusDown2.StartPoint = cableBranchHMinusDown2.EndPoint;
+            cableBranchMinusDown.EndPoint = cableBranchMinusDown2.StartPoint.Add(new Vector3d(0, -3.9489, 0));
+            modSpace.AppendEntity(cableBranchMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(cableBranchMinusDown2, true);
 
             DBText cableMarkMinusDown = new DBText();
             cableMarkMinusDown.SetDatabaseDefaults();
@@ -3724,39 +3719,60 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkMinusDown);
             acTrans.AddNewlyCreatedDBObject(cableMarkMinusDown, true);
 
-            DBText linkMinusDown = new DBText();
-            linkMinusDown.SetDatabaseDefaults();
-            linkMinusDown.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusDown.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusDown.Rotation = 1.57;
-            linkMinusDown.Height = 2.5;
-            linkMinusDown.WidthFactor = 0.7;
-            linkMinusDown.Color = Color.FromRgb(255, 255, 255);
-            linkMinusDown.Justify = AttachmentPoint.MiddleRight;
-            linkMinusDown.AlignmentPoint = linkMinusDown.Position;
-            linkMinusDown.Layer = "0";
-            modSpace.AppendEntity(linkMinusDown);
-            acTrans.AddNewlyCreatedDBObject(linkMinusDown, true);
+            DBText linkMinusDown1 = new DBText();
+            linkMinusDown1.SetDatabaseDefaults();
+            linkMinusDown1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown1.Position = cableLineMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown1.Rotation = 1.57;
+            linkMinusDown1.Height = 2.5;
+            linkMinusDown1.WidthFactor = 0.7;
+            linkMinusDown1.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown1.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown1.AlignmentPoint = linkMinusDown1.Position;
+            linkMinusDown1.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown1);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown1, true);
 
-            block241 = block241.Add(new Vector3d(9.1624, 0, 0));
+            DBText linkMinusDown2 = new DBText();
+            linkMinusDown2.SetDatabaseDefaults();
+            linkMinusDown2.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown2.Position = cableBranchMinusDown.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown2.Rotation = 1.57;
+            linkMinusDown2.Height = 2.5;
+            linkMinusDown2.WidthFactor = 0.7;
+            linkMinusDown2.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown2.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown2.AlignmentPoint = linkMinusDown2.Position;
+            linkMinusDown2.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown2);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown2, true);
 
-            Line cableBranchHPlusUp = new Line();
-            cableBranchHPlusUp.SetDatabaseDefaults();
-            cableBranchHPlusUp.Layer = "0";
-            cableBranchHPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchHPlusUp.StartPoint = block242.Add(new Vector3d(0, -12.678, 0));
-            cableBranchHPlusUp.EndPoint = cableBranchHPlusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHPlusUp, true);
+            DBText linkMinusDown3 = new DBText();
+            linkMinusDown3.SetDatabaseDefaults();
+            linkMinusDown3.TextStyleId = tst["GOSTA-2.5-1"];
+            linkMinusDown3.Position = cableBranchMinusDown2.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkMinusDown3.Rotation = 1.57;
+            linkMinusDown3.Height = 2.5;
+            linkMinusDown3.WidthFactor = 0.7;
+            linkMinusDown3.Color = Color.FromRgb(255, 255, 255);
+            linkMinusDown3.Justify = AttachmentPoint.MiddleRight;
+            linkMinusDown3.AlignmentPoint = linkMinusDown3.Position;
+            linkMinusDown3.Layer = "0";
+            modSpace.AppendEntity(linkMinusDown3);
+            acTrans.AddNewlyCreatedDBObject(linkMinusDown3, true);
+            #endregion
 
-            Line cableBranchPlusUp = new Line();
-            cableBranchPlusUp.SetDatabaseDefaults();
-            cableBranchPlusUp.Layer = "0";
-            cableBranchPlusUp.Color = Color.FromRgb(255, 0, 0);
-            cableBranchPlusUp.StartPoint = cableBranchHPlusUp.EndPoint;
-            cableBranchPlusUp.EndPoint = cableBranchPlusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchPlusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchPlusUp, true);
+            block243 = block243.Add(new Vector3d(9.1624, 0, 0));
+
+            #region up+
+            Line cablePlusUp = new Line();
+            cablePlusUp.SetDatabaseDefaults();
+            cablePlusUp.Layer = "0";
+            cablePlusUp.Color = Color.FromRgb(255, 0, 0);
+            cablePlusUp.StartPoint = block244;
+            cablePlusUp.EndPoint = cablePlusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
+            modSpace.AppendEntity(cablePlusUp);
+            acTrans.AddNewlyCreatedDBObject(cablePlusUp, true);
 
             DBText cableMarkPlusUp = new DBText();
             cableMarkPlusUp.SetDatabaseDefaults();
@@ -3771,22 +3787,24 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(cableMarkPlusUp);
             acTrans.AddNewlyCreatedDBObject(cableMarkPlusUp, true);
 
-            DBText linkPLusUp2 = new DBText();
-            linkPLusUp2.SetDatabaseDefaults();
-            linkPLusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkPLusUp2.Position = cableBranchPlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkPLusUp2.Rotation = 1.57;
-            linkPLusUp2.Height = 2.5;
-            linkPLusUp2.WidthFactor = 0.7;
-            linkPLusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkPLusUp2.AlignmentPoint = linkPLusUp2.Position;
-            linkPLusUp2.Layer = "0";
-            linkPLusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkPLusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkPLusUp2, true);
+            DBText linkPLusUp1 = new DBText();
+            linkPLusUp1.SetDatabaseDefaults();
+            linkPLusUp1.TextStyleId = tst["GOSTA-2.5-1"];
+            linkPLusUp1.Position = cablePlusUp.EndPoint.Add(new Vector3d(0, -1, 0));
+            linkPLusUp1.Rotation = 1.57;
+            linkPLusUp1.Height = 2.5;
+            linkPLusUp1.WidthFactor = 0.7;
+            linkPLusUp1.Justify = AttachmentPoint.MiddleRight;
+            linkPLusUp1.AlignmentPoint = linkPLusUp1.Position;
+            linkPLusUp1.Layer = "0";
+            linkPLusUp1.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(linkPLusUp1);
+            acTrans.AddNewlyCreatedDBObject(linkPLusUp1, true);
+            #endregion
 
-            block242 = block242.Add(new Vector3d(8, 0, 0));
+            block244 = block244.Add(new Vector3d(8, 0, 0));
 
+            #region up-
             Line cableMinusUp = new Line();
             cableMinusUp.SetDatabaseDefaults();
             cableMinusUp.Layer = "0";
@@ -3795,44 +3813,6 @@ namespace AcElectricalSchemePlugin
             cableMinusUp.EndPoint = cableMinusUp.StartPoint.Add(new Vector3d(0, -16.6269, 0));
             modSpace.AppendEntity(cableMinusUp);
             acTrans.AddNewlyCreatedDBObject(cableMinusUp, true);
-
-            Circle acCircMinusUp = new Circle();
-            acCircMinusUp.SetDatabaseDefaults();
-            acCircMinusUp.Center = cableMinusUp.EndPoint.Add(new Vector3d(0, 3.9489, 0));
-            acCircMinusUp.Radius = 0.75;
-            modSpace.AppendEntity(acCircMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acCircMinusUp, true);
-
-            acObjIdColl = new ObjectIdCollection();
-            acObjIdColl.Add(acCircMinusUp.ObjectId);
-
-            Hatch acHatchMinusUp = new Hatch();
-            modSpace.AppendEntity(acHatchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(acHatchMinusUp, true);
-            acHatchMinusUp.SetDatabaseDefaults();
-            acHatchMinusUp.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatchMinusUp.Associative = true;
-            acHatchMinusUp.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatchMinusUp.EvaluateHatch(true);
-            acHatchMinusUp.Color = Color.FromRgb(255, 255, 255);
-
-            Line cableBranchHMinusUp = new Line();
-            cableBranchHMinusUp.SetDatabaseDefaults();
-            cableBranchHMinusUp.Layer = "0";
-            cableBranchHMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchHMinusUp.StartPoint = acCircMinusUp.Center;
-            cableBranchHMinusUp.EndPoint = cableBranchHMinusUp.StartPoint.Add(new Vector3d(4, 0, 0));
-            modSpace.AppendEntity(cableBranchHMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchHMinusUp, true);
-
-            Line cableBranchMinusUp = new Line();
-            cableBranchMinusUp.SetDatabaseDefaults();
-            cableBranchMinusUp.Layer = "0";
-            cableBranchMinusUp.Color = Color.FromRgb(0, 255, 255);
-            cableBranchMinusUp.StartPoint = cableBranchHMinusUp.EndPoint;
-            cableBranchMinusUp.EndPoint = cableBranchMinusUp.StartPoint.Add(new Vector3d(0, -3.9489, 0));
-            modSpace.AppendEntity(cableBranchMinusUp);
-            acTrans.AddNewlyCreatedDBObject(cableBranchMinusUp, true);
 
             DBText cableMarkMinusUp = new DBText();
             cableMarkMinusUp.SetDatabaseDefaults();
@@ -3860,26 +3840,13 @@ namespace AcElectricalSchemePlugin
             linkMinusUp1.Color = Color.FromRgb(255, 255, 255);
             modSpace.AppendEntity(linkMinusUp1);
             acTrans.AddNewlyCreatedDBObject(linkMinusUp1, true);
+            #endregion
 
-            DBText linkMinusUp2 = new DBText();
-            linkMinusUp2.SetDatabaseDefaults();
-            linkMinusUp2.TextStyleId = tst["GOSTA-2.5-1"];
-            linkMinusUp2.Position = cableBranchMinusUp.EndPoint.Add(new Vector3d(0, -1, 0));
-            linkMinusUp2.Rotation = 1.57;
-            linkMinusUp2.Height = 2.5;
-            linkMinusUp2.WidthFactor = 0.7;
-            linkMinusUp2.Justify = AttachmentPoint.MiddleRight;
-            linkMinusUp2.AlignmentPoint = linkMinusUp2.Position;
-            linkMinusUp2.Layer = "0";
-            linkMinusUp2.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(linkMinusUp2);
-            acTrans.AddNewlyCreatedDBObject(linkMinusUp2, true);
-
-            block242 = block242.Add(new Vector3d(9.1624, 0, 0));
+            block244 = block244.Add(new Vector3d(9.1624, 0, 0));
 
             ObjectIdCollection ids = new ObjectIdCollection();
-            string filename = @"Data\DI1.dwg";
-            string blockName = "DI1";
+            string filename = @"Data\DO1.dwg";
+            string blockName = "DO1";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -3943,7 +3910,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2L" + (moduleNumber + 1) + "+";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkPlusDown.TextString = attRef.TextString;
@@ -3955,7 +3922,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 1);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 cableMarkMinusDown.TextString = attRef.TextString;
@@ -3967,10 +3934,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3979,34 +3946,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:{0}/3.3)", moduleNumber + 1);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":20/3." + currentSheet + ")";
-                                            }
-                                            break;
-                                        }
-                                    case "UPCABLE-":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                cableMarkMinusUp.TextString = attRef.TextString;
-                                            }
-                                            break;
-                                        }
-                                    case "UPLINK-":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4043,6 +3986,17 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "XT":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "SH":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -4066,8 +4020,8 @@ namespace AcElectricalSchemePlugin
             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
 
             ids = new ObjectIdCollection();
-            filename = @"Data\DI2.dwg";
-            blockName = "DI2";
+            filename = @"Data\DO24V2.dwg";
+            blockName = "DO24V2";
             using (Database sourceDb = new Database(false, true))
             {
                 if (System.IO.File.Exists(filename))
@@ -4126,74 +4080,49 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
-                                    case "DOWNCABLE+":
+                                    case "DOWNCABLE1-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 1) + "+";
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
                                             break;
                                         }
-                                    case "DOWNLINK+":
+                                    case "DOWNCABLE2-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                            }
-                                            break;
-                                        }
-                                    case "UPCABLE-":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1M" + (moduleNumber + 11);
+                                                attRef.TextString = "2M" + (moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
                                             break;
                                         }
-                                    case "UPLINK-":
+                                    case "DOWNLINK1-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:{0}/3.3)", moduleNumber + 11);
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":10/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
-                                    case "UPCABLE+":
+                                    case "DOWNLINK2-":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "1L" + (moduleNumber + 11) + "+";
+                                                attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                cableMarkPlusUp.TextString = attRef.TextString;
-                                                cableMarkPlusUp.TextString = attRef.TextString;
-                                            }
-                                            break;
-                                        }
-                                    case "UPLINK+":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.2:FU{0}/3.3)", moduleNumber + 11);
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:2/3." + currentSheet + ")";
+                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4241,39 +4170,6 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
-                                    case "VD1":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "VD2":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2VD" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
-                                    case "R":
-                                        {
-                                            using (AttributeReference attRef = new AttributeReference())
-                                            {
-                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
-                                                br.AttributeCollection.AppendAttribute(attRef);
-                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                            }
-                                            break;
-                                        }
                                     case "SH":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -4291,7 +4187,7 @@ namespace AcElectricalSchemePlugin
                         currentSheet++;
                     }
                 }
-                else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
         }
         private static void insertETD(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, int moduleNumber, string mod)
@@ -4376,6 +4272,20 @@ namespace AcElectricalSchemePlugin
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
+        }
+
+        private static void setPoints(Point3d startPoint)
+        {
+            block24_3 = startPoint.Add(new Vector3d(1122.933, -152.254, 0));
+            block241 = block24_3.Add(new Vector3d(170.9116, -101.5638, 0));
+            block242 = block241.Add(new Vector3d(229.5485, 0, 0));
+            block243 = block242.Add(new Vector3d(337.055, 0, 0));
+            block244 = block243.Add(new Vector3d(204.8261, 0, 0));
+            ets.Add(block244.Add(new Vector3d(456.432, 217.7071, 0)));
+            ets.Add(ets[0].Add(new Vector3d(-48, -145.3992, 0)));
+            ets.Add(ets[1].Add(new Vector3d(0, -145.3992, 0)));
+            block246 = ets[1].Add(new Vector3d(319.6824, 148.6242, 0));
+            currentPoint = block246.Add(new Vector3d(1364.6113, 32.8856, 0));
         }
     }
 }
