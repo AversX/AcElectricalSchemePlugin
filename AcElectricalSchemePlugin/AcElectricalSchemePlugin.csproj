@@ -77,13 +77,21 @@
     <None Include="Data\DI1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DI2.dwg" />
+    <None Include="Data\DI2.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\DIF.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\DIS.dwg" />
-    <None Include="Data\DO1.dwg" />
-    <None Include="Data\DO2.dwg" />
+    <None Include="Data\DIS.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\DO1.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\DO2.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\DO24V1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
