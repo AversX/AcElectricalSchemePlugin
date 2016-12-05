@@ -155,8 +155,13 @@ namespace AcElectricalSchemePlugin
                 unit.switchboardNominalVoltage = dataSet.Tables[0].Rows[28][column].ToString();
                 unit.switchboardTermDefense = dataSet.Tables[0].Rows[29][column].ToString();
                 unit.switchboardDefenseReactTime = dataSet.Tables[0].Rows[30][column].ToString();
-                unit.automatic = int.Parse(dataSet.Tables[0].Rows[33][column].ToString());
-                units.Add(unit);
+                string str = dataSet.Tables[0].Rows[32][column].ToString();
+                if (str != "")
+                {
+                    unit.automatic = int.Parse(str);
+                    units.Add(unit);
+                }
+                else break;
             }
 
             return units;
