@@ -75,7 +75,12 @@
     <None Include="Data\AO.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\Automatic.dwg" />
+    <None Include="Data\Automatic.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Consumer.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\DI1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
