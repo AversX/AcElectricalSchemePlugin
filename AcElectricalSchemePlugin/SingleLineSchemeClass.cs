@@ -24,41 +24,41 @@ namespace AcElectricalSchemePlugin
 
         private struct Unit
         {
-            public int automatic;
+            public int automatic; //33
 
-            public string phases; //1
-            public string planName; //2
-            public string nominalPower; //3
-            public string calcPower; //4
-            public string calcElectriciry; //5
-            public string consumerName; //6
-            public string contructName; //7
-            public string cosPhi; //8
-            public string calcElecFold; //9
-            public string allowableDeviations; //10
-            public string cableCrossSection; //11
+            public string phases; //2
+            public string planName; //3
+            public string nominalPower; //4
+            public string calcPower; //5
+            public string calcElectriciry; //6
+            public string consumerName; //7
+            public string contructName; //8
+            public string cosPhi; //9
+            public string calcElecFold; //10
+            public string allowableDeviations; //11
+            public string cableCrossSection; //12
 
-            public string switchName; //12
-            public string switchType; //13
-            public string switchNominalElec; //14
-            public string switchNominalVoltage; //15
+            public string switchName; //13
+            public string switchType; //14
+            public string switchNominalElec; //15
+            public string switchNominalVoltage; //16
 
-            public string protectName; //16
-            public string protectType; //17
-            public string protectNominalElec; //18
-            public string protectNominalVoltage; //19
-            public string disconnector; //20
-            public string protectTermDefense; //21
-            public string shortCircuitDefense; //22
-            public string protectDefenseReactTime; //23
-            public string ultBreakCapacity;//24
+            public string protectName; //17
+            public string protectType; //18
+            public string protectNominalElec; //19
+            public string protectNominalVoltage; //20
+            public string disconnector; //21
+            public string protectTermDefense; //22
+            public string shortCircuitDefense; //23
+            public string protectDefenseReactTime; //24
+            public string ultBreakCapacity;//25
            
-            public string switchboardName; //25
-            public string switchboardType; //26
-            public string switchboardNominalElec; //27
-            public string switchboardNominalVoltage; //28
-            public string switchboardTermDefense; //29
-            public string switchboardDefenseReactTime; //30
+            public string switchboardName; //26
+            public string switchboardType; //27
+            public string switchboardNominalElec; //28
+            public string switchboardNominalVoltage; //29
+            public string switchboardTermDefense; //30
+            public string switchboardDefenseReactTime; //31
         }
 
         public static void drawScheme(string fileName)
@@ -155,10 +155,7 @@ namespace AcElectricalSchemePlugin
                 unit.switchboardNominalVoltage = dataSet.Tables[0].Rows[28][column].ToString();
                 unit.switchboardTermDefense = dataSet.Tables[0].Rows[29][column].ToString();
                 unit.switchboardDefenseReactTime = dataSet.Tables[0].Rows[30][column].ToString();
-                if (column-3<50)
-                    unit.automatic = column - 3;
-                else unit.automatic = 50;
-
+                unit.automatic = int.Parse(dataSet.Tables[0].Rows[33][column].ToString());
                 units.Add(unit);
             }
 
@@ -220,7 +217,7 @@ namespace AcElectricalSchemePlugin
                         {
                             DBObject obj = id.GetObject(OpenMode.ForWrite);
                             AttributeDefinition attDef = obj as AttributeDefinition;
-                            if ((attDef != null) && (!attDef.Constant) && attDef.Visible==true)
+                            if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
                             {
                                 #region attributes
                                 switch (attDef.Tag)
@@ -461,7 +458,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = unit.protectDefenseReactTime.Replace("Характеристика ","");
+                                                attRef.TextString = unit.protectDefenseReactTime.Replace("Характеристика ", "");
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -478,7 +475,8 @@ namespace AcElectricalSchemePlugin
                         {
                             br.Position = br.Position.Add(new Vector3d(1, 0, 0));
                             lowestPoint = lowestPoint.Add(new Vector3d(1, 0, 0));
-                            getSize(br, ref minPoint, ref maxPoint);
+                            minPoint = minPoint.Add(new Vector3d(1, 0, 0));
+                            maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
                         }
                         prevAutomatic = maxPoint;
                     }
@@ -486,161 +484,222 @@ namespace AcElectricalSchemePlugin
                 else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
             }
 
-            if (unit.switchboardName.Contains("VFD"))
+            if (!unit.consumerName.Contains("Резерв"))
             {
-                ids = new ObjectIdCollection();
-                filename = @"Data\FreqConv.dwg";
-                blockName = "FreqConv";
-                using (Database sourceDb = new Database(false, true))
+                if (unit.switchboardName.Contains("VFD"))
                 {
-                    if (System.IO.File.Exists(filename))
+                    ids = new ObjectIdCollection();
+                    filename = @"Data\FreqConv.dwg";
+                    blockName = "FreqConv";
+                    using (Database sourceDb = new Database(false, true))
                     {
-                        sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
-                        using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
+                        if (System.IO.File.Exists(filename))
                         {
-                            BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
-                            if (bt.Has(blockName))
-                                ids.Add(bt[blockName]);
-                            trans.Commit();
-                        }
-                    }
-                    else editor.WriteMessage("Не найден файл {0}", filename);
-                    if (ids.Count > 0)
-                    {
-                        acTrans.TransactionManager.QueueForGraphicsFlush();
-                        IdMapping iMap = new IdMapping();
-                        acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
-                        BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
-                        if (bt.Has(blockName))
-                        {
-                            BlockReference br = new BlockReference(lowestPoint, bt[blockName]);
-                            br.Layer = "0";
-                            modSpace.AppendEntity(br);
-                            acTrans.AddNewlyCreatedDBObject(br, true);
-                            BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
-                            foreach (ObjectId id in btr)
+                            sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                            using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
                             {
-                                DBObject obj = id.GetObject(OpenMode.ForWrite);
-                                AttributeDefinition attDef = obj as AttributeDefinition;
-                                if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
+                                BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                                if (bt.Has(blockName))
+                                    ids.Add(bt[blockName]);
+                                trans.Commit();
+                            }
+                        }
+                        else editor.WriteMessage("Не найден файл {0}", filename);
+                        if (ids.Count > 0)
+                        {
+                            acTrans.TransactionManager.QueueForGraphicsFlush();
+                            IdMapping iMap = new IdMapping();
+                            acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
+                            BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
+                            if (bt.Has(blockName))
+                            {
+                                BlockReference br = new BlockReference(lowestPoint, bt[blockName]);
+                                br.Layer = "0";
+                                modSpace.AppendEntity(br);
+                                acTrans.AddNewlyCreatedDBObject(br, true);
+                                BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
+                                foreach (ObjectId id in btr)
                                 {
-                                    #region attributes
-                                    switch (attDef.Tag)
+                                    DBObject obj = id.GetObject(OpenMode.ForWrite);
+                                    AttributeDefinition attDef = obj as AttributeDefinition;
+                                    if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
                                     {
-                                        case "UZ":
-                                            {
-                                                using (AttributeReference attRef = new AttributeReference())
+                                        #region attributes
+                                        switch (attDef.Tag)
+                                        {
+                                            case "UZ":
                                                 {
-                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = unit.switchboardName;
-                                                    br.AttributeCollection.AppendAttribute(attRef);
-                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    using (AttributeReference attRef = new AttributeReference())
+                                                    {
+                                                        attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                        attRef.TextString = unit.switchboardName;
+                                                        br.AttributeCollection.AppendAttribute(attRef);
+                                                        acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    }
+                                                    break;
                                                 }
-                                                break;
-                                            }
-                                        case "P_UZ":
-                                            {
-                                                using (AttributeReference attRef = new AttributeReference())
+                                            case "P_UZ":
                                                 {
-                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = unit.calcPower;
-                                                    br.AttributeCollection.AppendAttribute(attRef);
-                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    using (AttributeReference attRef = new AttributeReference())
+                                                    {
+                                                        attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                        attRef.TextString = unit.calcPower;
+                                                        br.AttributeCollection.AppendAttribute(attRef);
+                                                        acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    }
+                                                    break;
                                                 }
-                                                break;
-                                            }
+                                        }
+                                        #endregion
                                     }
-                                    #endregion
+                                }
+                                lowestPoint = getLowestPoint(br);
+                            }
+                        }
+                        else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+                    }
+                    int nominalElectricity = 0;
+                    string str = "";
+                    if (unit.switchboardNominalElec.Contains(" "))
+                        str = unit.switchboardNominalElec.Split(' ')[0];
+                    else str = unit.switchboardNominalElec;
+                    int.TryParse(str, out nominalElectricity);
+                    if (nominalElectricity < 78 && unit.switchboardNominalElec != "-" && nominalElectricity != 0)
+                    {
+                        ids = new ObjectIdCollection();
+                        filename = @"Data\SinFilter.dwg";
+                        blockName = "SinFilter";
+                        using (Database sourceDb = new Database(false, true))
+                        {
+                            if (System.IO.File.Exists(filename))
+                            {
+                                sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                                using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
+                                {
+                                    BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                                    if (bt.Has(blockName))
+                                        ids.Add(bt[blockName]);
+                                    trans.Commit();
                                 }
                             }
-                            lowestPoint = getLowestPoint(br);
-                        }
-                    }
-                    else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
-                }
-            }
-
-            int nominalElectricity=0;
-            string str = "";
-            if (unit.switchboardNominalElec.Contains(" "))
-                str = unit.switchboardNominalElec.Split(' ')[0];
-            else str = unit.switchboardNominalElec;
-            int.TryParse(str, out nominalElectricity);
-            if (nominalElectricity < 78 && unit.switchboardNominalElec != "-" && nominalElectricity != 0)
-            {
-                ids = new ObjectIdCollection();
-                filename = @"Data\SinFilter.dwg";
-                blockName = "SinFilter";
-                using (Database sourceDb = new Database(false, true))
-                {
-                    if (System.IO.File.Exists(filename))
-                    {
-                        sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
-                        using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
-                        {
-                            BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
-                            if (bt.Has(blockName))
-                                ids.Add(bt[blockName]);
-                            trans.Commit();
-                        }
-                    }
-                    else editor.WriteMessage("Не найден файл {0}", filename);
-                    if (ids.Count > 0)
-                    {
-                        acTrans.TransactionManager.QueueForGraphicsFlush();
-                        IdMapping iMap = new IdMapping();
-                        acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
-                        BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
-                        if (bt.Has(blockName))
-                        {
-                            BlockReference br = new BlockReference(lowestPoint, bt[blockName]);
-                            br.Layer = "0";
-                            modSpace.AppendEntity(br);
-                            acTrans.AddNewlyCreatedDBObject(br, true);
-                            BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
-                            foreach (ObjectId id in btr)
+                            else editor.WriteMessage("Не найден файл {0}", filename);
+                            if (ids.Count > 0)
                             {
-                                DBObject obj = id.GetObject(OpenMode.ForWrite);
-                                AttributeDefinition attDef = obj as AttributeDefinition;
-                                if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
+                                acTrans.TransactionManager.QueueForGraphicsFlush();
+                                IdMapping iMap = new IdMapping();
+                                acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
+                                BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
+                                if (bt.Has(blockName))
                                 {
-                                    #region attributes
-                                    switch (attDef.Tag)
+                                    BlockReference br = new BlockReference(lowestPoint, bt[blockName]);
+                                    br.Layer = "0";
+                                    modSpace.AppendEntity(br);
+                                    acTrans.AddNewlyCreatedDBObject(br, true);
+                                    BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
+                                    foreach (ObjectId id in btr)
                                     {
-                                        case "NL":
+                                        DBObject obj = id.GetObject(OpenMode.ForWrite);
+                                        AttributeDefinition attDef = obj as AttributeDefinition;
+                                        if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
+                                        {
+                                            #region attributes
+                                            switch (attDef.Tag)
                                             {
-                                                using (AttributeReference attRef = new AttributeReference())
-                                                {
-                                                    string sfNAme = currentSection + "Z" + sinFilter;
-                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = sfNAme;
-                                                    br.AttributeCollection.AppendAttribute(attRef);
-                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                }
-                                                break;
+                                                case "NL":
+                                                    {
+                                                        using (AttributeReference attRef = new AttributeReference())
+                                                        {
+                                                            string sfNAme = currentSection + "Z" + sinFilter;
+                                                            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                            attRef.TextString = sfNAme;
+                                                            br.AttributeCollection.AppendAttribute(attRef);
+                                                            acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                        }
+                                                        break;
+                                                    }
                                             }
+                                            #endregion
+                                        }
                                     }
-                                    #endregion
+                                    lowestPoint = getLowestPoint(br);
+                                }
+                                sinFilter++;
+                            }
+                            else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+
+                        }
+                    }
+                }
+
+                double endPointY = 125 - (currentPoint.Y - lowestPoint.Y);
+                Line cableLine = new Line();
+                cableLine.SetDatabaseDefaults();
+                cableLine.Color = Color.FromRgb(255, 0, 0);
+                cableLine.StartPoint = lowestPoint;
+                cableLine.EndPoint = cableLine.StartPoint.Add(new Vector3d(0, -endPointY, 0));
+                modSpace.AppendEntity(cableLine);
+                acTrans.AddNewlyCreatedDBObject(cableLine, true);
+                currentPoint = currentPoint.Add(new Vector3d(maxPoint.X - minPoint.X, 0, 0));
+
+                if (!unit.consumerName.Contains("Ввод"))
+                {
+                    ids = new ObjectIdCollection();
+                    filename = @"Data\Consumer.dwg";
+                    blockName = "Consumer";
+                    using (Database sourceDb = new Database(false, true))
+                    {
+                        if (System.IO.File.Exists(filename))
+                        {
+                            sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                            using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
+                            {
+                                BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                                if (bt.Has(blockName))
+                                    ids.Add(bt[blockName]);
+                                trans.Commit();
+                            }
+                        }
+                        else editor.WriteMessage("Не найден файл {0}", filename);
+                        if (ids.Count > 0)
+                        {
+                            acTrans.TransactionManager.QueueForGraphicsFlush();
+                            IdMapping iMap = new IdMapping();
+                            acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
+                            BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
+                            if (bt.Has(blockName))
+                            {
+                                BlockReference br = new BlockReference(cableLine.EndPoint, bt[blockName]);
+                                br.Layer = "0";
+                                modSpace.AppendEntity(br);
+                                acTrans.AddNewlyCreatedDBObject(br, true);
+                                if (br.IsDynamicBlock)
+                                {
+                                    DynamicBlockReferencePropertyCollection props =
+                                        br.DynamicBlockReferencePropertyCollection;
+
+                                    foreach (DynamicBlockReferenceProperty prop in props)
+                                    {
+                                        object[] values = prop.GetAllowedValues();
+                                        if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
+                                        {
+                                            if (unit.planName.Contains("AH") || unit.planName.Contains("BL") || unit.planName.Contains("FNM") || unit.planName.Contains("P"))
+                                                prop.Value = values[0];
+                                            else if (unit.planName.Contains("EK"))
+                                                prop.Value = values[1];
+                                            else if (unit.planName.Contains("FH") || unit.planName.Contains("WW") || unit.planName.Contains("FF") || unit.planName.Contains("FK") || unit.planName.Contains("FJ") || unit.planName.Contains("HPL") || unit.planName.Contains("VA"))
+                                                prop.Value = values[2];
+                                            else if (unit.planName.Contains("EL"))
+                                                prop.Value = values[1];
+                                            break;
+                                        }
+                                    }
                                 }
                             }
-                            lowestPoint = getLowestPoint(br);
                         }
-                        sinFilter++;
+                        else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
                     }
-                    else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
-                    
                 }
             }
-
-            double endPointY = 125 - (currentPoint.Y - lowestPoint.Y);
-            Line cableLine = new Line();
-            cableLine.SetDatabaseDefaults();
-            cableLine.Color = Color.FromRgb(255, 0, 0);
-            cableLine.StartPoint = lowestPoint;
-            cableLine.EndPoint = cableLine.StartPoint.Add(new Vector3d(0, -endPointY, 0));
-            modSpace.AppendEntity(cableLine);
-            acTrans.AddNewlyCreatedDBObject(cableLine, true);
-            currentPoint = currentPoint.Add(new Vector3d(maxPoint.X - minPoint.X, 0, 0));
         }
 
         static private void getSize(BlockReference bR, ref Point3d min, ref Point3d max)
@@ -669,9 +728,11 @@ namespace AcElectricalSchemePlugin
                     }
                 }
             }
+            objects.Dispose();
             min = ext.MinPoint;
             max = ext.MaxPoint;
         }
+
         static private  Point3d getLowestPoint(BlockReference bR)
         {
             DBObjectCollection objects = new DBObjectCollection();
@@ -698,6 +759,7 @@ namespace AcElectricalSchemePlugin
                     }
                 }
             }
+            objects.Dispose();
             return point;
         }
     }
