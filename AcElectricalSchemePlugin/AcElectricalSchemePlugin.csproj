@@ -63,6 +63,7 @@
     <Compile Include="ConnectionSchemeClass.cs" />
     <Compile Include="ControlSchemeClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SingleLineSchemeClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\acad.lin">
@@ -74,6 +75,7 @@
     <None Include="Data\AO.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Automatic.dwg" />
     <None Include="Data\DI1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -113,9 +115,18 @@
     <None Include="Data\FrameOther.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\FreqConv.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\GOST_Common.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\SinFilter.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

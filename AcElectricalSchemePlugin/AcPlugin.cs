@@ -46,5 +46,15 @@ namespace AcElectricalSchemePlugin
         {
             ControlSchemeClass.drawControlScheme();
         }
+
+        [CommandMethod("SLine", CommandFlags.Session)]
+        public void SLine()
+        {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog();
+            openFileDialog1.Filter = "Excel|*.xlsx";
+            openFileDialog1.ShowDialog();
+            if (openFileDialog1.FileName != "")
+                SingleLineSchemeClass.drawScheme(openFileDialog1.FileName);
+        }
     }
 }
