@@ -18,14 +18,28 @@ namespace AcElectricalSchemePlugin
         private static Editor editor;
         private static Point3d currentSheetPoint;
         private static Point3d currentPoint;
-        private static Point3d prevAutomatic;
+        //private static Point3d prevAutomatic;
         private static int sinFilter = 1;
+        private static int uzo = 1;
         private static int currentSection = 1;
         private static DynamicBlockReferenceProperty curSheet;
         private static int currentSheetNumber = 1;
         private static int curSheetsNumber = 2;
         private static int maxSheets = 0;
         private static bool aborted = false;
+        private static Table currentTable;
+        private static List<Table> tables;
+        private static bool first;
+
+        private static Line section;
+        private static DBText sectionNum;
+        private static Line blockType;
+        private static DBText L;
+        private static DBText N;
+        private static DBText PE;
+        private static Line cableL;
+        private static Line cableN;
+        private static Line cablePE;
 
         private struct Unit
         {
@@ -101,13 +115,14 @@ namespace AcElectricalSchemePlugin
                     acBlkTbl = acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead) as BlockTable;
                     BlockTableRecord acModSpace;
                     acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                    prevAutomatic = new Point3d();
+                    //prevAutomatic = new Point3d();
                     sinFilter = 1;
                     currentSection = 1;
+                    tables = new List<Table>();
 
                     insertSheet(acTrans, acModSpace, acDb, currentSheetPoint);
-                    prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
-                    currentPoint = currentSheetPoint.Add(new Vector3d(110, -65, 0));
+                    //prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
+                    currentPoint = currentSheetPoint.Add(new Vector3d(85, -68, 0));
                     for (int i = 0; i < units.Count; i++)
                     {
                         insertUnit(acModSpace, acDb, units[i]);
@@ -117,8 +132,8 @@ namespace AcElectricalSchemePlugin
                             currentSheetNumber++;
                             currentSheetPoint = currentSheetPoint.Add(new Vector3d(0, -327, 0));
                             insertSheet(acTrans, acModSpace, acDb, currentSheetPoint);
-                            prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
-                            currentPoint = currentSheetPoint.Add(new Vector3d(110, -65, 0));
+                            //prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
+                            currentPoint = currentSheetPoint.Add(new Vector3d(85, -68, 0));
                             curSheetsNumber = 2;
                             i--;
                         }
@@ -130,6 +145,7 @@ namespace AcElectricalSchemePlugin
             currentSection = 1;
             currentSheetNumber = 1;
             curSheetsNumber = 2;
+            uzo = 1;
             maxSheets = 0;
             aborted = false;
         }
@@ -199,6 +215,14 @@ namespace AcElectricalSchemePlugin
                 #region automatic
                 Point3d minPoint = new Point3d(0, 0, 0);
                 Point3d maxPoint = new Point3d(0, 0, 0);
+                double offset = 0;
+                if (unit.automatic == 36 || unit.automatic == 37) offset = 50;
+                else if (unit.automatic == 38 || unit.automatic == 39) offset = 34;
+                else if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR")
+                    offset = 14;
+                else offset = 24;
+                currentPoint = currentPoint.Add(new Vector3d(offset, 0, 0));
+
                 Point3d lowestPoint = new Point3d(0, 0, 0);
                 ObjectIdCollection ids = new ObjectIdCollection();
                 string filename = @"Data\Automatic.dwg";
@@ -251,7 +275,7 @@ namespace AcElectricalSchemePlugin
                             {
                                 DBObject obj = id.GetObject(OpenMode.ForWrite);
                                 AttributeDefinition attDef = obj as AttributeDefinition;
-                                if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
+                                if ((attDef != null) && (!attDef.Constant))
                                 {
                                     #region attributes
                                     switch (attDef.Tag)
@@ -267,17 +291,18 @@ namespace AcElectricalSchemePlugin
                                                 }
                                                 break;
                                             }
-                                        //case "?ГР1УЗО":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.switchboardName;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
+                                        case "?ГР1УЗО":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = currentSection + "RCD" + uzo;
+                                                    uzo++;
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
                                         case "?ГР2KM":
                                             {
                                                 using (AttributeReference attRef = new AttributeReference())
@@ -503,20 +528,20 @@ namespace AcElectricalSchemePlugin
                                 }
                             }
                             getSize(br, ref minPoint, ref maxPoint);
-                            while (minPoint.X < prevAutomatic.X)
-                            {
-                                br.Position = br.Position.Add(new Vector3d(1, 0, 0));
-                                minPoint = minPoint.Add(new Vector3d(1, 0, 0));
-                                maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
-                            }
+                            //while (minPoint.X < prevAutomatic.X)
+                            //{
+                            //    br.Position = br.Position.Add(new Vector3d(1, 0, 0));
+                            //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
+                            //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
+                            //}
                             if (br.IsDynamicBlock)
                             {
                                 br.ResetBlock();
                                 property.Value = value;
                             }
-                            if (maxPoint.X >= currentSheetPoint.X + 210 * (curSheetsNumber-1))
+                            if (maxPoint.X >= currentSheetPoint.X + 210 * (curSheetsNumber - 1))
                             {
-                                if (curSheetsNumber<maxSheets)
+                                if (curSheetsNumber < maxSheets)
                                 {
                                     curSheetsNumber++;
                                     curSheet.Value = curSheet.GetAllowedValues()[curSheetsNumber - 1];
@@ -529,12 +554,19 @@ namespace AcElectricalSchemePlugin
                                     return;
                                 }
                             }
-                            prevAutomatic = maxPoint;
+                            //prevAutomatic = maxPoint;
                             lowestPoint = getLowestPoint(br);
                         }
                     }
                     else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
                 }
+
+                section.EndPoint = new Point3d(maxPoint.X, section.StartPoint.Y, 0);
+                blockType.EndPoint = new Point3d(maxPoint.X, blockType.StartPoint.Y, 0);
+                sectionNum.Position = new Point3d(section.StartPoint.X + (section.StartPoint.X - section.EndPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                cableL.EndPoint = new Point3d(maxPoint.X, cableL.StartPoint.Y, 0);
+                cableN.EndPoint = new Point3d(maxPoint.X, cableN.StartPoint.Y, 0);
+                cablePE.EndPoint = new Point3d(maxPoint.X, cablePE.StartPoint.Y, 0);
                 #endregion
 
                 if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
@@ -574,11 +606,30 @@ namespace AcElectricalSchemePlugin
                                         br.Layer = "0";
                                         modSpace.AppendEntity(br);
                                         acTrans.AddNewlyCreatedDBObject(br, true);
-                                        Point3d min = new Point3d(0, 0, 0);
-                                        Point3d max = new Point3d(0, 0, 0);
-                                        getSize(br, ref min, ref max);
-                                        if (max.X > prevAutomatic.X)
-                                            prevAutomatic = max;
+                                        //Point3d min = new Point3d(0, 0, 0);
+                                        //Point3d max = new Point3d(0, 0, 0);
+                                        //getSize(br, ref min, ref max);
+                                        //if (max.X > prevAutomatic.X)
+                                            //prevAutomatic = max;
+                                        double cross = 0;
+                                        double protectTermDefense =0;
+                                        double.TryParse(unit.protectTermDefense, out protectTermDefense);
+                                        if (protectTermDefense <= 6)
+                                            cross = 1.5;
+                                        else if (protectTermDefense <= 16)
+                                            cross = 2.5;
+                                        else if (protectTermDefense <= 25)
+                                            cross = 4;
+                                        else if (protectTermDefense <= 32)
+                                            cross = 6;
+                                        else if (protectTermDefense <= 50)
+                                            cross = 10;
+                                        else if (protectTermDefense <= 80)
+                                            cross = 25;
+                                        else if (protectTermDefense <= 125)
+                                            cross = 35;
+                                        else if (protectTermDefense <=160)
+                                            cross = 50;
                                         BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
                                         foreach (ObjectId id in btr)
                                         {
@@ -611,6 +662,28 @@ namespace AcElectricalSchemePlugin
                                                             }
                                                             break;
                                                         }
+                                                    case "CROSSUP":
+                                                        {
+                                                            using (AttributeReference attRef = new AttributeReference())
+                                                            {
+                                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                                attRef.TextString = cross.ToString();
+                                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                            }
+                                                            break;
+                                                        }
+                                                    case "CROSSDOWN":
+                                                        {
+                                                            using (AttributeReference attRef = new AttributeReference())
+                                                            {
+                                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                                attRef.TextString = cross.ToString();
+                                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                            }
+                                                            break;
+                                                        }
                                                 }
                                                 #endregion
                                             }
@@ -622,12 +695,12 @@ namespace AcElectricalSchemePlugin
                             }
                         #endregion
                             #region sinFilter
-                            int nominalElectricity = 0;
+                            double nominalElectricity = 0;
                             string str = "";
                             if (unit.switchboardNominalElec.Contains(" "))
                                 str = unit.switchboardNominalElec.Split(' ')[0];
                             else str = unit.switchboardNominalElec;
-                            int.TryParse(str, out nominalElectricity);
+                            double.TryParse(str, out nominalElectricity);
                             if (nominalElectricity < 78 && unit.switchboardNominalElec != "-" && nominalElectricity != 0)
                             {
                                 ids = new ObjectIdCollection();
@@ -808,7 +881,7 @@ namespace AcElectricalSchemePlugin
                         modSpace.AppendEntity(cableLine);
                         acTrans.AddNewlyCreatedDBObject(cableLine, true);
 
-                        #region switch
+                        #region consumer
                         if (!unit.consumerName.Contains("Ввод"))
                         {
                             ids = new ObjectIdCollection();
@@ -872,7 +945,7 @@ namespace AcElectricalSchemePlugin
                 }
                 else
                 {
-                    currentPoint = currentPoint.Add(new Vector3d(100, 0, 0));
+                    currentPoint = currentPoint.Add(new Vector3d(52, 0, 0));
                     Line avrLine = new Line();
                     avrLine.SetDatabaseDefaults();
                     avrLine.Layer = "ER-DWG";
@@ -944,7 +1017,7 @@ namespace AcElectricalSchemePlugin
                                 {
                                     DBObject obj = id.GetObject(OpenMode.ForWrite);
                                     AttributeDefinition attDef = obj as AttributeDefinition;
-                                    if ((attDef != null) && (!attDef.Constant) && attDef.Visible == true)
+                                    if ((attDef != null) && (!attDef.Constant))
                                     {
                                         #region attributes
                                         switch (attDef.Tag)
@@ -965,12 +1038,12 @@ namespace AcElectricalSchemePlugin
                                     }
                                 }
                                 getSize(br, ref minPoint, ref maxPoint);
-                                while (minPoint.X < prevAutomatic.X)
-                                {
-                                    br.Position = br.Position.Add(new Vector3d(1, 0, 0));
-                                    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
-                                    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
-                                }
+                                //while (minPoint.X < prevAutomatic.X)
+                                //{
+                                //    br.Position = br.Position.Add(new Vector3d(1, 0, 0));
+                                //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
+                                //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
+                                //}
                                 if (br.IsDynamicBlock)
                                 {
                                     br.ResetBlock();
@@ -991,7 +1064,7 @@ namespace AcElectricalSchemePlugin
                                         return;
                                     }
                                 }
-                                prevAutomatic = maxPoint;
+                                //prevAutomatic = maxPoint;
                             }
                         }
                         else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
@@ -1000,8 +1073,125 @@ namespace AcElectricalSchemePlugin
 
                     currentSection++;
                     sinFilter = 1;
+                    uzo = 1;
+
+                    sectionNum = new DBText();
+                    sectionNum.SetDatabaseDefaults();
+                    //sectionNum.Layer = "ER-TEXT";
+                    sectionNum.Position = new Point3d(section.StartPoint.X + (section.StartPoint.X - section.EndPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                    sectionNum.TextString = currentSection.ToString();
+                    sectionNum.HorizontalMode = TextHorizontalMode.TextLeft;
+                    modSpace.AppendEntity(sectionNum);
+                    acTrans.AddNewlyCreatedDBObject(sectionNum, true);
+
+                    Point3d point = section.EndPoint.Add(new Vector3d(26, 0, 0));
+                    cableL = new Line();
+                    cableL.SetDatabaseDefaults();
+                    //cableL.Layer = "ER-0.15";
+                    cableL.StartPoint = point;
+                    cableL.EndPoint = cableL.StartPoint.Add(new Vector3d(24, 0, 0));
+                    modSpace.AppendEntity(cableL);
+                    acTrans.AddNewlyCreatedDBObject(cableL, true);
+
+                    L = new DBText();
+                    L.SetDatabaseDefaults();
+                    //L.Layer = "ER-TEXT";
+                    L.Position = cableL.StartPoint.Add(new Vector3d(2, 1, 0));
+                    L.TextString = currentSection + "L1, " + currentSection + "L2, " + currentSection + "L3  ~380/220 В, 50 Гц, " + currentSection + " секция шин";
+                    L.HorizontalMode = TextHorizontalMode.TextLeft;
+                    modSpace.AppendEntity(L);
+                    acTrans.AddNewlyCreatedDBObject(L, true);
+
+                    N = new DBText();
+                    N.SetDatabaseDefaults();
+                   // N.Layer = "ER-TEXT";
+                    N.Position = cableL.StartPoint.Add(new Vector3d(2, -5, 0));
+                    N.TextString = currentSection + "N";
+                    N.HorizontalMode = TextHorizontalMode.TextLeft;
+                    modSpace.AppendEntity(N);
+                    acTrans.AddNewlyCreatedDBObject(N, true);
+
+                    PE = new DBText();
+                    PE.SetDatabaseDefaults();
+                    //PE.Layer = "ER-TEXT";
+                    PE.Position = cableL.StartPoint.Add(new Vector3d(2, -9, 0));
+                    PE.TextString = "PE";
+                    PE.HorizontalMode = TextHorizontalMode.TextLeft;
+                    modSpace.AppendEntity(PE);
+                    acTrans.AddNewlyCreatedDBObject(PE, true);
+
+                    cableN.EndPoint = new Point3d(cableL.EndPoint.X, cableN.StartPoint.Y, 0);
+                    cablePE.EndPoint = new Point3d(cableL.EndPoint.X, cablePE.StartPoint.Y, 0);
+                    section.EndPoint = new Point3d(cableL.EndPoint.X, section.StartPoint.Y, 0);
+                    blockType.EndPoint = new Point3d(cableL.EndPoint.X, blockType.StartPoint.Y, 0);
                 }
-                currentPoint = currentPoint.Add(new Vector3d(maxPoint.X - minPoint.X, 0, 0));
+
+                if (unit.automatic == 36 || unit.automatic == 37) offset = 10;
+                else if (unit.automatic == 38 || unit.automatic == 39) offset = 26;
+                else if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR") offset = 14;
+                else offset = 24;
+                currentPoint = currentPoint.Add(new Vector3d(offset, 0, 0));
+
+                double width = 0;
+                if (unit.automatic <= 39 && unit.automatic >= 36) width = 60;
+                else if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR") width = 80;
+                else width = 48;
+                TextStyleTable tst = (TextStyleTable)acTrans.GetObject(acdb.TextStyleTableId, OpenMode.ForRead);
+                if (first)
+                {
+                    first = false;
+                    currentTable.SetSize(6, 1);
+                    currentTable.Rows[0].Height = 10;
+                    currentTable.Rows[1].Height = 10;
+                    currentTable.Rows[2].Height = 10;
+                    currentTable.Rows[3].Height = 10;
+                    currentTable.Rows[4].Height = 25;
+                    currentTable.Rows[5].Height = 25;
+                    currentTable.Columns[0].Width = width;
+                    currentTable.UnmergeCells(currentTable.Rows[0]);
+                    if (tst.Has("ROMANS0-90"))
+                        currentTable.Columns[0].TextStyleId = tst["ROMANS0-90"];
+                    else if (tst.Has("ROMANS0-60"))
+                        currentTable.Columns[0].TextStyleId = tst["ROMANS0-60"];
+                    currentTable.Columns[0].TextHeight = 3;
+                    currentTable.Cells[0, 0].TextString = unit.planName;
+                    currentTable.SetAlignment(0, 0, CellAlignment.MiddleCenter);
+                    currentTable.Cells[1, 0].TextString = unit.nominalPower;
+                    currentTable.SetAlignment(1, 0, CellAlignment.MiddleCenter);
+                    currentTable.Cells[2, 0].TextString = unit.calcPower;
+                    currentTable.SetAlignment(2, 0, CellAlignment.MiddleCenter);
+                    currentTable.Cells[3, 0].TextString = unit.calcElectriciry;
+                    currentTable.SetAlignment(3, 0, CellAlignment.MiddleCenter);
+                    currentTable.Cells[4, 0].TextString = unit.consumerName;
+                    currentTable.SetAlignment(4, 0, CellAlignment.MiddleCenter);
+                    currentTable.Cells[5, 0].TextString = unit.contructName;
+                    currentTable.SetAlignment(5, 0, CellAlignment.MiddleCenter);
+                    currentTable.GenerateLayout();
+                }
+                else
+                {
+                    currentTable.InsertColumns(currentTable.Columns.Count, width, 1);
+                    currentTable.UnmergeCells(currentTable.Rows[0]);
+                    if (tst.Has("ROMANS0-90"))
+                        currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = tst["ROMANS0-90"];
+                    else if (tst.Has("ROMANS0-60"))
+                        currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = tst["ROMANS0-60"];
+                    currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 3;
+                    currentTable.Cells[0, currentTable.Columns.Count - 1].TextString = unit.planName;
+                    currentTable.SetAlignment(0, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.Cells[1, currentTable.Columns.Count - 1].TextString = unit.nominalPower;
+                    currentTable.SetAlignment(1, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.Cells[2, currentTable.Columns.Count - 1].TextString = unit.calcPower;
+                    currentTable.SetAlignment(2, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.Cells[3, currentTable.Columns.Count - 1].TextString = unit.calcElectriciry;
+                    currentTable.SetAlignment(3, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.Cells[4, currentTable.Columns.Count - 1].TextString = unit.consumerName;
+                    currentTable.SetAlignment(4, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.Cells[5, currentTable.Columns.Count - 1].TextString = unit.contructName;
+                    currentTable.SetAlignment(5, currentTable.Columns.Count - 1, CellAlignment.MiddleCenter);
+                    currentTable.GenerateLayout();
+                }
+
                 acTrans.Commit();
             }
         }
@@ -1119,7 +1309,7 @@ namespace AcElectricalSchemePlugin
                                 object[] values = prop.GetAllowedValues();
                                 if (prop.PropertyName == "Выбор1" && !prop.ReadOnly)
                                 {
-                                    prop.Value = values[curSheetsNumber-1];
+                                    prop.Value = values[curSheetsNumber - 1];
                                     curSheet = prop;
                                     break;
                                 }
@@ -1128,6 +1318,92 @@ namespace AcElectricalSchemePlugin
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
+
+                section = new Line();
+                section.SetDatabaseDefaults();
+                //section.Layer = "ER-0.15";
+                section.StartPoint = point.Add(new Vector3d(85, -11, 0));
+                section.EndPoint = section.StartPoint.Add(new Vector3d(1, 0, 0));
+                modSpace.AppendEntity(section);
+                acTrans.AddNewlyCreatedDBObject(section, true);
+
+                sectionNum = new DBText();
+                sectionNum.SetDatabaseDefaults();
+                //sectionNum.Layer = "ER-TEXT";
+                sectionNum.Position = new Point3d(section.StartPoint.X + (section.StartPoint.X - section.EndPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                sectionNum.TextString = currentSection.ToString();
+                sectionNum.HorizontalMode = TextHorizontalMode.TextLeft;
+                modSpace.AppendEntity(sectionNum);
+                acTrans.AddNewlyCreatedDBObject(sectionNum, true);
+
+                blockType = new Line();
+                blockType.SetDatabaseDefaults();
+                //blockType.Layer = "ER-0.15";
+                blockType.StartPoint = section.StartPoint.Add(new Vector3d(0, -6, 0));
+                blockType.EndPoint = blockType.StartPoint.Add(new Vector3d(1, 0, 0));
+                modSpace.AppendEntity(blockType);
+                acTrans.AddNewlyCreatedDBObject(blockType, true);
+
+                cableL = new Line();
+                cableL.SetDatabaseDefaults();
+                //cableL.Layer = "ER-0.15";
+                cableL.StartPoint = blockType.StartPoint.Add(new Vector3d(0, -6, 0));
+                cableL.EndPoint = cableL.StartPoint.Add(new Vector3d(1, 0, 0));
+                modSpace.AppendEntity(cableL);
+                acTrans.AddNewlyCreatedDBObject(cableL, true);
+
+                cableN = new Line();
+                cableN.SetDatabaseDefaults();
+                //cableN.Layer = "ER-0.15";
+                cableN.StartPoint = cableL.StartPoint.Add(new Vector3d(0, -6, 0));
+                cableN.EndPoint = cableN.StartPoint.Add(new Vector3d(1, 0, 0));
+                modSpace.AppendEntity(cableN);
+                acTrans.AddNewlyCreatedDBObject(cableN, true);
+
+                cablePE = new Line();
+                cablePE.SetDatabaseDefaults();
+                //cablePE.Layer = "ER-0.15";
+                cablePE.StartPoint = section.StartPoint.Add(new Vector3d(0, -4, 0));
+                cablePE.EndPoint = cablePE.StartPoint.Add(new Vector3d(1, 0, 0));
+                modSpace.AppendEntity(cablePE);
+                acTrans.AddNewlyCreatedDBObject(cablePE, true);
+
+                L = new DBText();
+                L.SetDatabaseDefaults();
+                //L.Layer = "ER-TEXT";
+                L.Position = cableL.StartPoint.Add(new Vector3d(2, 1, 0));
+                L.TextString = currentSection + "L1, " + currentSection + "L2, " + currentSection + "L3  ~380/220 В, 50 Гц, "+currentSection+" секция шин";
+                L.HorizontalMode = TextHorizontalMode.TextLeft;
+                modSpace.AppendEntity(L);
+                acTrans.AddNewlyCreatedDBObject(L, true);
+
+                N = new DBText();
+                N.SetDatabaseDefaults();
+                //N.Layer = "ER-TEXT";
+                N.Position = cableN.StartPoint.Add(new Vector3d(2, 1, 0));
+                N.TextString = currentSection + "N";
+                N.HorizontalMode = TextHorizontalMode.TextLeft;
+                modSpace.AppendEntity(N);
+                acTrans.AddNewlyCreatedDBObject(N, true);
+
+                PE = new DBText();
+                PE.SetDatabaseDefaults();
+                //PE.Layer = "ER-TEXT";
+                PE.Position = cablePE.StartPoint.Add(new Vector3d(2, 1, 0));
+                PE.TextString = "PE";
+                PE.HorizontalMode = TextHorizontalMode.TextLeft;
+                modSpace.AppendEntity(PE);
+                acTrans.AddNewlyCreatedDBObject(PE, true);
+
+                Table table = new Table();
+                table.Position = point.Add(new Vector3d(85, -202, 0));
+                table.TableStyle = acdb.Tablestyle;
+                table.GenerateLayout();
+                currentTable = table;
+                tables.Add(table);
+                first = true;
+                modSpace.AppendEntity(table);
+                acTrans.AddNewlyCreatedDBObject(table, true);
             }
         }
     }
