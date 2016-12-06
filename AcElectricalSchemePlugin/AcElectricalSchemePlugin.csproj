@@ -78,6 +78,9 @@
     <None Include="Data\Automatic.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\AVR.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Consumer.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -118,6 +121,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\FrameOther.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\FrameSingle1.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\FreqConv.dwg">
