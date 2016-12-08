@@ -1,6 +1,4 @@
-﻿using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -21,16 +19,24 @@ namespace AcElectricalSchemePlugin
         private static int diCount = 0;
         private static double do24vCount = 0;
         private static int doCount = 0;
-        private static int currentSheet = 8;
+        private static int currentSheet = 9;
+        private static int sheetNum246 = 6;
+        private static bool mainControl = true;
         private static Point3d currentPoint;
         private static List<Point3d> ets;
-        private static Point3d block24_3;
+        private static Point3d link1; //4.4.1-11
+        private static Point3d link2; //KV2-11
+        private static Point3d link3; //4.4.1-10
+        private static Point3d link4; //4.4.1-12
+        private static Point3d link5; //4.4.1-13
+        private static Point3d link6; //4.4.1-14
+        private static Point3d link7; //4.4.1-15
+        private static Point3d link8; //4.4.1-16
         private static Point3d block246;
         private static Point3d block241;
         private static Point3d block242;
         private static Point3d block243;
         private static Point3d block244;
-        private static Point3d drawPoint;
         private static int currentD = 4;
         private static int[] currentPinAIAO = { 2, 2, 2, 2 };
 
@@ -46,7 +52,14 @@ namespace AcElectricalSchemePlugin
                 editor.WriteMessage("Неверный ввод...");
                 return;
             }
-            else currentSheet = MC.StringResult != null && (MC.StringResult.ToUpper().Contains("Д") || MC.StringResult.ToUpper().Contains("Y")) ? currentSheet : currentSheet-1;
+            else
+                if (MC.StringResult != null)
+                    if (!(MC.StringResult.ToUpper().Contains("Д") || MC.StringResult.ToUpper().Contains("Y")))
+                    {
+                        mainControl = false;
+                        currentSheet--;
+                        sheetNum246--;
+                    }
 
             PromptIntegerResult ET = editor.GetInteger("\nВведите количество ET: ");
             if (ET.Status != PromptStatus.OK)
@@ -74,7 +87,7 @@ namespace AcElectricalSchemePlugin
             }
             else aoCount = AO.Value;
 
-            if (aiCount+aoCount>8) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей AI и AO превышает 8, будут расчитаны только первые 8 модулей.");
+            if (aiCount+aoCount>8) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей AI и AO превышает 10, будут расчитаны только первые 10 модулей.");
 
             PromptIntegerResult DI = editor.GetInteger("\nВведите количество модулей DI: ");
             if (DI.Status != PromptStatus.OK)
@@ -120,7 +133,7 @@ namespace AcElectricalSchemePlugin
             }
             else setPoints(startPoint.Value);
 
-            if (currentSheet==8) currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+            if (mainControl) currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
             else currentPoint = currentPoint.Add(new Vector3d(-544, 0, 0));
             block246 = block246.Add(new Vector3d(0, -25.9834, 0));
             block241 = block241.Add(new Vector3d(5.857, 0, 0));
@@ -140,7 +153,7 @@ namespace AcElectricalSchemePlugin
 
                     for (int i = 0; i < aiCount; i++)
                     {
-                        if (i < 8)
+                        if (i < 10)
                         {
                             insertAI(acTrans, acModSpace, acDb, currentPoint, i);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
@@ -260,11 +273,13 @@ namespace AcElectricalSchemePlugin
             aoCount = 0;
             diCount = 0;
             doCount = 0;
-            currentSheet = 8;
+            currentSheet = 9;
+            sheetNum246 = 6;
             currentPinAIAO = new int[] { 2, 2, 2, 2 };
             etCount = 0;
             do24vCount = 0;
             currentD = 4;
+            mainControl = true;
         }
 
         private static void insertAO(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, int moduleNumber)
@@ -377,7 +392,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "3A" + (moduleNumber + 6);
+                                                attRef.TextString = "3A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -388,7 +403,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP3." + (moduleNumber + 6);
+                                                attRef.TextString = "-XP3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -422,12 +437,12 @@ namespace AcElectricalSchemePlugin
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 if (moduleNumber % 2 == 0)
                                                 {
-                                                    attRef.TextString = "3M6+/3." + currentPinAIAO[2];
+                                                    attRef.TextString = "3M6/3." + currentPinAIAO[2];
                                                     currentPinAIAO[2]++;
                                                 }
                                                 else
                                                 {
-                                                    attRef.TextString = "3M6+/4." + currentPinAIAO[3];
+                                                    attRef.TextString = "3M6/4." + currentPinAIAO[3];
                                                     currentPinAIAO[3]++;
                                                 }
                                                 br.AttributeCollection.AppendAttribute(attRef);
@@ -441,10 +456,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.5)", moduleNumber % 2 == 0 ? "1" : "2");
+                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.{1})", moduleNumber % 2 == 0 ? "1" : "2", sheetNum246);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPlus.TextString = string.Format("(-3.{0}:1/3.{1})", (moduleNumber + 6), currentSheet);
+                                                linkPlus.TextString = string.Format("(-3A{0}:1/3.{1})", (moduleNumber + 4), currentSheet);
                                             }
                                             break;
                                         }
@@ -453,10 +468,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.5)", moduleNumber % 2 == 0 ? "3" : "4");
+                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.{1})", moduleNumber % 2 == 0 ? "3" : "4", sheetNum246);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinus.TextString = string.Format("(-3.{0}:20/3.{1})", (moduleNumber + 6), currentSheet);
+                                                linkMinus.TextString = string.Format("(-3A{0}:20/3.{1})", (moduleNumber + 4), currentSheet);
                                             }
                                             break;
                                         }
@@ -465,7 +480,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "WA3." + (moduleNumber + 6);
+                                                attRef.TextString = "WA3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -476,7 +491,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT3." + (moduleNumber + 6);
+                                                attRef.TextString = "-XT3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -496,7 +511,6 @@ namespace AcElectricalSchemePlugin
                                 }
                             }
                         }
-                        //br.ExplodeToOwnerSpace();
                         currentSheet++;
                     }
                 }
@@ -613,7 +627,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "3A" + (moduleNumber + 6);
+                                                attRef.TextString = "3A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -624,7 +638,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP3." + (moduleNumber + 6);
+                                                attRef.TextString = "-XP3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -658,12 +672,12 @@ namespace AcElectricalSchemePlugin
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 if (moduleNumber % 2 == 0)
                                                 {
-                                                    attRef.TextString = "3M6+/3." + currentPinAIAO[2];
+                                                    attRef.TextString = "3M6/3." + currentPinAIAO[2];
                                                     currentPinAIAO[2]++;
                                                 }
                                                 else
                                                 {
-                                                    attRef.TextString = "3M6+/4." + currentPinAIAO[3];
+                                                    attRef.TextString = "3M6/4." + currentPinAIAO[3];
                                                     currentPinAIAO[3]++;
                                                 }
                                                 br.AttributeCollection.AppendAttribute(attRef);
@@ -677,10 +691,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.5)", moduleNumber % 2 == 0 ? "1" : "2");
+                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.{1})", moduleNumber % 2 == 0 ? "1" : "2", sheetNum246);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPlus.TextString = string.Format("(-3.{0}:1/3.{1})", (moduleNumber+6), currentSheet); 
+                                                linkPlus.TextString = string.Format("(-3A{0}:1/3.{1})", (moduleNumber+4), currentSheet); 
                                             }
                                             break;
                                         }
@@ -689,10 +703,10 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.5)", moduleNumber % 2 == 0 ? "3" : "4");
+                                                attRef.TextString = string.Format("(-XT24.6:{0}/3.{1})", moduleNumber % 2 == 0 ? "3" : "4", sheetNum246);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinus.TextString = string.Format("(-3.{0}:20/3.{1})", (moduleNumber + 6), currentSheet);
+                                                linkMinus.TextString = string.Format("(-3A{0}:20/3.{1})", (moduleNumber + 4), currentSheet);
                                             }
                                             break;
                                         }
@@ -701,7 +715,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "WA3." + (moduleNumber + 6);
+                                                attRef.TextString = "WA3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -712,7 +726,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT3." + (moduleNumber + 6);
+                                                attRef.TextString = "-XT3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -733,7 +747,6 @@ namespace AcElectricalSchemePlugin
                                 }
                             }
                         }
-                        //br.ExplodeToOwnerSpace();
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
@@ -785,7 +798,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "3A" + (moduleNumber + 6);
+                                                attRef.TextString = "3A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -796,7 +809,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP3." + (moduleNumber + 6);
+                                                attRef.TextString = "-XP3." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -816,7 +829,6 @@ namespace AcElectricalSchemePlugin
                                 }
                             }
                         }
-                        //br.ExplodeToOwnerSpace();
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
@@ -1183,7 +1195,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.1:FU{0}/3.3)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-1G" + currentD + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -1270,6 +1282,7 @@ namespace AcElectricalSchemePlugin
                                 }
                             }
                         }
+                        changeLinks(acTrans);
                         currentSheet++;
                     }
                 }
@@ -4223,16 +4236,173 @@ namespace AcElectricalSchemePlugin
 
         private static void setPoints(Point3d startPoint)
         {
-            block24_3 = startPoint.Add(new Vector3d(1122.933, -152.254, 0));
-            block241 = block24_3.Add(new Vector3d(170.9116, -101.5638, 0));
+            link1 = startPoint.Add(new Vector3d(1035.2772, -199.1041, 0));
+            link2 = link1.Add(new Vector3d(84.4491, 6.4374, 0));
+            link3 = link2.Add(new Vector3d(18.7558, -6.5055, 0));
+            block241 = link3.Add(new Vector3d(155.0975, -54.7136, 0));
             block242 = block241.Add(new Vector3d(229.5485, 0, 0));
-            block243 = block242.Add(new Vector3d(337.055, 0, 0));
+            link4 = block241.Add(new Vector3d(-90.4207, 52.9563, 0));
+            block243 = link4.Add(new Vector3d(427.4757, -52.9563, 0));
             block244 = block243.Add(new Vector3d(204.8261, 0, 0));
-            ets.Add(block244.Add(new Vector3d(456.432, 217.7071, 0)));
-            ets.Add(ets[0].Add(new Vector3d(-48, -145.3992, 0)));
+            link5 = block243.Add(new Vector3d(-65.6844, 52.9915, 0));
+            link6 = link5.Add(new Vector3d(286.6865, 0, 0));
+            link7 = link6.Add(new Vector3d(339.4859, -96.3918, 0));
+            link8 = link7.Add(new Vector3d(149.8889, 35.7395, 0));
+            ets.Add(link8.Add(new Vector3d(313.667, 225.3617, 0)));
+            ets.Add(ets[0].Add(new Vector3d(0, -145.3992, 0)));
             ets.Add(ets[1].Add(new Vector3d(0, -145.3992, 0)));
             block246 = ets[1].Add(new Vector3d(319.6824, 148.6242, 0));
-            currentPoint = block246.Add(new Vector3d(1364.6113, 32.8856, 0));
+            currentPoint = block246.Add(new Vector3d(1342.993, 32.8856, 0));
+        }
+
+        private static void changeLinks(Transaction acTrans)
+        {
+            TypedValue[] filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            SelectionFilter filter = new SelectionFilter(filterlist);
+            Point3d point1 = link1;
+            Point3d point2 = point1.Add(new Vector3d(0, 5, 0));
+            Point3dCollection points = new Point3dCollection(new Point3d[] { point1, point2 });
+            PromptSelectionResult selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №1\n");
+            }
+            else
+            {
+                DBText link1Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link1Text.TextString = string.Format("(-1XR4.4:11:A1/3.{0})", currentSheet);
+            }
+
+            filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            filter = new SelectionFilter(filterlist);
+            point1 = link2;
+            point2 = point1.Add(new Vector3d(0, 5, 0));
+            points = new Point3dCollection(new Point3d[] { point1, point2 });
+            selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №2\n");
+            }
+            else
+            {
+                DBText link2Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link2Text.TextString = string.Format("(-KV2:11/3.{0})", currentSheet);
+            }
+
+            filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            filter = new SelectionFilter(filterlist);
+            point1 = link3;
+            point2 = point1.Add(new Vector3d(0, 5, 0));
+            points = new Point3dCollection(new Point3d[] { point1, point2 });
+            selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №3\n");
+            }
+            else
+            {
+                DBText link3Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link3Text.TextString = string.Format("(-1XR4.4:10:A1/3.{0})", currentSheet);
+            }
+
+            filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            filter = new SelectionFilter(filterlist);
+            point1 = link4;
+            point2 = point1.Add(new Vector3d(5, 0, 0));
+            points = new Point3dCollection(new Point3d[] { point1, point2 });
+            selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №4\n");
+            }
+            else
+            {
+                DBText link4Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link4Text.TextString = string.Format("(-1XR4.4:12:A1/3.{0})", currentSheet);
+            }
+
+            filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            filter = new SelectionFilter(filterlist);
+            point1 = link5;
+            point2 = point1.Add(new Vector3d(5, 0, 0));
+            points = new Point3dCollection(new Point3d[] { point1, point2 });
+            selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №5\n");
+            }
+            else
+            {
+                DBText link5Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link5Text.TextString = string.Format("(-1XR4.4:13:A1/3.{0})", currentSheet);
+            }
+
+            filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+            filter = new SelectionFilter(filterlist);
+            point1 = link6;
+            point2 = point1.Add(new Vector3d(5, 0, 0));
+            points = new Point3dCollection(new Point3d[] { point1, point2 });
+            selRes = editor.SelectFence(points, filter);
+            if (selRes.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nНе найдена ссылка №6\n");
+            }
+            else
+            {
+                DBText link6Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                link6Text.TextString = string.Format("(-1XR4.4:14:A1/3.{0})", currentSheet);
+            }
+
+            if (mainControl)
+            {
+                filterlist = new TypedValue[2];
+                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+                filter = new SelectionFilter(filterlist);
+                point1 = link7;
+                point2 = point1.Add(new Vector3d(5, 0, 0));
+                points = new Point3dCollection(new Point3d[] { point1, point2 });
+                selRes = editor.SelectFence(points, filter);
+                if (selRes.Status != PromptStatus.OK)
+                {
+                    editor.WriteMessage("\nНе найдена ссылка №7\n");
+                }
+                else
+                {
+                    DBText link7Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                    link7Text.TextString = string.Format("(-1XR4.4:15:A1/3.{0})", currentSheet);
+                }
+
+                filterlist = new TypedValue[2];
+                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
+                filter = new SelectionFilter(filterlist);
+                point1 = link8;
+                point2 = point1.Add(new Vector3d(5, 0, 0));
+                points = new Point3dCollection(new Point3d[] { point1, point2 });
+                selRes = editor.SelectFence(points, filter);
+                if (selRes.Status != PromptStatus.OK)
+                {
+                    editor.WriteMessage("\nНе найдена ссылка №8\n");
+                }
+                else
+                {
+                    DBText link8Text = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                    link8Text.TextString = string.Format("(-1XR4.4:16:A1/3.{0})", currentSheet);
+                }
+            }
         }
     }
 }
