@@ -214,7 +214,10 @@ namespace AcElectricalSchemePlugin
                             tables[i].Rows[5].TextStyleId = tst["ROMANS0-90"];
                         else if (tst.Has("ROMANS0-60"))
                             tables[i].Rows[5].TextStyleId = tst["ROMANS0-60"];
-                        
+                        currentColumn = columnRight+1;
+                    }
+                    for (int i = 0; i < tables.Count; i++)
+                    {
                         tables[i].Rows[0].TextHeight = 3;
                         tables[i].Rows[1].TextHeight = 3;
                         tables[i].Rows[2].TextHeight = 3;
@@ -240,16 +243,17 @@ namespace AcElectricalSchemePlugin
                         tables[i].Rows[3].IsBackgroundColorNone = true;
                         tables[i].Rows[4].IsBackgroundColorNone = true;
                         tables[i].Rows[5].IsBackgroundColorNone = true;
+                        tables[i].Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
+                        tables[i].Cells.Borders.Vertical.Margin = 0.06;
+                        tables[i].Cells.Borders.Horizontal.Margin = 0.06;
                         tables[i].Cells.Borders.Horizontal.Color = Color.FromRgb(255, 0, 0);
                         tables[i].Cells.Borders.Vertical.Color = Color.FromRgb(255, 0, 0);
                         tables[i].Cells.Borders.Bottom.Color = Color.FromRgb(255, 0, 0);
                         tables[i].Cells.Borders.Left.Color = Color.FromRgb(255, 0, 0);
                         tables[i].Cells.Borders.Right.Color = Color.FromRgb(255, 0, 0);
                         tables[i].Cells.Borders.Top.Color = Color.FromRgb(255, 0, 0);
-                        tables[i].Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
-                        currentColumn = columnRight+1;
                     }
-                    cablePE.Color = Color.FromColorIndex(ColorMethod.None, 8);
+                    cablePE.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     acTrans.Commit();
                 }
             }
@@ -376,8 +380,8 @@ namespace AcElectricalSchemePlugin
                                     object[] values = prop.GetAllowedValues();
                                     if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
                                     {
-                                        prop.Value = values[unit.automatic-1];
-                                        value = values[unit.automatic-1];
+                                        prop.Value = values[unit.automatic];
+                                        value = values[unit.automatic];
                                         property = prop;
                                         break;
                                     }
@@ -673,29 +677,59 @@ namespace AcElectricalSchemePlugin
                     }
                     else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
                 }
-                if (!first)
+                //if (!first)
+                //{
+                if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR")
                 {
-                    if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR")
-                    {
-                        Line splitter = new Line();
-                        splitter.SetDatabaseDefaults();
-                        splitter.Color = Color.FromRgb(255, 0, 0);
-                        splitter.StartPoint = new Point3d(cableL.EndPoint.X, section.StartPoint.Y + 6, 0);
-                        splitter.EndPoint = splitter.StartPoint.Add(new Vector3d(0, -12, 0));
-                        modSpace.AppendEntity(splitter);
-                        acTrans.AddNewlyCreatedDBObject(splitter, true);
-                    }
-                }
+                    section.EndPoint = new Point3d(currentPoint.X - 14, section.StartPoint.Y, 0);
+                    blockType.EndPoint = new Point3d(minPoint.X, blockType.StartPoint.Y, 0);
+                    cableN.EndPoint = new Point3d(maxPoint.X, cableN.StartPoint.Y, 0);
+                    cablePE.EndPoint = new Point3d(maxPoint.X, cablePE.StartPoint.Y, 0);
+                    cableL.EndPoint = new Point3d(currentPoint.X+13, cableL.StartPoint.Y, 0);
 
-                section.EndPoint = new Point3d(maxPoint.X, section.StartPoint.Y, 0);
-                blockType.EndPoint = new Point3d(maxPoint.X, blockType.StartPoint.Y, 0);
-                if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
-                {
+                    Line splitter = new Line();
+                    splitter.SetDatabaseDefaults();
+                    splitter.Color = Color.FromRgb(255, 0, 0);
+                    splitter.StartPoint = new Point3d(currentPoint.X - 14, section.StartPoint.Y + 6, 0);
+                    splitter.EndPoint = splitter.StartPoint.Add(new Vector3d(0, -12, 0));
+                    modSpace.AppendEntity(splitter);
+                    acTrans.AddNewlyCreatedDBObject(splitter, true);
+
+                    Point3d sectionPoint = section.EndPoint;
+                    section = new Line();
+                    section.SetDatabaseDefaults();
+                    section.Color = Color.FromRgb(255, 0, 0);
+                    section.StartPoint = sectionPoint;
+                    section.EndPoint = section.StartPoint.Add(new Vector3d(1, 0, 0));
+                    modSpace.AppendEntity(section);
+                    acTrans.AddNewlyCreatedDBObject(section, true);
+
+                    TextStyleTable tst = (TextStyleTable)acTrans.GetObject(acdb.TextStyleTableId, OpenMode.ForRead);
+                    sectionNum = new DBText();
+                    sectionNum.SetDatabaseDefaults();
+                    sectionNum.Height = 3;
+                    sectionNum.WidthFactor = 0.7;
+                    sectionNum.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
+                    if (tst.Has("ROMANS0-70"))
+                        sectionNum.TextStyleId = tst["ROMANS0-70"];
                     sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                    sectionNum.TextString = "3";
+                    sectionNum.HorizontalMode = TextHorizontalMode.TextLeft;
+                    modSpace.AppendEntity(sectionNum);
+                    acTrans.AddNewlyCreatedDBObject(sectionNum, true);
+
+
                 }
-                cableL.EndPoint = new Point3d(maxPoint.X, cableL.StartPoint.Y, 0);
-                cableN.EndPoint = new Point3d(maxPoint.X, cableN.StartPoint.Y, 0);
-                cablePE.EndPoint = new Point3d(maxPoint.X, cablePE.StartPoint.Y, 0);
+                else
+                {
+                    section.EndPoint = new Point3d(maxPoint.X, section.StartPoint.Y, 0);
+                    blockType.EndPoint = new Point3d(maxPoint.X, blockType.StartPoint.Y, 0);
+                    sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                    cableL.EndPoint = new Point3d(maxPoint.X, cableL.StartPoint.Y, 0);
+                    cableN.EndPoint = new Point3d(maxPoint.X, cableN.StartPoint.Y, 0);
+                    cablePE.EndPoint = new Point3d(maxPoint.X, cablePE.StartPoint.Y, 0);
+                }
+                //}
                 #endregion
 
                 if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
@@ -939,8 +973,8 @@ namespace AcElectricalSchemePlugin
                                                 object[] values = prop.GetAllowedValues();
                                                 if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
                                                 {
-                                                    prop.Value = values[unit.automatic - 1 + 4];
-                                                    value = values[unit.automatic - 1 + 4];
+                                                    prop.Value = values[unit.automatic + 4];
+                                                    value = values[unit.automatic + 4];
                                                     property = prop;
                                                     break;
                                                 }
@@ -1199,21 +1233,31 @@ namespace AcElectricalSchemePlugin
                         else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
                     }
                     #endregion
+                    section.EndPoint = new Point3d(currentPoint.X + 14, section.EndPoint.Y, 0);
+                    sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
 
-                    currentSection++;
-                    sinFilter = 1;
-                    uzo = 1;
-
-                    TextStyleTable tst = (TextStyleTable)acTrans.GetObject(acdb.TextStyleTableId, OpenMode.ForRead);
+                    Line splitter = new Line();
+                    splitter.SetDatabaseDefaults();
+                    splitter.Color = Color.FromRgb(255, 0, 0);
+                    splitter.StartPoint = new Point3d(currentPoint.X+14, section.StartPoint.Y + 6, 0);
+                    splitter.EndPoint = splitter.StartPoint.Add(new Vector3d(0, -12, 0));
+                    modSpace.AppendEntity(splitter);
+                    acTrans.AddNewlyCreatedDBObject(splitter, true);
 
                     Point3d point = cableL.EndPoint.Add(new Vector3d(26, 0, 0));
                     cableL = new Line();
                     cableL.SetDatabaseDefaults();
                     cableL.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     cableL.StartPoint = point;
-                    cableL.EndPoint = cableL.StartPoint.Add(new Vector3d(24, 0, 0));
+                    cableL.EndPoint = cableL.StartPoint.Add(new Vector3d(maxPoint.X, 0, 0));
                     modSpace.AppendEntity(cableL);
                     acTrans.AddNewlyCreatedDBObject(cableL, true);
+                    
+                    currentSection++;
+                    sinFilter = 1;
+                    uzo = 1;
+
+                    TextStyleTable tst = (TextStyleTable)acTrans.GetObject(acdb.TextStyleTableId, OpenMode.ForRead);
 
                     Point3d sectionPoint = section.EndPoint;
                     section = new Line();
@@ -1232,7 +1276,7 @@ namespace AcElectricalSchemePlugin
                     sectionNum = new DBText();
                     sectionNum.SetDatabaseDefaults();
                     sectionNum.Height = 3;
-                    //sectionNum.Layer = "ER-TEXT";
+                    sectionNum.WidthFactor = 0.7;
                     sectionNum.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     if (tst.Has("ROMANS0-70"))
                         sectionNum.TextStyleId = tst["ROMANS0-70"];
@@ -1245,7 +1289,7 @@ namespace AcElectricalSchemePlugin
                     L = new DBText();
                     L.SetDatabaseDefaults();
                     L.Height = 3;
-                    //L.Layer = "ER-TEXT";
+                    L.WidthFactor = 0.7;
                     L.Position = cableL.StartPoint.Add(new Vector3d(2, 1, 0));
                     L.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     if (tst.Has("ROMANS0-70"))
@@ -1258,11 +1302,11 @@ namespace AcElectricalSchemePlugin
                     N = new DBText();
                     N.SetDatabaseDefaults();
                     N.Height = 3;
-                    //N.Layer = "ER-TEXT";
+                    N.WidthFactor = 0.7;
                     N.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     if (tst.Has("ROMANS0-70"))
                         N.TextStyleId = tst["ROMANS0-70"];
-                    N.Position = L.Position.Add(new Vector3d(0,-6.0322,0));
+                    N.Position = new Point3d(L.Position.X, cableN.StartPoint.Y+1, 0);
                     N.TextString = currentSection + "N";
                     N.HorizontalMode = TextHorizontalMode.TextLeft;
                     modSpace.AppendEntity(N);
@@ -1271,11 +1315,11 @@ namespace AcElectricalSchemePlugin
                     PE = new DBText();
                     PE.SetDatabaseDefaults();
                     PE.Height = 3;
-                    //PE.Layer = "ER-TEXT";
+                    PE.WidthFactor = 0.7;
                     PE.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     if (tst.Has("ROMANS0-70"))
                         PE.TextStyleId = tst["ROMANS0-70"];
-                    PE.Position = N.Position.Add(new Vector3d(0, -3.9432, 0));
+                    PE.Position = new Point3d(L.Position.X, cablePE.StartPoint.Y + 0.5, 0);
                     PE.TextString = "PE";
                     PE.HorizontalMode = TextHorizontalMode.TextLeft;
                     modSpace.AppendEntity(PE);
@@ -1348,6 +1392,12 @@ namespace AcElectricalSchemePlugin
                     currentTable.Rows[3].Height = 10;
                     currentTable.Rows[4].Height = 25;
                     currentTable.Rows[5].Height = 25;
+                    currentTable.Columns[0].Borders.Horizontal.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[0].Borders.Vertical.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[0].Borders.Bottom.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[0].Borders.Left.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[0].Borders.Right.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[0].Borders.Top.Color = Color.FromRgb(255, 0, 0);
                     currentTable.GenerateLayout();
                 }
                 else
@@ -1403,6 +1453,12 @@ namespace AcElectricalSchemePlugin
                     currentTable.Rows[3].Height = 10;
                     currentTable.Rows[4].Height = 25;
                     currentTable.Rows[5].Height = 25;
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Horizontal.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Vertical.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Bottom.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Left.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Right.Color = Color.FromRgb(255, 0, 0);
+                    currentTable.Columns[currentTable.Columns.Count - 1].Borders.Top.Color = Color.FromRgb(255, 0, 0);
                     currentTable.GenerateLayout();
                 }
 
@@ -1573,7 +1629,7 @@ namespace AcElectricalSchemePlugin
                 sectionNum.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 if (tst.Has("ROMANS0-70"))
                     sectionNum.TextStyleId = tst["ROMANS0-70"];
-                //sectionNum.Layer = "ER-TEXT";
+                sectionNum.WidthFactor = 0.7;
                 sectionNum.Height = 3;
                 sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
                 sectionNum.TextString = currentSection.ToString();
@@ -1602,7 +1658,7 @@ namespace AcElectricalSchemePlugin
                 if (lineTypeTable.Has("штриховая2"))
                     cableN.LinetypeId = lineTypeTable["штриховая2"];
                 cableN.LinetypeScale = 10;
-                cableN.Color = Color.FromColorIndex(ColorMethod.None, 8);
+                cableN.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 cableN.StartPoint = cableL.StartPoint.Add(new Vector3d(0, -6.0322, 0));
                 cableN.EndPoint = cableN.StartPoint.Add(new Vector3d(1, 0, 0));
                 modSpace.AppendEntity(cableN);
@@ -1613,7 +1669,7 @@ namespace AcElectricalSchemePlugin
                 if (lineTypeTable.Has("ACAD_ISO04W100"))
                     cablePE.LinetypeId = lineTypeTable["ACAD_ISO04W100"];
                 cablePE.LinetypeScale = 0.4;
-                cableN.Color = Color.FromColorIndex(ColorMethod.None, 8);
+                cableN.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 cablePE.StartPoint = cableN.StartPoint.Add(new Vector3d(0, -3.9432, 0));
                 cablePE.EndPoint = cablePE.StartPoint.Add(new Vector3d(1, 0, 0));
                 modSpace.AppendEntity(cablePE);
@@ -1621,7 +1677,7 @@ namespace AcElectricalSchemePlugin
 
                 L = new DBText();
                 L.SetDatabaseDefaults();
-                //L.Layer = "ER-TEXT";
+                L.WidthFactor = 0.7;
                 L.Position = cableL.StartPoint.Add(new Vector3d(2, 1, 0));
                 L.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 if (tst.Has("ROMANS0-70"))
@@ -1635,7 +1691,7 @@ namespace AcElectricalSchemePlugin
                 N = new DBText();
                 N.SetDatabaseDefaults();
                 N.Height = 3;
-                //N.Layer = "ER-TEXT";
+                N.WidthFactor = 0.7;
                 N.Position = cableN.StartPoint.Add(new Vector3d(2, 1, 0));
                 N.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 if (tst.Has("ROMANS0-70"))
@@ -1648,8 +1704,8 @@ namespace AcElectricalSchemePlugin
                 PE = new DBText();
                 PE.SetDatabaseDefaults();
                 PE.Height = 3;
-                //PE.Layer = "ER-TEXT";
-                PE.Position = cablePE.StartPoint.Add(new Vector3d(2, 1, 0));
+                PE.WidthFactor = 0.7;
+                PE.Position = cablePE.StartPoint.Add(new Vector3d(2, 0.5, 0));
                 PE.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                 if (tst.Has("ROMANS0-70"))
                     PE.TextStyleId = tst["ROMANS0-70"];
