@@ -42,6 +42,18 @@ namespace AcElectricalSchemePlugin
 
         static public void drawControlScheme()
         {
+            aiCount = 0;
+            aoCount = 0;
+            diCount = 0;
+            doCount = 0;
+            currentSheet = 9;
+            sheetNum246 = 6;
+            currentPinAIAO = new int[] { 2, 2, 2, 2 };
+            etCount = 0;
+            do24vCount = 0;
+            currentD = 4;
+            mainControl = true;
+
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
             Database acDb = acDoc.Database;
@@ -109,7 +121,7 @@ namespace AcElectricalSchemePlugin
                 double.TryParse(DO24v.StringResult, out value);
                 do24vCount = value;
             }
-
+            
             while (doCount < do24vCount)
             {
                 if (doCount < do24vCount) editor.WriteMessage("\nКоличество модулей DO24V не должно превышать общее количество модулей DO");
@@ -164,7 +176,7 @@ namespace AcElectricalSchemePlugin
                     currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
                     for (int i = aiCount; i < aiCount + aoCount; i++)
                     {
-                        if (i < 8 - aiCount)
+                        if (i < 10 - aiCount)
                         {
                             insertAO(acTrans, acModSpace, acDb, currentPoint, i);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
@@ -204,7 +216,7 @@ namespace AcElectricalSchemePlugin
                         } 
                     }
                     currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
-                    int currentModule = 0;
+                    int currentModule = diCount;
                     for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
                     {
                         if (i < maxCount)
@@ -234,7 +246,7 @@ namespace AcElectricalSchemePlugin
                             }
                         }
                     }
-                    if (do24vCount % 10 != 0)
+                    if (do24vCount - Math.Truncate(do24vCount) != 0)
                     {
                         insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
                         currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
@@ -3094,6 +3106,182 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE3":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-3";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE6":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-6";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE9":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-9";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE12":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-12";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE15":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-15";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-16";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -3328,6 +3516,182 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE3":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-3";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE6":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-6";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE9":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-9";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE12":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-12";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE15":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-15";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-16";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3801,6 +4165,182 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE3":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-3";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE6":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-6";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE9":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-9";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE12":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-12";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE15":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-15";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-16";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -3991,6 +4531,358 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-16";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE17":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-17";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE19":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-19";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE20":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-20";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE22":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-22";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE23":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-23";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE25":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-25";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE26":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-26";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE28":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-28";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE29":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-29";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE31":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-31";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE32":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-32";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE34":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-34";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE35":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-35";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE37":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-37";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE38":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-38";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE40":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-40";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE41":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-41";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE43":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-43";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE44":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-44";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE46":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-46";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE47":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-47";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4335,6 +5227,358 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-16";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE17":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-17";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE19":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-19";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE20":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-20";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE22":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-22";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE23":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-23";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE25":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-25";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE26":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-26";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE28":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-28";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE29":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-29";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE31":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-31";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE32":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-32";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE34":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-34";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE35":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-35";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE37":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-37";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE38":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-38";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE40":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-40";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE41":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-41";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE43":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-43";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE44":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-44";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE46":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-46";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE47":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".1-47";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -4508,6 +5752,358 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "CABLE1":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-1";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE2":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-2";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE4":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-4";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE5":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-5";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE7":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-7";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE8":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-8";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE10":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-10";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE11":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-11";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE13":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-13";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE14":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-14";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE16":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-16";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE17":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-17";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE19":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-19";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE20":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-20";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE22":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-22";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE23":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-23";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE25":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-25";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE26":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-26";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE28":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-28";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE29":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-29";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE31":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-31";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE32":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-32";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE34":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-34";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE35":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-35";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE37":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-37";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE38":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-38";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE40":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-40";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE41":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-41";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE43":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-43";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE44":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-44";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE46":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-46";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "CABLE47":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentD.ToString() + "." + (moduleNumber + 4) + ".2-47";
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -4563,7 +6159,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-4A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-4A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4574,7 +6170,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP4." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP4." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4603,23 +6199,27 @@ namespace AcElectricalSchemePlugin
 
         private static void setPoints(Point3d startPoint)
         {
-            link1 = startPoint.Add(new Vector3d(1035.2772, -199.1041, 0));
-            link2 = link1.Add(new Vector3d(84.4491, 6.4374, 0));
-            link3 = link2.Add(new Vector3d(18.7558, -6.5055, 0));
-            block241 = link3.Add(new Vector3d(155.0975, -54.7136, 0));
+            link1 = startPoint.Add(new Vector3d(1035.5134, -200.7757, 0));
+            link2 = link1.Add(new Vector3d(84.3448, 22.5574, 0));
+            link3 = link2.Add(new Vector3d(18.9336, -22.5574, 0));
+            block241 = link3.Add(new Vector3d(155.0528, -53.042, 0));
             block242 = block241.Add(new Vector3d(229.5485, 0, 0));
-            link4 = block242.Add(new Vector3d(-90.4207, 52.9563, 0));
-            block243 = link4.Add(new Vector3d(427.4757, -52.9563, 0));
+            link4 = block242.Add(new Vector3d(-92.2837, 52.978, 0));
+            block243 = link4.Add(new Vector3d(429.3387, -52.978, 0));
             block244 = block243.Add(new Vector3d(204.8261, 0, 0));
-            link5 = block244.Add(new Vector3d(-65.6844, 52.9915, 0));
-            link6 = link5.Add(new Vector3d(286.6865, 0, 0));
-            link7 = link6.Add(new Vector3d(339.4859, -96.3918, 0));
-            link8 = link7.Add(new Vector3d(149.8889, 35.7395, 0));
-            ets.Add(link8.Add(new Vector3d(313.667, 225.3617, 0)));
+            link5 = block244.Add(new Vector3d(-67.5613, 52.978, 0));
+            link6 = link5.Add(new Vector3d(286.8018, 0, 0));
+            if (mainControl)
+            {
+                link7 = link6.Add(new Vector3d(339.4296, -96.3883, 0));
+                link8 = link7.Add(new Vector3d(149.9289, 35.7228, 0));
+                ets.Add(link8.Add(new Vector3d(315.4449, 225.3946, 0)));
+            }
+            else ets.Add(link6.Add(new Vector3d(217.7866, 164.7291, 0)));
             ets.Add(ets[0].Add(new Vector3d(0, -145.3992, 0)));
             ets.Add(ets[1].Add(new Vector3d(0, -145.3992, 0)));
             block246 = ets[1].Add(new Vector3d(319.6824, 148.6242, 0));
-            currentPoint = block246.Add(new Vector3d(1342.993, 32.8856, 0));
+            currentPoint = block246.Add(new Vector3d(1342.9993, 32.8856, 0));
         }
 
         private static void changeLinks(Transaction acTrans)
@@ -4647,7 +6247,7 @@ namespace AcElectricalSchemePlugin
             filterlist[1] = new TypedValue((int)DxfCode.LayerName, "Временный");
             filter = new SelectionFilter(filterlist);
             point1 = link2;
-            point2 = point1.Add(new Vector3d(0, 5, 0));
+            point2 = point1.Add(new Vector3d(0, -5, 0));
             points = new Point3dCollection(new Point3d[] { point1, point2 });
             selRes = editor.SelectFence(points, filter);
             if (selRes.Status != PromptStatus.OK)
