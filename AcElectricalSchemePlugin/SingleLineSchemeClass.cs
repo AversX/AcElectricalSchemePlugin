@@ -22,7 +22,8 @@ namespace AcElectricalSchemePlugin
         private static int sinFilter = 1;
         private static int uzo = 1;
         private static int currentSection = 1;
-        private static DynamicBlockReferenceProperty curSheet;
+        private static DynamicBlockReferenceProperty curSheetProperty;
+        private static BlockReference curSheetBR;
         private static int currentSheetNumber = 1;
         private static int curSheetsNumber = 2;
         private static int maxSheets = 0;
@@ -319,7 +320,9 @@ namespace AcElectricalSchemePlugin
                 unit.switchboardDefenseReactTime = dataSet.Tables[0].Rows[30][column].ToString();
                 int.TryParse(dataSet.Tables[0].Rows[32][column].ToString(), out unit.automatic);
                 if (unit.automatic == 0) break;
-                unit.vfdPower = dataSet.Tables[0].Rows[33][column].ToString();
+                if (dataSet.Tables[0].Rows.Count>=34)
+                    unit.vfdPower = dataSet.Tables[0].Rows[33][column].ToString();
+                else unit.vfdPower = "0";
                 units.Add(unit);
             }
             return units;
@@ -392,7 +395,7 @@ namespace AcElectricalSchemePlugin
                             {
                                 DBObject obj = id.GetObject(OpenMode.ForWrite);
                                 AttributeDefinition attDef = obj as AttributeDefinition;
-                                if ((attDef != null) && (!attDef.Constant))
+                                if ((attDef != null))
                                 {
                                     #region attributes
                                     switch (attDef.Tag)
@@ -410,13 +413,16 @@ namespace AcElectricalSchemePlugin
                                             }
                                         case "?ГР1УЗО":
                                             {
-                                                using (AttributeReference attRef = new AttributeReference())
+                                                if (unit.automatic >= 22 && unit.automatic <= 26)
                                                 {
-                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = currentSection + "RCD" + uzo;
-                                                    uzo++;
-                                                    br.AttributeCollection.AppendAttribute(attRef);
-                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    using (AttributeReference attRef = new AttributeReference())
+                                                    {
+                                                        attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                        attRef.TextString = currentSection + "RCD" + uzo;
+                                                        uzo++;
+                                                        br.AttributeCollection.AppendAttribute(attRef);
+                                                        acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    }
                                                 }
                                                 break;
                                             }
@@ -431,17 +437,17 @@ namespace AcElectricalSchemePlugin
                                                 }
                                                 break;
                                             }
-                                        //case "?ГРКК1":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.switchboardName;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
+                                        case "?ГРКК1":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
                                         case "?ГРКМ1":
                                             {
                                                 using (AttributeReference attRef = new AttributeReference())
@@ -497,17 +503,17 @@ namespace AcElectricalSchemePlugin
                                                 }
                                                 break;
                                             }
-                                        //case "НОМИНАЛ_КК1":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.switchboardNominalElec;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
+                                        case "НОМИНАЛ_КК1":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
                                         case "НОМИНАЛ_КМ":
                                             {
                                                 using (AttributeReference attRef = new AttributeReference())
@@ -530,50 +536,50 @@ namespace AcElectricalSchemePlugin
                                                 }
                                                 break;
                                             }
-                                        //case "НОМИНАЛ_УЗО":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.protectNominalElec;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
-                                        //case "НОМИНАЛ_УЗО1":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.protectNominalElec;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
-                                        //case "ТОК_УТЕЧКИ":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.ultBreakCapacity;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
-                                        //case "ТОК_УТЕЧКИ1":
-                                        //    {
-                                        //        using (AttributeReference attRef = new AttributeReference())
-                                        //        {
-                                        //            attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                        //            attRef.TextString = unit.ultBreakCapacity;
-                                        //            br.AttributeCollection.AppendAttribute(attRef);
-                                        //            acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                        //        }
-                                        //        break;
-                                        //    }
+                                        case "НОМИНАЛ_УЗО":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "16А";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
+                                        case "НОМИНАЛ_УЗО1":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "16A";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
+                                        case "ТОК_УТЕЧКИ":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "30mA";                                                    
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
+                                        case "ТОК_УТЕЧКИ1":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "30mA";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
                                         case "УСТАВКА":
                                             {
                                                 using (AttributeReference attRef = new AttributeReference())
@@ -601,7 +607,11 @@ namespace AcElectricalSchemePlugin
                                                 using (AttributeReference attRef = new AttributeReference())
                                                 {
                                                     attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
+                                                    {
+                                                        attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    }
+                                                    else attRef.TextString = "3 / 1L1,1L2,1L3";
                                                     br.AttributeCollection.AppendAttribute(attRef);
                                                     acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 }
@@ -612,7 +622,11 @@ namespace AcElectricalSchemePlugin
                                                 using (AttributeReference attRef = new AttributeReference())
                                                 {
                                                     attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
+                                                    {
+                                                        attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    }
+                                                    else attRef.TextString = "3 / 1L1,1L2,1L3";
                                                     br.AttributeCollection.AppendAttribute(attRef);
                                                     acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 }
@@ -623,7 +637,11 @@ namespace AcElectricalSchemePlugin
                                                 using (AttributeReference attRef = new AttributeReference())
                                                 {
                                                     attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
+                                                    {
+                                                        attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                    }
+                                                    else attRef.TextString = "3 / 1L1,1L2,1L3";
                                                     br.AttributeCollection.AppendAttribute(attRef);
                                                     acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 }
@@ -661,7 +679,10 @@ namespace AcElectricalSchemePlugin
                                 if (curSheetsNumber < maxSheets)
                                 {
                                     curSheetsNumber++;
-                                    curSheet.Value = curSheet.GetAllowedValues()[curSheetsNumber - 1];
+                                    curSheetProperty.Value = curSheetProperty.GetAllowedValues()[curSheetsNumber - 1];
+                                    object val = curSheetProperty.Value;
+                                    curSheetBR.ResetBlock();
+                                    curSheetProperty.Value = val;
                                     editor.Regen();
                                 }
                                 else
@@ -858,13 +879,11 @@ namespace AcElectricalSchemePlugin
                             }
                         #endregion
                             #region sinFilter
-                            double nominalElectricity = 0;
+                            double power = 0;
                             string str = "";
-                            if (unit.switchboardNominalElec.Contains(" "))
-                                str = unit.switchboardNominalElec.Split(' ')[0];
-                            else str = unit.switchboardNominalElec;
-                            double.TryParse(str, out nominalElectricity);
-                            if (nominalElectricity < 78 && unit.switchboardNominalElec != "-" && nominalElectricity != 0)
+                            str = unit.vfdPower;
+                            double.TryParse(str, out power);
+                            if (power < 37 && unit.vfdPower!="")
                             {
                                 ids = new ObjectIdCollection();
                                 filename = @"Data\SinFilter.dwg";
@@ -1045,7 +1064,7 @@ namespace AcElectricalSchemePlugin
                         acTrans.AddNewlyCreatedDBObject(cableLine, true);
 
                         #region consumer
-                        if (!unit.consumerName.Contains("Ввод"))
+                        if (!unit.consumerName.Contains("Ввод") || unit.consumerName.Contains("HPL") || unit.consumerName.ToUpper().Contains("ШКАФ"))
                         {
                             ids = new ObjectIdCollection();
                             filename = @"Data\Consumer.dwg";
@@ -1086,14 +1105,10 @@ namespace AcElectricalSchemePlugin
                                                 object[] values = prop.GetAllowedValues();
                                                 if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
                                                 {
-                                                    if (unit.planName.Contains("AH") || unit.planName.Contains("BL") || unit.planName.Contains("FNM") || unit.planName.Contains("P"))
-                                                        prop.Value = values[0];
-                                                    else if (unit.planName.Contains("EK"))
-                                                        prop.Value = values[1];
-                                                    else if (unit.planName.Contains("FH") || unit.planName.Contains("WW") || unit.planName.Contains("FF") || unit.planName.Contains("FK") || unit.planName.Contains("FJ") || unit.planName.Contains("HPL") || unit.planName.Contains("VA"))
-                                                        prop.Value = values[2];
-                                                    else if (unit.planName.Contains("EL"))
-                                                        prop.Value = values[3];
+                                                    if (unit.planName.Contains("AH") || unit.planName.Contains("BLM") || unit.planName.Contains("FNMM") || unit.planName.Contains("P")) prop.Value = values[0];
+                                                    else if (unit.planName.Contains("EK") || unit.planName.Contains("FNMH") || unit.planName.Contains("BLH") || unit.planName.Contains("E")) prop.Value = values[1];
+                                                    else if (unit.planName.Contains("FH") || unit.planName.Contains("WW") || unit.planName.Contains("FF") || unit.planName.Contains("FK") || unit.planName.Contains("FJ") || unit.planName.Contains("HPL") || unit.planName.Contains("VA") || unit.planName.Contains("FSS") || unit.planName.Contains("FSE")) prop.Value = values[2];
+                                                    else if (unit.planName.Contains("EL")) prop.Value = values[3];
                                                     break;
                                                 }
                                             }
@@ -1190,7 +1205,7 @@ namespace AcElectricalSchemePlugin
                                                     using (AttributeReference attRef = new AttributeReference())
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = unit.phases.Contains("/") ? unit.phases.Split('/')[1] : "-";
+                                                        attRef.TextString = "3 / 1L1,1L2,1L3";
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                     }
@@ -1217,7 +1232,10 @@ namespace AcElectricalSchemePlugin
                                     if (curSheetsNumber < maxSheets)
                                     {
                                         curSheetsNumber++;
-                                        curSheet.Value = curSheet.GetAllowedValues()[curSheetsNumber - 1];
+                                        curSheetProperty.Value = curSheetProperty.GetAllowedValues()[curSheetsNumber - 1];
+                                        object val = curSheetProperty.Value;
+                                        curSheetBR.ResetBlock();
+                                        curSheetProperty.Value = val;
                                         editor.Regen();
                                     }
                                     else
@@ -1570,6 +1588,7 @@ namespace AcElectricalSchemePlugin
                         BlockReference br = new BlockReference(point, bt[blockName]);
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
+                        curSheetBR = br;
                         if (br.IsDynamicBlock)
                         {
                             DynamicBlockReferencePropertyCollection props =
@@ -1580,7 +1599,7 @@ namespace AcElectricalSchemePlugin
                                 if (prop.PropertyName == "Выбор1" && !prop.ReadOnly)
                                 {
                                     prop.Value = values[curSheetsNumber - 1];
-                                    curSheet = prop;
+                                    curSheetProperty = prop;
                                     break;
                                 }
                             }
