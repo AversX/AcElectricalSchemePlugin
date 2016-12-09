@@ -176,7 +176,7 @@ namespace AcElectricalSchemePlugin
                     currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
                     for (int i = aiCount; i < aiCount + aoCount; i++)
                     {
-                        if (i < 10 - aiCount)
+                        if (i < 10)
                         {
                             insertAO(acTrans, acModSpace, acDb, currentPoint, i);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
@@ -255,7 +255,7 @@ namespace AcElectricalSchemePlugin
                         currentModule++;
                         do24vCount += 0.5;
                     }
-                    for (int i = currentModule; i < doCount; i++)
+                    for (int i = currentModule; i < currentModule+doCount; i++)
                     {
                         if (i < maxCount)
                         {
@@ -849,6 +849,19 @@ namespace AcElectricalSchemePlugin
 
         private static void insertDI1(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            #region entitiys
+            MText text = new MText();
+            text.SetDatabaseDefaults();
+            text.TextStyleId = tst["GOSTA-2.5-1"];
+            text.Location = block241.Add(new Vector3d(0, -70, 0));
+            text.Rotation = 1.57;
+            text.Height = 2.5;
+            text.Attachment = AttachmentPoint.TopLeft;
+            text.Layer = "0";
+            text.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(text);
+            acTrans.AddNewlyCreatedDBObject(text, true);
+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
             cableDownPlus.Layer = "0";
@@ -1113,6 +1126,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(linkMinusUp2, true);
            
             block242 = block242.Add(new Vector3d(9.1624, 0, 0));
+            #endregion
 
             ObjectIdCollection ids = new ObjectIdCollection();
             string filename = @"Data\DI1.dwg";
@@ -1166,6 +1180,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -1223,6 +1238,21 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown1.TextString = "(-1G" + currentD + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+
+                                                Extents3d ext = text.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -1307,6 +1337,7 @@ namespace AcElectricalSchemePlugin
                                             break;
                                         }
                                 }
+                                #endregion
                             }
                         }
                         changeLinks(acTrans);
@@ -1355,6 +1386,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -1399,6 +1431,20 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = text.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -1539,6 +1585,7 @@ namespace AcElectricalSchemePlugin
                                             break;
                                         }
                                 }
+                                #endregion
                             }
                         }
                         currentSheet++;
@@ -1549,6 +1596,19 @@ namespace AcElectricalSchemePlugin
         }
         private static void insertDI(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            #region entitys
+            MText text = new MText();
+            text.SetDatabaseDefaults();
+            text.TextStyleId = tst["GOSTA-2.5-1"];
+            text.Location = block241.Add(new Vector3d(0, -70, 0));
+            text.Rotation = 1.57;
+            text.Height = 2.5;
+            text.Attachment = AttachmentPoint.TopLeft;
+            text.Layer = "0";
+            text.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(text);
+            acTrans.AddNewlyCreatedDBObject(text, true);
+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
             cableDownPlus.Layer = "0";
@@ -1859,6 +1919,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(linkMinusUp2, true);
 
             block242 = block242.Add(new Vector3d(9.1624, 0, 0));
+            #endregion
 
             ObjectIdCollection ids = new ObjectIdCollection();
             string filename = @"Data\DIF.dwg";
@@ -1954,6 +2015,20 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = text.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -2339,6 +2414,20 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
+                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = text.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
