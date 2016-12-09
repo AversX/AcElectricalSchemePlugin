@@ -89,6 +89,14 @@ namespace AcElectricalSchemePlugin
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
             Database acDb = acDoc.Database;
 
+            sinFilter = 1;
+            currentSection = 1;
+            currentSheetNumber = 1;
+            curSheetsNumber = 2;
+            uzo = 1;
+            maxSheets = 0;
+            aborted = false;
+
             List<Unit> units = loadData(fileName);
 
             PromptPointResult startPoint = editor.GetPoint("\nВыберите точку старта");
@@ -152,16 +160,72 @@ namespace AcElectricalSchemePlugin
                         insertUnit(acModSpace, acDb, units[i], fileName);
                         if (aborted)
                         {
+                            BlockTable bt = (BlockTable)acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead);
+                            BlockTableRecord btr = curSheetBR.BlockTableRecord.GetObject(OpenMode.ForWrite) as BlockTableRecord;
+                            foreach (ObjectId id in btr)
+                            {
+                                DBObject obj = id.GetObject(OpenMode.ForWrite);
+                                AttributeDefinition attDef = obj as AttributeDefinition;
+                                if ((attDef != null) && (!attDef.Constant))
+                                {
+                                    #region attributes
+                                    switch (attDef.Tag)
+                                    {
+                                        case "SH":
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, curSheetBR.BlockTransform);
+                                                    attRef.TextString = currentSheetNumber.ToString();
+                                                    curSheetBR.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    #endregion
+                                }
+                            }
                             aborted = false;
                             currentSheetNumber++;
                             currentSheetPoint = currentSheetPoint.Add(new Vector3d(0, -327, 0));
+                            curSheetsNumber = 2;
                             insertSheet(acTrans, acModSpace, acDb, currentSheetPoint);
                             //prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
                             currentPoint = currentSheetPoint.Add(new Vector3d(85, -68, 0));
-                            curSheetsNumber = 2;
                             i--;
                         }
                     }
+                    BlockTable btbl = (BlockTable)acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead);
+                    BlockTableRecord btrcrd = curSheetBR.BlockTableRecord.GetObject(OpenMode.ForWrite) as BlockTableRecord;
+                    foreach (ObjectId id in btrcrd)
+                    {
+                        DBObject obj = id.GetObject(OpenMode.ForWrite);
+                        AttributeDefinition attDef = obj as AttributeDefinition;
+                        if ((attDef != null) && (!attDef.Constant))
+                        {
+                            #region attributes
+                            switch (attDef.Tag)
+                            {
+                                case "SH":
+                                    {
+                                        using (AttributeReference attRef = new AttributeReference())
+                                        {
+                                            attRef.SetAttributeFromBlock(attDef, curSheetBR.BlockTransform);
+                                            attRef.TextString = currentSheetNumber.ToString();
+                                            curSheetBR.AttributeCollection.AppendAttribute(attRef);
+                                            acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                        }
+                                        break;
+                                    }
+                            }
+                            #endregion
+                        }
+                    }
+
+                    object val = curSheetProperty.Value;
+                    curSheetBR.ResetBlock();
+                    curSheetProperty.Value = val;
                     int currentColumn = 4;
                     for (int i = 0; i < tables.Count; i++)
                     {
@@ -669,21 +733,17 @@ namespace AcElectricalSchemePlugin
                             //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
                             //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
                             //}
-                            if (br.IsDynamicBlock)
-                            {
-                                br.ResetBlock();
-                                property.Value = value;
-                            }
-                            if (maxPoint.X >= currentSheetPoint.X + 210 * (curSheetsNumber - 1))
+                            //if (br.IsDynamicBlock)
+                            //{
+                            //    br.ResetBlock();
+                            //    property.Value = value;
+                            //}
+                            if (maxPoint.X >= currentSheetPoint.X + (210*curSheetsNumber-300))
                             {
                                 if (curSheetsNumber < maxSheets)
                                 {
                                     curSheetsNumber++;
                                     curSheetProperty.Value = curSheetProperty.GetAllowedValues()[curSheetsNumber - 1];
-                                    object val = curSheetProperty.Value;
-                                    curSheetBR.ResetBlock();
-                                    curSheetProperty.Value = val;
-                                    editor.Regen();
                                 }
                                 else
                                 {
@@ -1222,21 +1282,17 @@ namespace AcElectricalSchemePlugin
                                 //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
                                 //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
                                 //}
-                                if (br.IsDynamicBlock)
-                                {
-                                    br.ResetBlock();
-                                    property.Value = value;
-                                }
-                                if (maxPoint.X >= currentSheetPoint.X + 210 * (curSheetsNumber - 1))
+                                //if (br.IsDynamicBlock)
+                                //{
+                                //    br.ResetBlock();
+                                //    property.Value = value;
+                                //}
+                                if (maxPoint.X >= currentSheetPoint.X + (210 * curSheetsNumber - 300))
                                 {
                                     if (curSheetsNumber < maxSheets)
                                     {
                                         curSheetsNumber++;
                                         curSheetProperty.Value = curSheetProperty.GetAllowedValues()[curSheetsNumber - 1];
-                                        object val = curSheetProperty.Value;
-                                        curSheetBR.ResetBlock();
-                                        curSheetProperty.Value = val;
-                                        editor.Regen();
                                     }
                                     else
                                     {
@@ -1588,6 +1644,7 @@ namespace AcElectricalSchemePlugin
                         BlockReference br = new BlockReference(point, bt[blockName]);
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
+                        br.ResetBlock();
                         curSheetBR = br;
                         if (br.IsDynamicBlock)
                         {
@@ -1601,31 +1658,6 @@ namespace AcElectricalSchemePlugin
                                     prop.Value = values[curSheetsNumber - 1];
                                     curSheetProperty = prop;
                                     break;
-                                }
-                            }
-                            BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForWrite) as BlockTableRecord;
-                            foreach (ObjectId id in btr)
-                            {
-                                DBObject obj = id.GetObject(OpenMode.ForWrite);
-                                AttributeDefinition attDef = obj as AttributeDefinition;
-                                if ((attDef != null) && (!attDef.Constant))
-                                {
-                                    #region attributes
-                                    switch (attDef.Tag)
-                                    {
-                                        case "SH":
-                                            {
-                                                using (AttributeReference attRef = new AttributeReference())
-                                                {
-                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                    attRef.TextString = currentSheetNumber.ToString();
-                                                    br.AttributeCollection.AppendAttribute(attRef);
-                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                }
-                                                break;
-                                            }
-                                    }
-                                    #endregion
                                 }
                             }
                         }
