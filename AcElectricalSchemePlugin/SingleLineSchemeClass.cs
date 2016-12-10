@@ -222,10 +222,6 @@ namespace AcElectricalSchemePlugin
                             #endregion
                         }
                     }
-
-                    object val = curSheetProperty.Value;
-                    curSheetBR.ResetBlock();
-                    curSheetProperty.Value = val;
                     int currentColumn = 4;
                     for (int i = 0; i < tables.Count; i++)
                     {
@@ -1165,10 +1161,10 @@ namespace AcElectricalSchemePlugin
                                                 object[] values = prop.GetAllowedValues();
                                                 if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
                                                 {
-                                                    if (unit.planName.Contains("AH") || unit.planName.Contains("BLM") || unit.planName.Contains("FNMM") || unit.planName.Contains("P")) prop.Value = values[0];
-                                                    else if (unit.planName.Contains("EK") || unit.planName.Contains("FNMH") || unit.planName.Contains("BLH") || unit.planName.Contains("E")) prop.Value = values[1];
-                                                    else if (unit.planName.Contains("FH") || unit.planName.Contains("WW") || unit.planName.Contains("FF") || unit.planName.Contains("FK") || unit.planName.Contains("FJ") || unit.planName.Contains("HPL") || unit.planName.Contains("VA") || unit.planName.Contains("FSS") || unit.planName.Contains("FSE")) prop.Value = values[2];
+                                                    if (unit.planName.Contains("FH") || unit.planName.Contains("WW") || unit.planName.Contains("FF") || unit.planName.Contains("FK") || unit.planName.Contains("FJ") || unit.planName.Contains("HPL") || unit.planName.Contains("VA") || unit.planName.Contains("FSS") || unit.planName.Contains("FSE")) prop.Value = values[2];
                                                     else if (unit.planName.Contains("EL")) prop.Value = values[3];
+                                                    else if (unit.planName.Contains("AH") || unit.planName.Contains("BLM") || unit.planName.Contains("FNMM") || unit.planName.Contains("P")) prop.Value = values[0];
+                                                    else if (unit.planName.Contains("EK") || unit.planName.Contains("FNMH") || unit.planName.Contains("BLH") || unit.planName.Contains("E")) prop.Value = values[1];
                                                     break;
                                                 }
                                             }
@@ -1644,7 +1640,6 @@ namespace AcElectricalSchemePlugin
                         BlockReference br = new BlockReference(point, bt[blockName]);
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
-                        br.ResetBlock();
                         curSheetBR = br;
                         if (br.IsDynamicBlock)
                         {

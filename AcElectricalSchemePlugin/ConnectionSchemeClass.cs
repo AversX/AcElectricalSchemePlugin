@@ -19,7 +19,7 @@ namespace AcElectricalSchemePlugin
         private static Table currentTable = null;
         private static bool firstSheet;
         private static LinetypeTable lineTypeTable;
-        private static TextStyleTableRecord textStyle;
+        private static TextStyleTable tst;
         private static Polyline currentTBox = null;
         private static Unit currentUnit;
         private static MText currentTBoxName = null;
@@ -28,6 +28,7 @@ namespace AcElectricalSchemePlugin
         private static List<Line> cableLineUps;
         private static List<MText> cableLineText;
         private static List<Table> tables = new List<Table>();
+        private static int currentSheetNumber = 1;
 
         struct tBoxUnit
         {
@@ -186,8 +187,9 @@ namespace AcElectricalSchemePlugin
                                 editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
                             }
 
-                        textStyle = (TextStyleTableRecord)acTrans.GetObject(acDb.Textstyle, OpenMode.ForWrite);
-                        textStyle.FileName = @"Data\GOST_Common.ttf";
+                        tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForWrite);
+                        loadFonts(acTrans, acModSpace, acDb);
+                       
                         Point3d startPoint = selection.Value;
                         drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
                         for (int i = 0; i < units.Count; )
@@ -262,6 +264,7 @@ namespace AcElectricalSchemePlugin
                                 acTrans.AddNewlyCreatedDBObject(tables[i], true);
                             }
                         }
+                        currentSheetNumber = 1;
                         acDoc.Editor.Regen();
                         acTrans.Commit();
                         acTrans.Dispose();
@@ -299,7 +302,9 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            text.TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                text.TextStyleId = tst["spds 2.5-0.85"];
+            text.Height = 3;
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = gndPoly.GetPoint3dAt(0).Add(new Vector3d(0, 2, 0));
             text.TextString = "Шина функционального заземления";
@@ -314,23 +319,27 @@ namespace AcElectricalSchemePlugin
 
             table.SetTextHeight(0, 0, 2.5);
             table.Cells[0, 0].TextString = "Тип оборудования";
-            table.Cells[0, 0].TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
             table.Rows[0].IsMergeAllEnabled = false;
 
             table.SetTextHeight(1, 0, 2.5);
             table.Cells[1, 0].TextString = "Обозначение по проекту";
-            table.Cells[1, 0].TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
 
             table.SetTextHeight(2, 0, 2.5);
             table.Cells[2, 0].TextString = "Параметры";
-            table.Cells[2, 0].TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
 
             table.SetTextHeight(3, 0, 2.5);
             table.Cells[3, 0].TextString = "Оборудоание";
-            table.Cells[3, 0].TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
 
             table.Columns[0].Width = 30;
@@ -383,7 +392,9 @@ namespace AcElectricalSchemePlugin
                             prevTerminal = terminalTag;
                             DBText text = new DBText();
                             text.SetDatabaseDefaults();
-                            text.TextStyleId = textStyle.Id;
+                            text.Height = 3;
+                            if (tst.Has("spds 2.5-0.85"))
+                                text.TextStyleId = tst["spds 2.5-0.85"];
                             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                             text.TextString = terminalTag;
@@ -421,7 +432,7 @@ namespace AcElectricalSchemePlugin
                                 aborted = true;
                                 firstSheet = false;
                                 shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)), firstSheet);
-                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
+                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
@@ -454,7 +465,9 @@ namespace AcElectricalSchemePlugin
 
                             DBText text = new DBText();
                             text.SetDatabaseDefaults();
-                            text.TextStyleId = textStyle.Id;
+                            text.Height = 3;
+                            if (tst.Has("spds 2.5-0.85"))
+                                text.TextStyleId = tst["spds 2.5-0.85"];
                             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                             text.TextString = terminalTag;
@@ -470,7 +483,7 @@ namespace AcElectricalSchemePlugin
                                 aborted = true;
                                 firstSheet = false;
                                 shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)), firstSheet);
-                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
+                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
                                 prevTerminal = string.Empty;
@@ -593,7 +606,8 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            text.TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                text.TextStyleId = tst["spds 2.5-0.85"];
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = shield.GetPoint3dAt(0).Add(new Vector3d(382, -16, 0));
             text.TextString = cupbordName;
@@ -621,7 +635,9 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            text.TextStyleId = textStyle.Id;
+            text.Height = 3;
+            if (tst.Has("spds 2.5-0.85"))
+                text.TextStyleId = tst["spds 2.5-0.85"];
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = termPoly.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
             text.TextString = terminal;
@@ -642,7 +658,9 @@ namespace AcElectricalSchemePlugin
            
             MText textLine = new MText();
             textLine.SetDatabaseDefaults();
-            textLine.TextStyleId = textStyle.Id;
+            textLine.TextHeight = 3;
+            if (tst.Has("spds 2.5-0.85"))
+                textLine.TextStyleId = tst["spds 2.5-0.85"];
             textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             textLine.Location = cableLineUp.EndPoint.Add(new Vector3d(-1, 2, 0));
             textLine.Contents = cableMark + "-" + cableNumber;
@@ -713,8 +731,9 @@ namespace AcElectricalSchemePlugin
             Point3d cableNameCentre = new Point3d(X, Y, 0);
             MText textName = new MText();
             textName.SetDatabaseDefaults();
-            textName.TextStyleId = textStyle.Id;
-            textName.TextStyleId = textStyle.Id;
+            textName.TextHeight = 2.5;
+            if (tst.Has("spds 2.5-0.85"))
+                textName.TextStyleId = tst["spds 2.5-0.85"];
             textName.Location = cableNameCentre;
             textName.Attachment = AttachmentPoint.MiddleCenter;
             textName.Width = 25;
@@ -748,7 +767,9 @@ namespace AcElectricalSchemePlugin
 
             MText cableMark = new MText();
             cableMark.SetDatabaseDefaults();
-            cableMark.TextStyleId = textStyle.Id;
+            cableMark.TextHeight = 3;
+            if (tst.Has("spds 2.5-0.85"))
+                cableMark.TextStyleId = tst["spds 2.5-0.85"];
             cableMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             cableMark.Location = cableLine2.EndPoint.Add(new Vector3d(-1, (cableLine2.StartPoint.Y - cableLine2.EndPoint.Y)/2, 0));
             cableMark.Contents = unit.cableMark;
@@ -813,7 +834,9 @@ namespace AcElectricalSchemePlugin
 
                 MText textLine = new MText();
                 textLine.SetDatabaseDefaults();
-                textLine.TextStyleId = textStyle.Id;
+                textLine.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    textLine.TextStyleId = tst["spds 2.5-0.85"];
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textLine.Location = cableLineDown.EndPoint.Add(new Vector3d(-1, 1, 0));
                 textLine.Contents = units[ind].designation + "-" + (i + 1);
@@ -862,7 +885,9 @@ namespace AcElectricalSchemePlugin
 
                 DBText text = new DBText();
                 text.SetDatabaseDefaults();
-                text.TextStyleId = textStyle.Id;
+                text.Height = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    text.TextStyleId = tst["spds 2.5-0.85"];
                 text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 text.Position = terminal.GetPoint3dAt(0).Add(new Vector3d(2.5, -3.5, 0));
                 text.TextString = units[ind].equipTerminals[i];
@@ -917,7 +942,8 @@ namespace AcElectricalSchemePlugin
             width = 2 * (C - B) + (D - C);
             currentTable.InsertColumns(currentTable.Columns.Count, width, 1);
             currentTable.UnmergeCells(currentTable.Rows[0]);
-            currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = textStyle.Id;
+            if (tst.Has("spds 2.5-0.85"))
+                currentTable.Columns[currentTable.Columns.Count - 1].TextStyleId = tst["spds 2.5-0.85"];
             currentTable.Columns[currentTable.Columns.Count - 1].TextHeight = 2.5;
             currentTable.Cells[0, currentTable.Columns.Count - 1].TextString = units[ind].equipType == "" ? "-" : units[ind].equipType;
             currentTable.Cells[1, currentTable.Columns.Count - 1].TextString = units[ind].designation;
@@ -978,7 +1004,9 @@ namespace AcElectricalSchemePlugin
                 
                 MText textLine = new MText();
                 textLine.SetDatabaseDefaults();
-                textLine.TextStyleId = textStyle.Id;
+                textLine.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    textLine.TextStyleId = tst["spds 2.5-0.85"];
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
                 textLine.Contents = units[ind].designation + "-" + (i + 1);
@@ -1023,7 +1051,9 @@ namespace AcElectricalSchemePlugin
 
                 DBText text = new DBText();
                 text.SetDatabaseDefaults();
-                text.TextStyleId = textStyle.Id;
+                text.Height = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    text.TextStyleId = tst["spds 2.5-0.85"];
                 text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 text.Position = line.StartPoint.Add(new Vector3d(2.5, -3.5, 0));
                 text.TextString = tBox.LastTerminalNumber.ToString();
@@ -1061,7 +1091,9 @@ namespace AcElectricalSchemePlugin
 
                 MText textLine = new MText();
                 textLine.SetDatabaseDefaults();
-                textLine.TextStyleId = textStyle.Id;
+                textLine.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    textLine.TextStyleId = tst["spds 2.5-0.85"];
                 textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textLine.Location = terminal.GetPoint3dAt(2).Add(new Vector3d(-1, 6, 0));
                 textLine.Contents = "шина ф. заземл.";
@@ -1118,7 +1150,9 @@ namespace AcElectricalSchemePlugin
 
                 DBText tBoxText = new DBText();
                 tBoxText.SetDatabaseDefaults();
-                tBoxText.TextStyleId = textStyle.Id;
+                tBoxText.Height = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    tBoxText.TextStyleId = tst["spds 2.5-0.85"];
                 tBoxText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 tBoxText.Position = tbox.GetPoint3dAt(0).Add(new Vector3d(4, -28, 0));
                 tBoxText.TextString = "XT";
@@ -1132,7 +1166,9 @@ namespace AcElectricalSchemePlugin
                 tBox.Count++;
                 MText tBoxName = new MText();
                 tBoxName.SetDatabaseDefaults();
-                tBoxName.TextStyleId = textStyle.Id;
+                tBoxName.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 tBoxName.Location = tbox.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
                 tBoxName.Contents = tBox.Name+"."+tBox.Count.ToString();
@@ -1166,7 +1202,9 @@ namespace AcElectricalSchemePlugin
                 currentTBoxName.Erase();
                 MText tBoxName = new MText();
                 tBoxName.SetDatabaseDefaults();
-                tBoxName.TextStyleId = textStyle.Id;
+                tBoxName.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                 tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 tBoxName.Location = currentTBox.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
                 tBoxName.Contents = tBox.Name + "." + tBox.Count.ToString();
@@ -1235,6 +1273,32 @@ namespace AcElectricalSchemePlugin
                         BlockReference br = new BlockReference(point, bt[blockName]);
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
+                        BlockTableRecord btrcrd = br.BlockTableRecord.GetObject(OpenMode.ForWrite) as BlockTableRecord;
+                        foreach (ObjectId id in btrcrd)
+                        {
+                            DBObject obj = id.GetObject(OpenMode.ForWrite);
+                            AttributeDefinition attDef = obj as AttributeDefinition;
+                            if ((attDef != null) && (!attDef.Constant))
+                            {
+                                #region attributes
+                                switch (attDef.Tag)
+                                {
+                                    case "SH":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheetNumber.ToString();
+                                                currentSheetNumber++;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                }
+                                #endregion
+                            }
+                        }
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
@@ -1308,6 +1372,33 @@ namespace AcElectricalSchemePlugin
             groundLine2.EndPoint = new Point3d(lPoint + (rPoint - lPoint) / 2, yPoint, 0);
             modSpace.AppendEntity(groundLine2);
             acTrans.AddNewlyCreatedDBObject(groundLine2, true);
+        }
+        private static void loadFonts(Transaction acTrans, BlockTableRecord modSpace, Database acdb)
+        {
+            ObjectIdCollection ids = new ObjectIdCollection();
+            ObjectIdCollection id = new ObjectIdCollection();
+            string filename = @"Data\Font.dwg";
+            using (Database sourceDb = new Database(false, true))
+            {
+                if (System.IO.File.Exists(filename))
+                {
+                    sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                    using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
+                    {
+                        TextStyleTable table = (TextStyleTable)trans.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
+                        if (table.Has("spds 2.5-0.85"))
+                            id.Add(table["spds 2.5-0.85"]);
+                        trans.Commit();
+                    }
+                }
+                else editor.WriteMessage("Не найден файл {0}", filename);
+                if (id.Count > 0)
+                {
+                    acTrans.TransactionManager.QueueForGraphicsFlush();
+                    IdMapping iMap = new IdMapping();
+                    acdb.WblockCloneObjects(id, acdb.TextStyleTableId, iMap, DuplicateRecordCloning.Replace, false);
+                }
+            }
         }
     }
 }
