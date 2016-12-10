@@ -39,6 +39,10 @@ namespace AcElectricalSchemePlugin
         private static Point3d block244;
         private static int currentD = 4;
         private static int[] currentPinAIAO = { 2, 2, 2, 2 };
+        private static bool firstAI = true;
+        private static bool firstAO = true;
+        private static bool firstDI = true;
+        private static bool firstDO = true;
 
         static public void drawControlScheme()
         {
@@ -53,6 +57,10 @@ namespace AcElectricalSchemePlugin
             do24vCount = 0;
             currentD = 4;
             mainControl = true;
+            firstAI = true;
+            firstAO = true;
+            firstDI = true;
+            firstDO = true;
 
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
@@ -99,7 +107,7 @@ namespace AcElectricalSchemePlugin
             }
             else aoCount = AO.Value;
 
-            if (aiCount+aoCount>8) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей AI и AO превышает 10, будут расчитаны только первые 10 модулей.");
+            if (aiCount + aoCount > 10) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей AI и AO превышает 10, будут расчитаны только первые 10 модулей.");
 
             PromptIntegerResult DI = editor.GetInteger("\nВведите количество модулей DI: ");
             if (DI.Status != PromptStatus.OK)
@@ -121,7 +129,7 @@ namespace AcElectricalSchemePlugin
                 double.TryParse(DO24v.StringResult, out value);
                 do24vCount = value;
             }
-            
+
             while (doCount < do24vCount)
             {
                 if (doCount < do24vCount) editor.WriteMessage("\nКоличество модулей DO24V не должно превышать общее количество модулей DO");
@@ -136,7 +144,7 @@ namespace AcElectricalSchemePlugin
 
             if (etCount == 2 && diCount + doCount > 10) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей DI и DO превышает 10, будут расчитаны только первые 10 модулей.");
             else if (etCount == 3 && diCount + doCount > 16) editor.WriteMessage("\nВНИМАЕНИЕ!!! Общее количество модулей DI и DO превышает 16, будут расчитаны только первые 16 модулей.");
-            
+
             PromptPointResult startPoint = editor.GetPoint("Выберите левый верхний угол первого листа в чертеже");
             if (startPoint.Status != PromptStatus.OK)
             {
@@ -145,8 +153,7 @@ namespace AcElectricalSchemePlugin
             }
             else setPoints(startPoint.Value);
 
-            if (mainControl) currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
-            else currentPoint = currentPoint.Add(new Vector3d(-544, 0, 0));
+            currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
             block246 = block246.Add(new Vector3d(0, -25.9834, 0));
             block241 = block241.Add(new Vector3d(5.857, 0, 0));
             block242 = block242.Add(new Vector3d(5.857, 0, 0));
@@ -173,7 +180,7 @@ namespace AcElectricalSchemePlugin
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
                         }
                     }
-                    currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+                    currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
                     for (int i = aiCount; i < aiCount + aoCount; i++)
                     {
                         if (i < 10)
@@ -184,7 +191,7 @@ namespace AcElectricalSchemePlugin
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
                         }
                     }
-                    currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+                    currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
                     insertDI1(acTrans, acModSpace, acDb, 0);
                     currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                     insertETD(acTrans, acModSpace, acDb, ets[1], 0, "DI");
@@ -213,9 +220,9 @@ namespace AcElectricalSchemePlugin
                                 }
                                 else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                             }
-                        } 
+                        }
                     }
-                    currentPoint = currentPoint.Add(new Vector3d(50, 0, 0));
+                    currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
                     int currentModule = diCount;
                     for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
                     {
@@ -255,7 +262,7 @@ namespace AcElectricalSchemePlugin
                         currentModule++;
                         do24vCount += 0.5;
                     }
-                    for (int i = currentModule; i < currentModule+doCount; i++)
+                    for (int i = currentModule; i < currentModule + doCount - Math.Truncate(do24vCount); i++)
                     {
                         if (i < maxCount)
                         {
@@ -278,6 +285,8 @@ namespace AcElectricalSchemePlugin
                             }
                         }
                     }
+                    currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                    insertSpec(acTrans, acModSpace, acDb, currentPoint);
                     acTrans.Commit();
                 }
             }
@@ -292,6 +301,10 @@ namespace AcElectricalSchemePlugin
             do24vCount = 0;
             currentD = 4;
             mainControl = true;
+            firstAI = true;
+            firstAO = true;
+            firstDI = true;
+            firstDO = true;
         }
 
         private static void insertAO(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, int moduleNumber)
@@ -517,6 +530,32 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = "3." + currentSheet;
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "AD":
+                                        {
+                                            if (firstAO)
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "AO";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    firstAO = false;
+                                                }
                                             }
                                             break;
                                         }
@@ -750,15 +789,41 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
-                                                currentSheet++;
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "AD":
+                                        {
+                                            if (firstAI)
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "AI";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    firstAI = false;
+                                                }
                                             }
                                             break;
                                         }
                                 }
                             }
                         }
+                        currentSheet++;
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
@@ -850,17 +915,29 @@ namespace AcElectricalSchemePlugin
         private static void insertDI1(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
             #region entitiys
-            MText text = new MText();
-            text.SetDatabaseDefaults();
-            text.TextStyleId = tst["GOSTA-2.5-1"];
-            text.Location = block241.Add(new Vector3d(0, -70, 0));
-            text.Rotation = 1.57;
-            text.Height = 2.5;
-            text.Attachment = AttachmentPoint.TopLeft;
-            text.Layer = "0";
-            text.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(text);
-            acTrans.AddNewlyCreatedDBObject(text, true);
+            MText textDownPlus = new MText();
+            textDownPlus.SetDatabaseDefaults();
+            textDownPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textDownPlus.Location = block241.Add(new Vector3d(0, -70, 0));
+            textDownPlus.Rotation = 1.57;
+            textDownPlus.Height = 2.5;
+            textDownPlus.Attachment = AttachmentPoint.TopLeft;
+            textDownPlus.Layer = "0";
+            textDownPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textDownPlus);
+            acTrans.AddNewlyCreatedDBObject(textDownPlus, true);
+
+            MText textUpPlus = new MText();
+            textUpPlus.SetDatabaseDefaults();
+            textUpPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textUpPlus.Location = block242.Add(new Vector3d(0, -70, 0));
+            textUpPlus.Rotation = 1.57;
+            textUpPlus.Height = 2.5;
+            textUpPlus.Attachment = AttachmentPoint.TopLeft;
+            textUpPlus.Layer = "0";
+            textUpPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textUpPlus);
+            acTrans.AddNewlyCreatedDBObject(textUpPlus, true);
 
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
@@ -1238,9 +1315,9 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown1.TextString = "(-1G" + currentD + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
-
-                                                Extents3d ext = text.GeometricExtents;
+                                               
+                                                textDownPlus.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
                                                 TypedValue[] filterlist = new TypedValue[2];
                                                 filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
                                                 filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
@@ -1333,6 +1410,32 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = "3." + currentSheet;
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "AD":
+                                        {
+                                            if (firstDI)
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "DI";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    firstDI = false;
+                                                }
                                             }
                                             break;
                                         }
@@ -1431,8 +1534,8 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
-                                                Extents3d ext = text.GeometricExtents;
+                                                textDownPlus.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
                                                 TypedValue[] filterlist = new TypedValue[2];
                                                 filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
                                                 filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
@@ -1493,6 +1596,21 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:26/3." + currentSheet + ")";
+                                                
+                                                textUpPlus.Contents = "Клеммы питания реле DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textUpPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -1584,6 +1702,17 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                 }
                                 #endregion
                             }
@@ -1597,17 +1726,29 @@ namespace AcElectricalSchemePlugin
         private static void insertDI(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
             #region entitys
-            MText text = new MText();
-            text.SetDatabaseDefaults();
-            text.TextStyleId = tst["GOSTA-2.5-1"];
-            text.Location = block241.Add(new Vector3d(0, -70, 0));
-            text.Rotation = 1.57;
-            text.Height = 2.5;
-            text.Attachment = AttachmentPoint.TopLeft;
-            text.Layer = "0";
-            text.Color = Color.FromRgb(255, 255, 255);
-            modSpace.AppendEntity(text);
-            acTrans.AddNewlyCreatedDBObject(text, true);
+            MText textDownPlus = new MText();
+            textDownPlus.SetDatabaseDefaults();
+            textDownPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textDownPlus.Location = block241.Add(new Vector3d(0, -70, 0));
+            textDownPlus.Rotation = 1.57;
+            textDownPlus.Height = 2.5;
+            textDownPlus.Attachment = AttachmentPoint.TopLeft;
+            textDownPlus.Layer = "0";
+            textDownPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textDownPlus);
+            acTrans.AddNewlyCreatedDBObject(textDownPlus, true);
+
+            MText textUpPlus = new MText();
+            textUpPlus.SetDatabaseDefaults();
+            textUpPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textUpPlus.Location = block242.Add(new Vector3d(0, -70, 0));
+            textUpPlus.Rotation = 1.57;
+            textUpPlus.Height = 2.5;
+            textUpPlus.Attachment = AttachmentPoint.TopLeft;
+            textUpPlus.Layer = "0";
+            textUpPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textUpPlus);
+            acTrans.AddNewlyCreatedDBObject(textUpPlus, true);
 
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
@@ -1958,6 +2099,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -2015,8 +2157,8 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
-                                                Extents3d ext = text.GeometricExtents;
+                                                textDownPlus.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
                                                 TypedValue[] filterlist = new TypedValue[2];
                                                 filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
                                                 filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
@@ -2089,6 +2231,20 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1:2/3." + currentSheet + ")";
+                                                textUpPlus.Contents = "Клеммы питания реле DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textUpPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -2142,6 +2298,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2323,6 +2490,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -2370,6 +2538,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -2414,8 +2583,8 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusDown2.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
-                                                text.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
-                                                Extents3d ext = text.GeometricExtents;
+                                                textDownPlus.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
                                                 TypedValue[] filterlist = new TypedValue[2];
                                                 filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
                                                 filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
@@ -2462,6 +2631,20 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = "1L" + (moduleNumber + 11) + "+";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                textDownPlus.Contents = "Сигнальные цепи DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -2474,6 +2657,20 @@ namespace AcElectricalSchemePlugin
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                 linkPLusUp2.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2:2/3." + currentSheet + ")";
+                                                textUpPlus.Contents = "Клеммы питания реле DI\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textUpPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -2527,6 +2724,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -2708,6 +2916,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -2719,6 +2928,18 @@ namespace AcElectricalSchemePlugin
         }
         private static void insertDO24V(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            MText textDownPlus = new MText();
+            textDownPlus.SetDatabaseDefaults();
+            textDownPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textDownPlus.Location = block243.Add(new Vector3d(0, -70, 0));
+            textDownPlus.Rotation = 1.57;
+            textDownPlus.Height = 2.5;
+            textDownPlus.Attachment = AttachmentPoint.TopLeft;
+            textDownPlus.Layer = "0";
+            textDownPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textDownPlus);
+            acTrans.AddNewlyCreatedDBObject(textDownPlus, true);
+
             #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
@@ -3020,6 +3241,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -3027,7 +3249,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3038,7 +3260,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3076,7 +3298,21 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                                textDownPlus.Contents = "Клеммы питания реле DO\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -3088,7 +3324,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3112,7 +3348,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.4:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3136,7 +3372,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.4:FU{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":2/3." + currentSheet + ")";
+                                                linkPLusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3145,7 +3381,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3156,7 +3392,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3167,7 +3403,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3178,7 +3414,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3192,6 +3428,32 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = "3." + currentSheet;
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "AD":
+                                        {
+                                            if (firstDO)
+                                            {
+                                                using (AttributeReference attRef = new AttributeReference())
+                                                {
+                                                    attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                    attRef.TextString = "DO";
+                                                    br.AttributeCollection.AppendAttribute(attRef);
+                                                    acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                                    firstDO = false;
+                                                }
                                             }
                                             break;
                                         }
@@ -3371,6 +3633,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -3419,6 +3682,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -3426,7 +3690,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3437,7 +3701,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3473,7 +3737,21 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkPLusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                                textDownPlus.Contents = "Клеммы питания реле DO\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -3485,7 +3763,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown2.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown2.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -3538,7 +3816,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3549,7 +3827,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3560,7 +3838,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3571,7 +3849,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3582,7 +3860,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3593,7 +3871,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3605,6 +3883,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -3786,6 +4075,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -3798,6 +4088,18 @@ namespace AcElectricalSchemePlugin
 
         private static void insertDO24Vhalf(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            MText textDownPlus = new MText();
+            textDownPlus.SetDatabaseDefaults();
+            textDownPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textDownPlus.Location = block243.Add(new Vector3d(0, -70, 0));
+            textDownPlus.Rotation = 1.57;
+            textDownPlus.Height = 2.5;
+            textDownPlus.Attachment = AttachmentPoint.TopLeft;
+            textDownPlus.Layer = "0";
+            textDownPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textDownPlus);
+            acTrans.AddNewlyCreatedDBObject(textDownPlus, true);
+
             #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
@@ -4079,6 +4381,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -4086,7 +4389,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4097,7 +4400,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4135,7 +4438,21 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                                textDownPlus.Contents = "Клеммы питания реле DO\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -4147,7 +4464,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4171,7 +4488,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.4:{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkMinusUp1.TextString = "(-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4195,7 +4512,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.4:FU{0}/3.3)", moduleNumber + 11);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":2/3." + currentSheet + ")";
+                                                linkPLusUp1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":2/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4204,7 +4521,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4215,7 +4532,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4226,7 +4543,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4237,7 +4554,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4249,6 +4566,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4430,6 +4758,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -4478,6 +4807,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -4485,7 +4815,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4496,7 +4826,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4532,7 +4862,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":10/3." + currentSheet + ")";
+                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":10/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4544,7 +4874,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -4553,7 +4883,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4564,7 +4894,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-2XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4575,7 +4905,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-2G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4586,7 +4916,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4603,12 +4933,23 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "R1":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4619,7 +4960,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "2R" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -4977,6 +5318,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -4988,6 +5330,18 @@ namespace AcElectricalSchemePlugin
         }
         private static void insertDO(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int moduleNumber)
         {
+            MText textDownPlus = new MText();
+            textDownPlus.SetDatabaseDefaults();
+            textDownPlus.TextStyleId = tst["GOSTA-2.5-1"];
+            textDownPlus.Location = block243.Add(new Vector3d(0, -70, 0));
+            textDownPlus.Rotation = 1.57;
+            textDownPlus.Height = 2.5;
+            textDownPlus.Attachment = AttachmentPoint.TopLeft;
+            textDownPlus.Layer = "0";
+            textDownPlus.Color = Color.FromRgb(255, 255, 255);
+            modSpace.AppendEntity(textDownPlus);
+            acTrans.AddNewlyCreatedDBObject(textDownPlus, true);
+
             #region down+
             Line cableDownPlus = new Line();
             cableDownPlus.SetDatabaseDefaults();
@@ -5189,6 +5543,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -5196,7 +5551,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5207,7 +5562,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5245,7 +5600,21 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:FU{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":1/3." + currentSheet + ")";
+                                                linkPLusDown1.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":1/3." + currentSheet + ")";
+                                                textDownPlus.Contents = "Клеммы питания реле DO\nМодуль " + currentD + "A" + (moduleNumber + 4);
+                                                Extents3d ext = textDownPlus.GeometricExtents;
+                                                TypedValue[] filterlist = new TypedValue[2];
+                                                filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+                                                filterlist[1] = new TypedValue((int)DxfCode.Text, "Резерв");
+                                                SelectionFilter filter = new SelectionFilter(filterlist);
+                                                Point3d point1 = ext.MinPoint;
+                                                Point3d point2 = ext.MaxPoint;
+                                                PromptSelectionResult selRes = editor.SelectWindow(point1, point2);
+                                                if (selRes.Status == PromptStatus.OK)
+                                                {
+                                                    Entity ent = (Entity)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForWrite);
+                                                    ent.Erase();
+                                                }
                                             }
                                             break;
                                         }
@@ -5257,7 +5626,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown1.TextString = "(-1G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -5266,7 +5635,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5277,7 +5646,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5288,7 +5657,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-1G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5299,7 +5668,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".1";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".1";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5311,6 +5680,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5668,6 +6048,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -5716,6 +6097,7 @@ namespace AcElectricalSchemePlugin
                             AttributeDefinition attDef = obj as AttributeDefinition;
                             if ((attDef != null) && (!attDef.Constant))
                             {
+                                #region attributes
                                 switch (attDef.Tag)
                                 {
                                     case "4A":
@@ -5723,7 +6105,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = currentD.ToString() + "A" + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5734,7 +6116,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-XP" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5770,7 +6152,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4 + diCount) + ":10/3." + currentSheet + ")";
+                                                linkMinusDown2.TextString = "(-" + currentD.ToString() + "A" + (moduleNumber + 4) + ":10/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -5782,7 +6164,7 @@ namespace AcElectricalSchemePlugin
                                                 attRef.TextString = string.Format("(-XT24.3:{0}/3.4)", moduleNumber + 1);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ":3/3." + currentSheet + ")";
+                                                linkMinusDown3.TextString = "(-2G" + currentD.ToString() + "." + (moduleNumber + 4) + ":3/3." + currentSheet + ")";
                                             }
                                             break;
                                         }
@@ -5791,7 +6173,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "-WA" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5802,7 +6184,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2XR" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-2XR" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5813,7 +6195,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-2G" + currentD.ToString() + "." + (moduleNumber + 4 + diCount);
+                                                attRef.TextString = "-2G" + currentD.ToString() + "." + (moduleNumber + 4);
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5824,7 +6206,7 @@ namespace AcElectricalSchemePlugin
                                             using (AttributeReference attRef = new AttributeReference())
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4 + diCount) + ".2";
+                                                attRef.TextString = "-XT" + currentD.ToString() + "." + (moduleNumber + 4) + ".2";
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -5836,6 +6218,17 @@ namespace AcElectricalSchemePlugin
                                             {
                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                 attRef.TextString = "3." + currentSheet;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
+                                    case "NUM":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = currentSheet.ToString();
                                                 br.AttributeCollection.AppendAttribute(attRef);
                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
                                             }
@@ -6193,6 +6586,7 @@ namespace AcElectricalSchemePlugin
                                             }
                                             break;
                                         }
+                                #endregion
                                 }
                             }
                         }
@@ -6286,6 +6680,43 @@ namespace AcElectricalSchemePlugin
             }
         }
 
+        private static void insertSpec(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint)
+        {
+            ObjectIdCollection ids = new ObjectIdCollection();
+            string filename = @"Data\Specification.dwg";
+            string blockName = "Specification";
+            using (Database sourceDb = new Database(false, true))
+            {
+                if (System.IO.File.Exists(filename))
+                {
+                    sourceDb.ReadDwgFile(filename, System.IO.FileShare.Read, true, "");
+                    using (Transaction trans = sourceDb.TransactionManager.StartTransaction())
+                    {
+                        BlockTable bt = (BlockTable)trans.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                        if (bt.Has(blockName))
+                            ids.Add(bt[blockName]);
+                        trans.Commit();
+                    }
+                }
+                else editor.WriteMessage("Не найден файл {0}", filename);
+                if (ids.Count > 0)
+                {
+                    acTrans.TransactionManager.QueueForGraphicsFlush();
+                    IdMapping iMap = new IdMapping();
+                    acdb.WblockCloneObjects(ids, acdb.CurrentSpaceId, iMap, DuplicateRecordCloning.Replace, false);
+                    BlockTable bt = (BlockTable)acTrans.GetObject(acdb.BlockTableId, OpenMode.ForRead);
+                    if (bt.Has(blockName))
+                    {
+                        BlockReference br = new BlockReference(insertPoint, bt[blockName]);
+                        br.Layer = "0";
+                        modSpace.AppendEntity(br);
+                        acTrans.AddNewlyCreatedDBObject(br, true);
+                    }
+                }
+                else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
+            }
+        }
+
         private static void setPoints(Point3d startPoint)
         {
             link1 = startPoint.Add(new Vector3d(1035.5134, -200.7757, 0));
@@ -6304,7 +6735,7 @@ namespace AcElectricalSchemePlugin
                 link8 = link7.Add(new Vector3d(149.9289, 35.7228, 0));
                 ets.Add(link8.Add(new Vector3d(315.4449, 225.3946, 0)));
             }
-            else ets.Add(link6.Add(new Vector3d(217.7866, 164.7291, 0)));
+            else ets.Add(link6.Add(new Vector3d(210.8035, 164.7291, 0)));
             ets.Add(ets[0].Add(new Vector3d(0, -145.3992, 0)));
             ets.Add(ets[1].Add(new Vector3d(0, -145.3992, 0)));
             block246 = ets[1].Add(new Vector3d(319.6824, 148.6242, 0));
