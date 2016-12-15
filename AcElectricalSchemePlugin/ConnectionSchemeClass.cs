@@ -7,6 +7,8 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.EditorInput;
+using System.Data;
+using System.Data.OleDb;
 
 namespace AcElectricalSchemePlugin
 {
@@ -17,7 +19,7 @@ namespace AcElectricalSchemePlugin
         private static List<tBoxUnit> tBoxes;
         private static Editor editor;
         private static Table currentTable = null;
-        private static bool firstSheet;
+
         private static LinetypeTable lineTypeTable;
         private static TextStyleTable tst;
         private static Polyline currentTBox = null;
@@ -59,12 +61,13 @@ namespace AcElectricalSchemePlugin
             public string cableMark;
             public bool shield;
             public List<string> terminals;
+            public List<string> colors;
             public List<string> equipTerminals;
             public Line cableMarkLine;
             public MText cableName;
             public bool newSheet; 
 
-            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _equipTerminals)
+            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _colors, List<string> _equipTerminals)
             {
                 cupboardName = _cupboardName;
                 tBoxName = _tBoxName;
@@ -75,6 +78,7 @@ namespace AcElectricalSchemePlugin
                 cableMark = _cableMark;
                 shield = _shield;
                 terminals = _terminals;
+                colors = _colors;
                 equipTerminals = _equipTerminals;
                 cableMarkLine = null;
                 cableName = null;
@@ -82,85 +86,71 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static void findLines(string[] lines, int index)
+        private static List<Unit> loadData(string path)
         {
-            if (lines[index].Contains("\""))
+            List<Unit> units = new List<Unit>();
+            DataSet dataSet = new DataSet("EXCEL");
+            string connectionString;
+            connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Extended Properties='Excel 12.0;HDR=NO;'";
+            OleDbConnection connection = new OleDbConnection(connectionString);
+            connection.Open();
+
+            System.Data.DataTable schemaTable = connection.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, new object[] { null, null, null, "TABLE" });
+            string sheet1 = (string)schemaTable.Rows[0].ItemArray[2];
+
+            string select = String.Format("SELECT * FROM [{0}]", sheet1);
+            OleDbDataAdapter adapter = new OleDbDataAdapter(select, connection);
+            adapter.FillSchema(dataSet, SchemaType.Mapped);
+            adapter.Fill(dataSet);
+            connection.Close();
+
+            for (int row = 2; row < dataSet.Tables[0].Rows.Count; row++)
             {
-                for (int j = index + 1; j < lines.Length; j++)
-                {
-                    List<int> indexes = new List<int>();
-                    for (int c = 0; c < lines[j].Length; c++)
-                    {
-                        if (lines[j][c] == '\"') indexes.Add(c);
-                    }
-                    if (indexes.Count == 0) { lines[index] += " "+lines[j]; lines[j] = ""; }
-                    else if (indexes.Count == 1)
-                    {
-                        lines[index] += " " + lines[j];
-                        lines[j] = "";
-                        break;
-                    }
-                    else if (indexes.Count > 1)
-                    {
-                        findLines(lines, j);
-                        lines[index] += " " + lines[j]; 
-                        lines[j] = "";
-                        break;
-                    }
-                }
+                Unit unit = new Unit();
+                unit.cupboardName = dataSet.Tables[0].Rows[row][0].ToString();
+                unit.tBoxName = dataSet.Tables[0].Rows[row][1].ToString();
+                unit.designation = dataSet.Tables[0].Rows[row][2].ToString();
+                unit.param = dataSet.Tables[0].Rows[row][3].ToString();
+                unit.equipment = dataSet.Tables[0].Rows[row][4].ToString();
+                unit.equipType = dataSet.Tables[0].Rows[row][5].ToString();
+                unit.cableMark = dataSet.Tables[0].Rows[row][6].ToString();
+                if (dataSet.Tables[0].Rows[row][7].ToString().ToUpper().Contains("ДА")) unit.shield = true;
+                else unit.shield = false;
+                List<string> terminals = new List<string>();
+                for (int i = 8; i < 18; i++)
+                    if (dataSet.Tables[0].Rows[row][i].ToString() != "")
+                        terminals.Add(dataSet.Tables[0].Rows[row][i].ToString());
+                unit.terminals = terminals;
+                List<string> colors = new List<string>(dataSet.Tables[0].Rows[row][18].ToString().Split('-'));
+                unit.colors = colors;
+                List<string> equipTerminals = new List<string>();
+                for (int i = 19; i < 29; i++)
+                    if (dataSet.Tables[0].Rows[row][i].ToString() != "")
+                        equipTerminals.Add(dataSet.Tables[0].Rows[row][i].ToString());
+                unit.equipTerminals = equipTerminals;
+                units.Add(unit);
             }
+            return units;
         }
-        private static List<int> findGroups(int index)
-        {
-            List<int> result = new List<int>();
-            result.Add(index);
-            for (int i = index+1; i < units.Count; i++)
-            {
-                if (units[index].tBoxName == units[i].tBoxName && units[index].tBoxName != "" && units[i].tBoxName != "" && !units[i].newSheet)
-                    result.Add(i);
-                else break;
-            }
-            return result.Count == 1 ? null : result;
-        }
+
         public static void DrawScheme()
         {
             units = new List<Unit>();
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
             OpenFileDialog file = new OpenFileDialog();
-            file.Filter = "(*.csv)|*.csv";
+            file.Filter = "(*.xlsx)|*.xlsx";
             if (file.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                string[] lines = System.IO.File.ReadLines(file.FileName, System.Text.Encoding.GetEncoding(1251)).ToArray();
-                if (lines.Length > 0)
-                {
-                    for (int i = 2; i < lines.Length; i++)
-                    {
-                        if (lines[i]!="")
-                            findLines(lines, i);
-                    }
-                    for (int i = 2; i < lines.Length; i++)
-                    {
-                        if (lines[i] != "")
-                        {
-                            string[] text = lines[i].Split(';');
-                            List<string> terminals = new List<string>();
-                            for (int j = 8; j < 18; j++)
-                                if (text[j] != "") terminals.Add(text[j]);
-                            List<string> equipTerminals = new List<string>();
-                            for (int j = 18; j < 28; j++)
-                                if (text[j] != "") equipTerminals.Add(text[j]);
-                            bool shield = text[7].ToUpper() == "ДА" || text[7].ToUpper() == "ЕСТЬ" ? true : false;
-                            units.Add(new Unit(text[0], text[1], text[2], text[3], text[4], text[5], text[6], shield, terminals, equipTerminals));
-                        }
-                    }
-                    firstSheet = true;
-                    tBoxes = new List<tBoxUnit>();
-                    tables = new List<Table>();
-                    connectionScheme();
-                }
+                currentSheetNumber = 1;
+                units = loadData(file.FileName);
+                tBoxes = new List<tBoxUnit>();
+                tables = new List<Table>();
+                connectionScheme();
             }
         }
+
+
         private static void connectionScheme()
         {
             Database acDb = acDoc.Database;
@@ -168,8 +158,8 @@ namespace AcElectricalSchemePlugin
             {
                 using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
                 {
-                    PromptPointResult selection = acDoc.Editor.GetPoint("Выберите точку");
-                    if (selection.Status == PromptStatus.OK)
+                    PromptPointResult selectedPoint = acDoc.Editor.GetPoint("Выберите точку");
+                    if (selectedPoint.Status == PromptStatus.OK)
                     {
                         BlockTable acBlkTbl;
                         acBlkTbl = acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -186,95 +176,21 @@ namespace AcElectricalSchemePlugin
                             {
                                 editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
                             }
-
                         tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForWrite);
                         loadFonts(acTrans, acModSpace, acDb);
                        
-                        Point3d startPoint = selection.Value;
-                        drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint, firstSheet));
-                        for (int i = 0; i < units.Count; )
-                        {
-                            List<int> group = findGroups(i);
-                            if (group != null)
-                            {
-                                double lowPoint = units[group[0]].cableMarkLine.EndPoint.Y;
-                                for (int j = 1; j < group.Count; j++)
-                                    if (units[group[j]].cableMarkLine.EndPoint.Y < lowPoint)
-                                        lowPoint = units[group[j]].cableMarkLine.EndPoint.Y;
-                                for (int j = 0; j < group.Count; j++)
-                                    while (units[group[j]].cableMarkLine.EndPoint.Y > lowPoint)
-                                        units[group[j]].cableMarkLine.EndPoint = units[group[j]].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
-                                i += group.Count;
-                            }
-                            else i++;
-                        }
-                        for (int i = 0; i < units.Count; i++)
-                        {
-                            drawOther(acTrans, acModSpace, i);
-                            currentUnit = units[i];
-                        }
-                        for (int i = 0; i < units.Count;)
-                        {
-                            List<int> group = findGroups(i);
-                            if (group != null)
-                            {
-                                double lowPoint = units[group[0]].cableMarkLine.EndPoint.Y;
-                                for (int j = 1; j < group.Count; j++)
-                                    if (units[group[j]].cableMarkLine.EndPoint.Y < lowPoint)
-                                        lowPoint = units[group[j]].cableMarkLine.EndPoint.Y;
-                                for (int j = 0; j < group.Count; j++)
-                                    while (units[group[j]].cableMarkLine.EndPoint.Y > lowPoint)
-                                        units[group[j]].cableMarkLine.EndPoint = units[group[j]].cableMarkLine.EndPoint.Add(new Vector3d(0, -1, 0));
-                                i += group.Count;
-                            }
-                            else i++;
-                        }
-                        int k = 0;
-                        currentTable = tables[k];
-                        for (int i = 0; i < units.Count; i++)
-                        {
-                            if (units[i].newSheet)
-                                currentTable = tables[++k];
-                            drawEquip(acTrans, acModSpace, i);
-                        }
-                        acDoc.Editor.Regen();
-                        currentTable = null;
-                        currentTBox = null;
-                        currentTBoxName = null;
-                        currentLeader = null;
-                        for (int i = 0; i < tBoxes.Count; i++)
-                        {
-                            if (tBoxes[i].Count == 1)
-                            {
-                                MText text = tBoxes[i].textName;
-                                string str = text.Contents;
-                                str = str.Remove(text.Contents.Length - 2);
-                                text.Contents = str;
-
-                                Leader ldr = tBoxes[i].ldr;
-                                Point3d point = ldr.VertexAt(1);
-                                ldr.SetVertexAt(2, new Point3d(point.X + text.ActualWidth + 1, point.Y, 0));
-                            }
-                        }
-                        for (int i = 0; i < tables.Count; i++ )
-                        {
-                            if (!acBlkTbl.Has(tables[i].Id))
-                            {
-                                acModSpace.AppendEntity(tables[i]);
-                                acTrans.AddNewlyCreatedDBObject(tables[i], true);
-                            }
-                        }
+                        Point3d startPoint = selectedPoint.Value;
+                        drawUnits(acTrans, acDb, acModSpace, units, drawSheet(acTrans, acModSpace, acDb, startPoint));
                         currentSheetNumber = 1;
                         acDoc.Editor.Regen();
                         acTrans.Commit();
-                        acTrans.Dispose();
                     }
                 }
                 acDb.Audit(true, true);
             }
         }
 
-        private static Polyline drawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet, bool first)
+        private static Polyline drawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet)
         {
             Polyline shieldPoly = new Polyline();
             shieldPoly.SetDatabaseDefaults();
@@ -287,7 +203,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(shieldPoly);
             acTrans.AddNewlyCreatedDBObject(shieldPoly, true);
 
-            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 10, 0), first);
+            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 10, 0));
 
             Polyline gndPoly = new Polyline();
             gndPoly.SetDatabaseDefaults();
@@ -312,40 +228,40 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(text);
             acTrans.AddNewlyCreatedDBObject(text, true);
 
-            Table table = new Table();
-            table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-30, -272, 0));
-            table.SetSize(4, 1);
-            table.TableStyle = acdb.Tablestyle;
+            //Table table = new Table();
+            //table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-30, -272, 0));
+            //table.SetSize(4, 1);
+            //table.TableStyle = acdb.Tablestyle;
 
-            table.SetTextHeight(0, 0, 2.5);
-            table.Cells[0, 0].TextString = "Тип оборудования";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
-            table.Rows[0].IsMergeAllEnabled = false;
+            //table.SetTextHeight(0, 0, 2.5);
+            //table.Cells[0, 0].TextString = "Тип оборудования";
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
+            //table.Rows[0].IsMergeAllEnabled = false;
 
-            table.SetTextHeight(1, 0, 2.5);
-            table.Cells[1, 0].TextString = "Обозначение по проекту";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
+            //table.SetTextHeight(1, 0, 2.5);
+            //table.Cells[1, 0].TextString = "Обозначение по проекту";
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
 
-            table.SetTextHeight(2, 0, 2.5);
-            table.Cells[2, 0].TextString = "Параметры";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
+            //table.SetTextHeight(2, 0, 2.5);
+            //table.Cells[2, 0].TextString = "Параметры";
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
 
-            table.SetTextHeight(3, 0, 2.5);
-            table.Cells[3, 0].TextString = "Оборудоание";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
+            //table.SetTextHeight(3, 0, 2.5);
+            //table.Cells[3, 0].TextString = "Оборудоание";
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
 
-            table.Columns[0].Width = 30;
-            table.GenerateLayout();
-            currentTable = table;
-            tables.Add(table);
+            //table.Columns[0].Width = 30;
+            //table.GenerateLayout();
+            //currentTable = table;
+            //tables.Add(table);
 
             return shieldPoly;
         }
@@ -368,9 +284,8 @@ namespace AcElectricalSchemePlugin
                 Point3d lowestPoint = Point3d.Origin;
                 if (prevCupboard != units[j].cupboardName)
                 {
-                    firstSheet = false;
                     currentTBoxName = null;
-                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)), firstSheet);
+                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
                     tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                     prevPoly = tBoxPoly;
                     prevTermPoly = null;
@@ -383,6 +298,7 @@ namespace AcElectricalSchemePlugin
                 }
                 using (Transaction trans = acdb.TransactionManager.StartTransaction())
                 {
+                    int ind = 0;
                     for (int i = 0; i < units[j].terminals.Count; i++)
                     {
                         string terminalTag = units[j].terminals[i].Split('[', ']')[1];
@@ -405,7 +321,7 @@ namespace AcElectricalSchemePlugin
 
                             prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly, terminal, 15, out lowestPoint, units[j].designation, i + 1);
                             leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
-                            newJ = false;
+                            ind++;
                         }
                         else if (prevTerminal == terminalTag)
                         {
@@ -430,8 +346,7 @@ namespace AcElectricalSchemePlugin
                                 trans.Abort();
                                 currentTBoxName = null;
                                 aborted = true;
-                                firstSheet = false;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)), firstSheet);
+                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)));
                                 tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
@@ -481,8 +396,7 @@ namespace AcElectricalSchemePlugin
                                 trans.Abort();
                                 currentTBoxName = null;
                                 aborted = true;
-                                firstSheet = false;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)), firstSheet);
+                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
                                 tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
@@ -1233,12 +1147,12 @@ namespace AcElectricalSchemePlugin
             return cLineOutput;
         }
 
-        private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point, bool first)
+        private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point)
         {
             ObjectIdCollection ids = new ObjectIdCollection();
             string filename;
             string blockName;
-            if (first)
+            if (currentSheetNumber==1)
             {
                 filename = @"Data\Frame.dwg";
                 blockName = "Frame";
