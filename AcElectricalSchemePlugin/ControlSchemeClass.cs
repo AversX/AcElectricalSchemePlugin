@@ -8064,6 +8064,109 @@ namespace AcElectricalSchemePlugin
                         br.Layer = "0";
                         modSpace.AppendEntity(br);
                         acTrans.AddNewlyCreatedDBObject(br, true);
+
+                         BlockTableRecord btr = bt[blockName].GetObject(OpenMode.ForRead) as BlockTableRecord;
+                         foreach (ObjectId id in btr)
+                         {
+                             DBObject obj = id.GetObject(OpenMode.ForRead);
+                             AttributeDefinition attDef = obj as AttributeDefinition;
+                             if ((attDef != null) && (!attDef.Constant))
+                             {
+                                 #region attributes
+                                 switch (attDef.Tag)
+                                 {
+                                     case "SH1":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + currentSheet;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH2":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet+1);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH3":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 2);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH4":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 3);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH5":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 4);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH6":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 5);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH7":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 6);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "SH8":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = "3." + (currentSheet + 7);
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                 #endregion
+                                 }
+                             }
+                         }
                     }
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
