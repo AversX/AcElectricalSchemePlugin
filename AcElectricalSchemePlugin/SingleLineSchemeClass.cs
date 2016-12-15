@@ -18,7 +18,6 @@ namespace AcElectricalSchemePlugin
         private static Editor editor;
         private static Point3d currentSheetPoint;
         private static Point3d currentPoint;
-        //private static Point3d prevAutomatic;
         private static int sinFilter = 1;
         private static int uzo = 1;
         private static int currentSection = 1;
@@ -126,7 +125,6 @@ namespace AcElectricalSchemePlugin
                     acBlkTbl = acTrans.GetObject(acDb.BlockTableId, OpenMode.ForRead) as BlockTable;
                     BlockTableRecord acModSpace;
                     acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                    //prevAutomatic = new Point3d();
                     sinFilter = 1;
                     currentSection = 1;
                     tables = new List<Table>();
@@ -153,7 +151,6 @@ namespace AcElectricalSchemePlugin
                         }
 
                     insertSheet(acTrans, acModSpace, acDb, currentSheetPoint);
-                    //prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
                     currentPoint = currentSheetPoint.Add(new Vector3d(85, -68, 0));
                     for (int i = 0; i < units.Count; i++)
                     {
@@ -191,7 +188,6 @@ namespace AcElectricalSchemePlugin
                             currentSheetPoint = currentSheetPoint.Add(new Vector3d(0, -327, 0));
                             curSheetsNumber = 2;
                             insertSheet(acTrans, acModSpace, acDb, currentSheetPoint);
-                            //prevAutomatic = currentSheetPoint.Add(new Vector3d(85, 0, 0));
                             currentPoint = currentSheetPoint.Add(new Vector3d(85, -68, 0));
                             i--;
                         }
@@ -382,7 +378,7 @@ namespace AcElectricalSchemePlugin
                 if (unit.automatic == 0) break;
                 if (dataSet.Tables[0].Rows.Count>=34)
                     unit.vfdPower = dataSet.Tables[0].Rows[33][column].ToString();
-                else unit.vfdPower = "0";
+                else unit.vfdPower = "";
                 units.Add(unit);
             }
             return units;
@@ -433,8 +429,8 @@ namespace AcElectricalSchemePlugin
                             br.Layer = "0";
                             modSpace.AppendEntity(br);
                             acTrans.AddNewlyCreatedDBObject(br, true);
-                            DynamicBlockReferenceProperty property = null;
-                            object value = null;
+                            DynamicBlockReferenceProperty pr = null;
+                            object val = null;
                             if (br.IsDynamicBlock)
                             {
                                 DynamicBlockReferencePropertyCollection props = br.DynamicBlockReferencePropertyCollection;
@@ -444,8 +440,8 @@ namespace AcElectricalSchemePlugin
                                     if (prop.PropertyName == "Видимость1" && !prop.ReadOnly)
                                     {
                                         prop.Value = values[unit.automatic];
-                                        value = values[unit.automatic];
-                                        property = prop;
+                                        pr = prop;
+                                        val = values[unit.automatic];
                                         break;
                                     }
                                 }
@@ -480,6 +476,7 @@ namespace AcElectricalSchemePlugin
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                         attRef.TextString = currentSection + "RCD" + uzo;
                                                         uzo++;
+
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                     }
@@ -722,19 +719,10 @@ namespace AcElectricalSchemePlugin
                                     #endregion
                                 }
                             }
+                            br.ResetBlock();
+                            pr.Value = val;
                             getSize(br, ref minPoint, ref maxPoint);
-                            //while (minPoint.X < prevAutomatic.X)
-                            //{
-                            //    br.Position = br.Position.Add(new Vector3d(1, 0, 0));
-                            //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
-                            //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
-                            //}
-                            //if (br.IsDynamicBlock)
-                            //{
-                            //    br.ResetBlock();
-                            //    property.Value = value;
-                            //}
-                            if (maxPoint.X >= currentSheetPoint.X + (210*curSheetsNumber-300))
+                            if (maxPoint.X >= currentSheetPoint.X + (210*curSheetsNumber-200))
                             {
                                 if (curSheetsNumber < maxSheets)
                                 {
@@ -748,14 +736,11 @@ namespace AcElectricalSchemePlugin
                                     return;
                                 }
                             }
-                            //prevAutomatic = maxPoint;
                             lowestPoint = getLowestPoint(br);
                         }
                     }
                     else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
                 }
-                //if (!first)
-                //{
                 if (unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR")
                 {
                     section.EndPoint = new Point3d(currentPoint.X - 14, section.StartPoint.Y, 0);
@@ -792,21 +777,20 @@ namespace AcElectricalSchemePlugin
                     sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
                     sectionNum.TextString = "3";
                     sectionNum.HorizontalMode = TextHorizontalMode.TextLeft;
+                    sectionNum.Visible = true;
                     modSpace.AppendEntity(sectionNum);
                     acTrans.AddNewlyCreatedDBObject(sectionNum, true);
-
-
                 }
                 else
                 {
                     section.EndPoint = new Point3d(maxPoint.X, section.StartPoint.Y, 0);
                     blockType.EndPoint = new Point3d(maxPoint.X, blockType.StartPoint.Y, 0);
                     sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
+                    sectionNum.Visible = true;
                     cableL.EndPoint = new Point3d(maxPoint.X, cableL.StartPoint.Y, 0);
                     cableN.EndPoint = new Point3d(maxPoint.X, cableN.StartPoint.Y, 0);
                     cablePE.EndPoint = new Point3d(maxPoint.X, cablePE.StartPoint.Y, 0);
                 }
-                //}
                 #endregion
 
                 if (!(unit.consumerName == "АВР" || unit.consumerName == "авр" || unit.consumerName == "avr" || unit.consumerName == "AVR"))
@@ -937,7 +921,7 @@ namespace AcElectricalSchemePlugin
                             #region sinFilter
                             double power = 0;
                             string str = "";
-                            str = unit.vfdPower;
+                            str = unit.vfdPower.Replace(',','.');
                             double.TryParse(str, out power);
                             if (power < 37 && unit.vfdPower!="")
                             {
@@ -1272,18 +1256,7 @@ namespace AcElectricalSchemePlugin
                                     }
                                 }
                                 getSize(br, ref minPoint, ref maxPoint);
-                                //while (minPoint.X < prevAutomatic.X)
-                                //{
-                                //    br.Position = br.Position.Add(new Vector3d(1, 0, 0));
-                                //    minPoint = minPoint.Add(new Vector3d(1, 0, 0));
-                                //    maxPoint = maxPoint.Add(new Vector3d(1, 0, 0));
-                                //}
-                                //if (br.IsDynamicBlock)
-                                //{
-                                //    br.ResetBlock();
-                                //    property.Value = value;
-                                //}
-                                if (maxPoint.X >= currentSheetPoint.X + (210 * curSheetsNumber - 300))
+                                if (maxPoint.X >= currentSheetPoint.X + (210 * curSheetsNumber - 200))
                                 {
                                     if (curSheetsNumber < maxSheets)
                                     {
@@ -1297,7 +1270,6 @@ namespace AcElectricalSchemePlugin
                                         return;
                                     }
                                 }
-                                //prevAutomatic = maxPoint;
                             }
                         }
                         else editor.WriteMessage("В файле не найден блок с именем \"{0}\"", blockName);
@@ -1320,6 +1292,10 @@ namespace AcElectricalSchemePlugin
                     cableL.Color = Color.FromColorIndex(ColorMethod.ByColor, 8);
                     cableL.StartPoint = point;
                     cableL.EndPoint = cableL.StartPoint.Add(new Vector3d(maxPoint.X, 0, 0));
+                    if (cableL.EndPoint.X > currentSheetPoint.X + (210 * curSheetsNumber - 200))
+                    {
+                        cableL.EndPoint = new Point3d(currentSheetPoint.X + (210 * curSheetsNumber - 200), cableL.EndPoint.Y, 0);
+                    }
                     modSpace.AppendEntity(cableL);
                     acTrans.AddNewlyCreatedDBObject(cableL, true);
                     
@@ -1353,6 +1329,7 @@ namespace AcElectricalSchemePlugin
                     sectionNum.Position = new Point3d(section.StartPoint.X + (section.EndPoint.X - section.StartPoint.X) / 2, section.StartPoint.Y + 1, 0);
                     sectionNum.TextString = currentSection.ToString();
                     sectionNum.HorizontalMode = TextHorizontalMode.TextLeft;
+                    sectionNum.Visible = false;
                     modSpace.AppendEntity(sectionNum);
                     acTrans.AddNewlyCreatedDBObject(sectionNum, true);
                   

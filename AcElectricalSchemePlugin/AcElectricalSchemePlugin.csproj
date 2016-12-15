@@ -108,6 +108,12 @@
     <None Include="Data\DO24V2.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\DOM.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\DOP.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\ETAI.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
