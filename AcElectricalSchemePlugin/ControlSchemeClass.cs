@@ -44,6 +44,7 @@ namespace AcElectricalSchemePlugin
         private static bool firstDI = true;
         private static bool firstDO = true;
         private static int current244pin = 1;
+        private static string title;
 
         static public void drawControlScheme()
         {
@@ -63,6 +64,7 @@ namespace AcElectricalSchemePlugin
             firstDI = true;
             firstDO = true;
             current244pin = 1;
+            title="";
 
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
@@ -171,6 +173,72 @@ namespace AcElectricalSchemePlugin
                     BlockTableRecord acModSpace;
                     acModSpace = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                     tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForRead);
+
+                    TypedValue[] filterlist = new TypedValue[2];
+                    filterlist[0] = new TypedValue(0, "INSERT");
+                    filterlist[1] = new TypedValue(2, "1234");
+                    SelectionFilter filter = new SelectionFilter(filterlist);
+                    PromptSelectionResult selRes =  editor.SelectAll(filter);
+                    if (selRes.Status != PromptStatus.OK)
+                    {
+                        editor.WriteMessage("\nВ болванке не найден блок \"1234\"");
+                        return;
+                    }
+                    else
+                    {
+                        BlockReference oEnt = (BlockReference)acTrans.GetObject(selRes.Value[0].ObjectId, OpenMode.ForRead);
+                        foreach (ObjectId id in oEnt.AttributeCollection)
+                        {
+                            DBObject obj = id.GetObject(OpenMode.ForWrite);
+                            AttributeReference attRef = obj as AttributeReference;
+                            if ((attRef != null))
+                            {
+                                switch (attRef.Tag)
+                                {
+                                    case "TITLE":
+                                        {
+                                            title = attRef.TextString;
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+                    }
+
+                    filterlist = new TypedValue[2];
+                    filterlist[0] = new TypedValue(0, "INSERT");
+                    filterlist[1] = new TypedValue(2, "frm6");
+                    filter = new SelectionFilter(filterlist);
+                    selRes = editor.SelectAll(filter);
+                    if (selRes.Status != PromptStatus.OK)
+                    {
+                        editor.WriteMessage("\nВ болванке не найден блок \"1234\"");
+                        return;
+                    }
+                    else
+                    {
+                        SelectionSet set = selRes.Value;
+                        foreach (ObjectId Id in set.GetObjectIds())
+                        {
+                            BlockReference oEnt = (BlockReference)acTrans.GetObject(Id, OpenMode.ForWrite);
+                            foreach (ObjectId id in oEnt.AttributeCollection)
+                            {
+                                DBObject obj = id.GetObject(OpenMode.ForWrite);
+                                AttributeReference attRef = obj as AttributeReference;
+                                if ((attRef != null))
+                                {
+                                    switch (attRef.Tag)
+                                    {
+                                        case "TITLE":
+                                            {
+                                                attRef.TextString = title;
+                                                break;
+                                            }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     for (int i = 0; i < aiCount; i++)
                     {
@@ -298,6 +366,38 @@ namespace AcElectricalSchemePlugin
                     }
                     currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
                     insertSpec(acTrans, acModSpace, acDb, currentPoint);
+                    
+                    filterlist = new TypedValue[2];
+                    filterlist[0] = new TypedValue(0, "INSERT");
+                    filterlist[1] = new TypedValue(2, "1234");
+                    filter = new SelectionFilter(filterlist);
+                    selRes = editor.SelectAll(filter);
+                    if (selRes.Status != PromptStatus.OK)
+                    {
+                        editor.WriteMessage("\nВ болванке не найден блок \"1234\"");
+                        return;
+                    }
+                    else
+                    {
+                        BlockReference oEnt = (BlockReference)acTrans.GetObject(selRes.Value[0].ObjectId, OpenMode.ForRead);
+                        foreach (ObjectId id in oEnt.AttributeCollection)
+                        {
+                            DBObject obj = id.GetObject(OpenMode.ForWrite);
+                            AttributeReference attRef = obj as AttributeReference;
+                            if ((attRef != null))
+                            {
+                                switch (attRef.Tag)
+                                {
+                                    case "SHS":
+                                        {
+                                            attRef.TextString = (currentSheet+8).ToString();
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+                    }
+
                     acTrans.Commit();
                 }
             }
@@ -424,6 +524,17 @@ namespace AcElectricalSchemePlugin
                             {
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "3A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -685,6 +796,17 @@ namespace AcElectricalSchemePlugin
                             {
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "3A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -1272,6 +1394,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -1504,6 +1637,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -2114,6 +2258,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -2553,6 +2708,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -3312,6 +3478,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -3754,6 +3931,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -4444,6 +4632,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -4871,6 +5070,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -5608,6 +5818,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "R1":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -6184,6 +6405,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -6899,6 +7131,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -7453,6 +7696,17 @@ namespace AcElectricalSchemePlugin
                                 #region attributes
                                 switch (attDef.Tag)
                                 {
+                                    case "TITLE":
+                                        {
+                                            using (AttributeReference attRef = new AttributeReference())
+                                            {
+                                                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                attRef.TextString = title;
+                                                br.AttributeCollection.AppendAttribute(attRef);
+                                                acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                            }
+                                            break;
+                                        }
                                     case "4A":
                                         {
                                             using (AttributeReference attRef = new AttributeReference())
@@ -8075,6 +8329,94 @@ namespace AcElectricalSchemePlugin
                                  #region attributes
                                  switch (attDef.Tag)
                                  {
+                                     case "TITLE1":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE2":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE3":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE4":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE5":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE6":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE7":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
+                                     case "TITLE8":
+                                         {
+                                             using (AttributeReference attRef = new AttributeReference())
+                                             {
+                                                 attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                                                 attRef.TextString = title;
+                                                 br.AttributeCollection.AppendAttribute(attRef);
+                                                 acTrans.AddNewlyCreatedDBObject(attRef, true);
+                                             }
+                                             break;
+                                         }
                                      case "SH1":
                                          {
                                              using (AttributeReference attRef = new AttributeReference())
