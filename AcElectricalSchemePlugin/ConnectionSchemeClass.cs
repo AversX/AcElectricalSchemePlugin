@@ -28,6 +28,8 @@ namespace AcElectricalSchemePlugin
         private static int curPairNumber;
         private static MText curPairMark;
 
+        private static List<Group> groups;
+
         struct tBox
         {
             public string Name;
@@ -35,8 +37,14 @@ namespace AcElectricalSchemePlugin
             public int LastTerminalNumber;
             public int LastShieldNumber;
             public int LastPairNumber;
-            public MText textName;
-            public Leader ldr;
+            public List<MText> textName;
+            public List<Leader> ldr;
+
+            public bool shield;
+            public Point3d lastTermPoint;
+            public double cableLineSPLX;
+            public double cableLineSPRX;
+            public double cableLineEPY;
         }
 
         struct Unit
@@ -52,7 +60,8 @@ namespace AcElectricalSchemePlugin
             public List<string> terminals;
             public List<string> colors;
             public List<string> equipTerminals;
-            public List<Point3d> cableOutput;
+            public List<Line> cableOutput;
+            public Point3d equipPoint;
             public List<Line> cables;
             public MText cableName;
             public bool newSheet; 
@@ -70,10 +79,27 @@ namespace AcElectricalSchemePlugin
                 terminals = _terminals;
                 colors = _colors;
                 equipTerminals = _equipTerminals;
-                cableOutput = new List<Point3d>();
+                cableOutput = new List<Line>();
                 cables = new List<Line>();
                 cableName = null;
                 newSheet = false;
+                equipPoint = new Point3d();
+            }
+        }
+        struct Group
+        {
+            public List<Unit> Units;
+            public string GroupName;
+
+            public Group(List<Unit> _units, string groupName)
+            {
+                Units = _units;
+                GroupName = groupName;
+            }
+
+            public void addUnit(Unit unit)
+            {
+                Units.Add(unit);
             }
         }
 
@@ -122,6 +148,32 @@ namespace AcElectricalSchemePlugin
                 units.Add(unit);
             }
             return units;
+        }
+
+        private static List<Group> findGroups(List<Unit> Units)
+        {
+            List<Group> Groups = new List<Group>();
+
+            Group group = new Group(new List<Unit>(), Units[0].tBoxName);
+            group.addUnit(Units[0]);
+            Groups.Add(group);
+
+            for (int i = 1; i < Units.Count; i++)
+            {
+                if (Units[i].tBoxName == Groups[Groups.Count - 1].Units[0].tBoxName && Units[i].tBoxName != String.Empty && !Units[i].newSheet)
+                {
+                    group = Groups[Groups.Count - 1];
+                    group.addUnit(Units[i]);
+                    Groups[Groups.Count - 1] = group;
+                }
+                else
+                {
+                    group = new Group(new List<Unit>(), Units[i].tBoxName);
+                    group.addUnit(Units[i]);
+                    Groups.Add(group);
+                }
+            }
+            return Groups;
         }
 
         public static void DrawScheme()
@@ -186,11 +238,34 @@ namespace AcElectricalSchemePlugin
                                 acTrans.AddNewlyCreatedDBObject(tables[i], true);
                             }
                         }
+                        renameTBoxes(acTrans, acModSpace);
                         acDoc.Editor.Regen();
                         acTrans.Commit();
                     }
                 }
                 acDb.Audit(true, true);
+            }
+        }
+
+        private static void renameTBoxes(Transaction acTrans, BlockTableRecord modSpace)
+        {
+            for (int i=0; i<tboxes.Count; i++)
+            {
+                if (tboxes[i].Name != String.Empty && tboxes[i].Count>1)
+                {
+                    for (int j=0; j<tboxes[i].Count; j++)
+                    {
+                        MText text = tboxes[i].textName[j];
+                        text.Contents += "." + (j + 1);
+                        tboxes[i].textName[j] = text;
+
+                        Leader ldr = tboxes[i].ldr[j];
+                        Point3d point = ldr.VertexAt(1);
+                        ldr.SetVertexAt(2, new Point3d(point.X + text.ActualWidth + 1, point.Y, 0));
+                    }
+                }
+                if (tboxes[i].shield)
+                    drawTBoxGnd(acTrans, modSpace, tboxes[i], tboxes[i].lastTermPoint, tboxes[i].cableLineSPLX, tboxes[i].cableLineSPRX, tboxes[i].cableLineEPY, tboxes[i].cableLineEPY);
             }
         }
 
@@ -280,188 +355,465 @@ namespace AcElectricalSchemePlugin
             int color = 0;
             for (int j = 0; j < units.Count; j++)
             {
-                Unit un = units[j];
-                un.cableOutput = new List<Point3d>();
-                units[j] = un;
-                int offset = 15;
-                color = 0;
-                bool aborted = false;
-                double leftEdgeX = 0;
-                Point3d lowestPoint = Point3d.Origin;
-                double l=0;
-                double r=0;
-                bool shielded = false;
-                if (prevCupboard != units[j].cupboardName)
+                if (units[j].cupboardName.Contains("VA"))
                 {
-                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                    tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
-                    prevPoly = tBoxPoly;
-                    prevTermPoly = null;
-                    prevTerminal = string.Empty;
-                    prevCupboard = units[j].cupboardName;
-                    newJ = false;
-                    Unit unit = units[j];
-                    unit.newSheet = true;
-                    units[j] = unit;
-                }
-                using (Transaction trans = acdb.TransactionManager.StartTransaction())
-                {
-                    for (int i = 0; i < units[j].terminals.Count; i++)
+                    #region VA
+                    List<Point3d> points = new List<Point3d>();
+                    Unit un = units[j];
+                    un.cableOutput = new List<Line>();
+                    units[j] = un;
+                    bool aborted = false;
+                    Point3d lowestPoint = Point3d.Origin;
+                    double l = 0;
+                    double r = 0;
+                    bool shielded = false;
+                    if (prevCupboard != units[j].cupboardName)
                     {
-                        string terminalTag = units[j].terminals[i].Split('[', ']')[1];
-                        string terminal = units[j].terminals[i].Split('[', ']')[2];
-                        if (prevTerminal == String.Empty)
+                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                        prevPoly = tBoxPoly;
+                        prevTermPoly = null;
+                        prevTerminal = string.Empty;
+                        prevCupboard = units[j].cupboardName;
+                        newJ = false;
+                        Unit unit = units[j];
+                        unit.newSheet = true;
+                        units[j] = unit;
+                    }
+                    using (Transaction trans = acdb.TransactionManager.StartTransaction())
+                    {
+                        for (int i = 0; i < units[j].terminals.Count; i++)
                         {
-                            prevTerminal = terminalTag;
-                            DBText text = new DBText();
-                            text.SetDatabaseDefaults();
-                            text.Height = 3;
-                            if (tst.Has("spds 2.5-0.85"))
-                                text.TextStyleId = tst["spds 2.5-0.85"];
-                            text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
-                            text.TextString = terminalTag;
-                            text.HorizontalMode = TextHorizontalMode.TextCenter;
-                            text.AlignmentPoint = text.Position;
-                            modSpace.AppendEntity(text);
-                            acTrans.AddNewlyCreatedDBObject(text, true);
-                            newJ = false;
-                            shielded = false;
-
-                            prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
-                            if (color==0) l = prevTermPoly.GetPoint2dAt(0).X;
-                            if (color < units[j].colors.Count - 1) { color++; offset = 6; }
-                            else 
-                            { 
-                                color = 0; 
-                                offset = 15; 
-                                r = prevTermPoly.GetPoint2dAt(1).X; 
-                                units[j].cableOutput.Add(drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield));
-                                shielded = true; 
-                            }
-                            leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
-                        }
-                        else if (prevTerminal == terminalTag)
-                        {
-                            Point2d p1;
-                            Point2d p2;
-                            if (newJ)
+                            string terminalTag = units[j].terminals[i].Split('[', ']')[1];
+                            string terminal = units[j].terminals[i].Split('[', ']')[2];
+                            if (prevTerminal == String.Empty)
                             {
-                                p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(offset+60, 0));
-                                prevPoly.SetPointAt(1, p1);
-                                p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(offset+60, 0));
-                                prevPoly.SetPointAt(2, p2);
+                                prevTerminal = terminalTag;
+                                DBText text = new DBText();
+                                text.SetDatabaseDefaults();
+                                text.Height = 3;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    text.TextStyleId = tst["spds 2.5-0.85"];
+                                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                                text.TextString = terminalTag;
+                                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                                text.AlignmentPoint = text.Position;
+                                modSpace.AppendEntity(text);
+                                acTrans.AddNewlyCreatedDBObject(text, true);
+                                newJ = false;
+                                shielded = false;
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint);
+                                if (color < units[j].colors.Count - 1) color++;
+                                else color = 0;
+                                if (i==0) l = prevTermPoly.GetPoint2dAt(0).X;
+                            }
+                            else if (prevTerminal == terminalTag)
+                            {
+                                Point2d p1;
+                                Point2d p2;
+                                if (newJ)
+                                {
+                                    p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(60, 0));
+                                    prevPoly.SetPointAt(1, p1);
+                                    p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(60, 0));
+                                    prevPoly.SetPointAt(2, p2);
+                                }
+                                else
+                                {
+                                    p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(6, 0));
+                                    prevPoly.SetPointAt(1, p1);
+                                    p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(6, 0));
+                                    prevPoly.SetPointAt(2, p2);
+                                }
+                                if (p1.X >= shield.GetPoint2dAt(1).X - 170)
+                                {
+                                    trans.Abort();
+                                    aborted = true;
+                                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                    tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                    prevPoly = tBoxPoly;
+                                    prevTermPoly = null;
+                                    prevTerminal = string.Empty;
+                                    newJ = false;
+                                    Unit unit = units[j];
+                                    unit.newSheet = true;
+                                    units[j] = unit;
+                                    break;
+                                }
+                                shielded = false;
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint); 
+                                if (color < units[j].colors.Count - 1) color++;
+                                else color = 0;
+                                if (i == 0) l = prevTermPoly.GetPoint2dAt(0).X;
                             }
                             else
                             {
-                                p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(offset+6, 0));
-                                prevPoly.SetPointAt(1, p1);
-                                p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(offset+6, 0));
-                                prevPoly.SetPointAt(2, p2);
-                            }
-                            if (p1.X >= shield.GetPoint2dAt(1).X - 170)
-                            {
-                                trans.Abort();
-                                aborted = true;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950,0,0)));
-                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                newJ = false;
+                                tBoxPoly = new Polyline();
+                                tBoxPoly.SetDatabaseDefaults();
+                                tBoxPoly.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                tBoxPoly.Closed = true;
+                                tBoxPoly.AddVertexAt(0, prevPoly.GetPoint2dAt(1).Add(new Vector2d(40, 0)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(1, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(21, 0)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(2, tBoxPoly.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(3, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                                modSpace.AppendEntity(tBoxPoly);
+                                acTrans.AddNewlyCreatedDBObject(tBoxPoly, true);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
-                                prevTerminal = string.Empty;
-                                newJ = false;
-                                Unit unit = units[j];
-                                unit.newSheet = true;
-                                units[j] = unit;
-                                break;
+                                prevTerminal = terminalTag;
+
+                                DBText text = new DBText();
+                                text.SetDatabaseDefaults();
+                                text.Height = 3;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    text.TextStyleId = tst["spds 2.5-0.85"];
+                                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                                text.TextString = terminalTag;
+                                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                                text.AlignmentPoint = text.Position;
+                                modSpace.AppendEntity(text);
+                                acTrans.AddNewlyCreatedDBObject(text, true);
+
+                                if (tBoxPoly.GetPoint2dAt(1).X >= shield.GetPoint2dAt(1).X - 170)
+                                {
+                                    trans.Abort();
+                                    aborted = true;
+                                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                    tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                    prevPoly = tBoxPoly;
+                                    prevTermPoly = null;
+                                    prevTerminal = string.Empty;
+                                    newJ = false;
+                                    Unit unit = units[j];
+                                    unit.newSheet = true;
+                                    units[j] = unit;
+                                    break;
+                                }
+                                shielded = false;
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint);
+                                if (color < units[j].colors.Count - 1) color++;
+                                else color = 0;
+                                if (i == 0) l = prevTermPoly.GetPoint2dAt(0).X;
                             }
-                            shielded = false;
-                            prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
-                            if (color==0) l = prevTermPoly.GetPoint2dAt(0).X;
-                            if (color < units[j].colors.Count - 1) { color++; offset = 6; }
-                            else 
-                            { 
-                                color = 0; 
-                                offset = 15; 
-                                r = prevTermPoly.GetPoint2dAt(1).X;
-                                units[j].cableOutput.Add(drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield));
-                                shielded = true; 
-                            }
-                            if (newJ) newJ = false;
-                            if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
                         }
-                        else
+                        if (!shielded && !aborted)
                         {
-                            newJ = false;
-                            tBoxPoly = new Polyline();
-                            tBoxPoly.SetDatabaseDefaults();
-                            tBoxPoly.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            tBoxPoly.Closed = true;
-                            tBoxPoly.AddVertexAt(0, prevPoly.GetPoint2dAt(1).Add(new Vector2d(40, 0)), 0, 0, 0);
-                            tBoxPoly.AddVertexAt(1, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(21, 0)), 0, 0, 0);
-                            tBoxPoly.AddVertexAt(2, tBoxPoly.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
-                            tBoxPoly.AddVertexAt(3, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
-                            modSpace.AppendEntity(tBoxPoly);
-                            acTrans.AddNewlyCreatedDBObject(tBoxPoly, true);
-                            prevPoly = tBoxPoly;
-                            prevTermPoly = null;
-                            prevTerminal = terminalTag;
+                            r = prevTermPoly.GetPoint2dAt(1).X;
 
-                            DBText text = new DBText();
-                            text.SetDatabaseDefaults();
-                            text.Height = 3;
-                            if (tst.Has("spds 2.5-0.85"))
-                                text.TextStyleId = tst["spds 2.5-0.85"];
-                            text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
-                            text.TextString = terminalTag;
-                            text.HorizontalMode = TextHorizontalMode.TextCenter;
-                            text.AlignmentPoint = text.Position;
-                            modSpace.AppendEntity(text);
-                            acTrans.AddNewlyCreatedDBObject(text, true);
+                            Line cableLine = new Line();
+                            cableLine.SetDatabaseDefaults();
+                            cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            cableLine.StartPoint = points[0];
+                            cableLine.EndPoint = points[points.Count - 1];
+                            modSpace.AppendEntity(cableLine);
+                            acTrans.AddNewlyCreatedDBObject(cableLine, true);
 
-                            if (tBoxPoly.GetPoint2dAt(1).X >= shield.GetPoint2dAt(1).X - 170) 
+                            Line cableLineDown = new Line();
+                            cableLineDown.SetDatabaseDefaults();
+                            cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            cableLineDown.StartPoint = new Point3d(points[0].X + (points[points.Count - 1].X - points[0].X) / 2, lowestPoint.Y, 0);
+                            cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                            modSpace.AppendEntity(cableLineDown);
+                            acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                            units[j].cableOutput.Add(cableLineDown);
+                            if (units[j].shield)
+                                drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+
+                            points = new List<Point3d>();
+                        }
+                        if (!aborted) trans.Commit();
+                        else j--;
+                    }
+                    newJ = true;
+                    #endregion
+                }
+                else
+                {
+                    #region nonVA
+                    List<Point3d> points = new List<Point3d>();
+                    Unit un = units[j];
+                    un.cableOutput = new List<Line>();
+                    units[j] = un;
+                    int offset = 15;
+                    color = 0;
+                    bool aborted = false;
+                    double leftEdgeX = 0;
+                    Point3d lowestPoint = Point3d.Origin;
+                    double l = 0;
+                    double r = 0;
+                    bool shielded = false;
+                    if (prevCupboard != units[j].cupboardName)
+                    {
+                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                        prevPoly = tBoxPoly;
+                        prevTermPoly = null;
+                        prevTerminal = string.Empty;
+                        prevCupboard = units[j].cupboardName;
+                        newJ = false;
+                        Unit unit = units[j];
+                        unit.newSheet = true;
+                        units[j] = unit;
+                    }
+                    using (Transaction trans = acdb.TransactionManager.StartTransaction())
+                    {
+                        for (int i = 0; i < units[j].terminals.Count; i++)
+                        {
+                            string terminalTag = units[j].terminals[i].Split('[', ']')[1];
+                            string terminal = units[j].terminals[i].Split('[', ']')[2];
+                            if (prevTerminal == String.Empty)
                             {
-                                trans.Abort();
-                                aborted = true;
-                                shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                prevTerminal = terminalTag;
+                                DBText text = new DBText();
+                                text.SetDatabaseDefaults();
+                                text.Height = 3;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    text.TextStyleId = tst["spds 2.5-0.85"];
+                                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                                text.TextString = terminalTag;
+                                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                                text.AlignmentPoint = text.Position;
+                                modSpace.AppendEntity(text);
+                                acTrans.AddNewlyCreatedDBObject(text, true);
+                                newJ = false;
+                                shielded = false;
+
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint);
+                                if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
+                                if (color < units[j].colors.Count - 1) { color++; offset = 6; }
+                                else
+                                {
+                                    color = 0;
+                                    offset = 15;
+                                    r = prevTermPoly.GetPoint2dAt(1).X;
+
+                                    Line cableLine = new Line();
+                                    cableLine.SetDatabaseDefaults();
+                                    cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLine.StartPoint = points[0];
+                                    cableLine.EndPoint = points[points.Count - 1];
+                                    modSpace.AppendEntity(cableLine);
+                                    acTrans.AddNewlyCreatedDBObject(cableLine, true);
+
+                                    Line cableLineDown = new Line();
+                                    cableLineDown.SetDatabaseDefaults();
+                                    cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLineDown.StartPoint = new Point3d(points[0].X + (points[points.Count - 1].X - points[0].X) / 2, lowestPoint.Y, 0);
+                                    cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                                    modSpace.AppendEntity(cableLineDown);
+                                    acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                                    units[j].cableOutput.Add(cableLineDown);
+
+                                    drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+
+                                    points = new List<Point3d>();
+
+                                    shielded = true;
+                                }
+                                leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
+                            }
+                            else if (prevTerminal == terminalTag)
+                            {
+                                Point2d p1;
+                                Point2d p2;
+                                if (newJ)
+                                {
+                                    p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(60, 0));
+                                    prevPoly.SetPointAt(1, p1);
+                                    p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(60, 0));
+                                    prevPoly.SetPointAt(2, p2);
+                                }
+                                else
+                                {
+                                    p1 = prevPoly.GetPoint2dAt(1).Add(new Vector2d(offset, 0));
+                                    prevPoly.SetPointAt(1, p1);
+                                    p2 = prevPoly.GetPoint2dAt(2).Add(new Vector2d(offset, 0));
+                                    prevPoly.SetPointAt(2, p2);
+                                }
+                                if (p1.X >= shield.GetPoint2dAt(1).X - 170)
+                                {
+                                    trans.Abort();
+                                    aborted = true;
+                                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                    tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                    prevPoly = tBoxPoly;
+                                    prevTermPoly = null;
+                                    prevTerminal = string.Empty;
+                                    newJ = false;
+                                    Unit unit = units[j];
+                                    unit.newSheet = true;
+                                    units[j] = unit;
+                                    break;
+                                }
+                                shielded = false;
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint);
+                                if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
+                                if (color < units[j].colors.Count - 1) { color++; offset = 6; }
+                                else
+                                {
+                                    color = 0;
+                                    offset = 15;
+                                    r = prevTermPoly.GetPoint2dAt(1).X;
+
+                                    Line cableLine = new Line();
+                                    cableLine.SetDatabaseDefaults();
+                                    cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLine.StartPoint = points[0];
+                                    cableLine.EndPoint = points[points.Count - 1];
+                                    modSpace.AppendEntity(cableLine);
+                                    acTrans.AddNewlyCreatedDBObject(cableLine, true);
+
+                                    Line cableLineDown = new Line();
+                                    cableLineDown.SetDatabaseDefaults();
+                                    cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLineDown.StartPoint = new Point3d(points[0].X + (points[points.Count - 1].X - points[0].X) / 2, lowestPoint.Y, 0);
+                                    cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                                    modSpace.AppendEntity(cableLineDown);
+                                    acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                                    units[j].cableOutput.Add(cableLineDown);
+
+                                    drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+
+                                    points = new List<Point3d>();
+
+                                    shielded = true;
+                                }
+                                if (newJ) newJ = false;
+                                if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
+                            }
+                            else
+                            {
+                                newJ = false;
+                                tBoxPoly = new Polyline();
+                                tBoxPoly.SetDatabaseDefaults();
+                                tBoxPoly.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                tBoxPoly.Closed = true;
+                                tBoxPoly.AddVertexAt(0, prevPoly.GetPoint2dAt(1).Add(new Vector2d(40, 0)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(1, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(21, 0)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(2, tBoxPoly.GetPoint2dAt(1).Add(new Vector2d(0, -9)), 0, 0, 0);
+                                tBoxPoly.AddVertexAt(3, tBoxPoly.GetPoint2dAt(0).Add(new Vector2d(0, -9)), 0, 0, 0);
+                                modSpace.AppendEntity(tBoxPoly);
+                                acTrans.AddNewlyCreatedDBObject(tBoxPoly, true);
                                 prevPoly = tBoxPoly;
                                 prevTermPoly = null;
-                                prevTerminal = string.Empty;
-                                newJ = false;
-                                Unit unit = units[j];
-                                unit.newSheet = true;
-                                units[j] = unit;
-                                break;
+                                prevTerminal = terminalTag;
+
+                                DBText text = new DBText();
+                                text.SetDatabaseDefaults();
+                                text.Height = 3;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    text.TextStyleId = tst["spds 2.5-0.85"];
+                                text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
+                                text.TextString = terminalTag;
+                                text.HorizontalMode = TextHorizontalMode.TextCenter;
+                                text.AlignmentPoint = text.Position;
+                                modSpace.AppendEntity(text);
+                                acTrans.AddNewlyCreatedDBObject(text, true);
+
+                                if (tBoxPoly.GetPoint2dAt(1).X >= shield.GetPoint2dAt(1).X - 170)
+                                {
+                                    trans.Abort();
+                                    aborted = true;
+                                    shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                    tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                    prevPoly = tBoxPoly;
+                                    prevTermPoly = null;
+                                    prevTerminal = string.Empty;
+                                    newJ = false;
+                                    Unit unit = units[j];
+                                    unit.newSheet = true;
+                                    units[j] = unit;
+                                    break;
+                                }
+                                shielded = false;
+                                offset = 15;
+                                prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                points.Add(lowestPoint);
+                                if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
+                                if (color < units[j].colors.Count - 1) { color++; offset = 6; }
+                                else
+                                {
+                                    color = 0;
+                                    offset = 15;
+                                    r = prevTermPoly.GetPoint2dAt(1).X;
+
+                                    Line cableLine = new Line();
+                                    cableLine.SetDatabaseDefaults();
+                                    cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLine.StartPoint = points[0];
+                                    cableLine.EndPoint = points[points.Count - 1];
+                                    modSpace.AppendEntity(cableLine);
+                                    acTrans.AddNewlyCreatedDBObject(cableLine, true);
+
+                                    Line cableLineDown = new Line();
+                                    cableLineDown.SetDatabaseDefaults();
+                                    cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                    cableLineDown.StartPoint = new Point3d(points[0].X + (points[points.Count - 1].X - points[0].X) / 2, lowestPoint.Y, 0);
+                                    cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                                    modSpace.AppendEntity(cableLineDown);
+                                    acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                                    units[j].cableOutput.Add(cableLineDown);
+
+                                    drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+
+                                    points = new List<Point3d>();
+
+                                    shielded = true;
+                                }
+                                if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
                             }
-                            shielded = false;
-                            offset = 15;
-                            prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
-                            if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
-                            if (color < units[j].colors.Count - 1) { color++; offset = 6; }
-                            else { 
-                                color = 0; 
-                                offset = 15; 
-                                r = prevTermPoly.GetPoint2dAt(1).X;
-                                units[j].cableOutput.Add(drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield));
-                                shielded = true; 
-                            }
-                            if (i == 0) leftEdgeX = prevTermPoly.GetPoint2dAt(0).X;
                         }
+                        if (!shielded && !aborted)
+                        {
+                            r = prevTermPoly.GetPoint2dAt(1).X;
+
+                            Line cableLine = new Line();
+                            cableLine.SetDatabaseDefaults();
+                            cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            cableLine.StartPoint = points[0];
+                            cableLine.EndPoint = points[points.Count - 1];
+                            modSpace.AppendEntity(cableLine);
+                            acTrans.AddNewlyCreatedDBObject(cableLine, true);
+
+                            Line cableLineDown = new Line();
+                            cableLineDown.SetDatabaseDefaults();
+                            cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            cableLineDown.StartPoint = new Point3d(points[0].X + (points[points.Count - 1].X - points[0].X) / 2, lowestPoint.Y, 0);
+                            cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                            modSpace.AppendEntity(cableLineDown);
+                            acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                            units[j].cableOutput.Add(cableLineDown);
+
+                            drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+
+                            points = new List<Point3d>();
+                        }
+                        if (!aborted) trans.Commit(); //units[j] = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
+                        else j--;
                     }
-                    if (!shielded && !aborted)
-                    {
-                        r = prevTermPoly.GetPoint2dAt(1).X;
-                        units[j].cableOutput.Add(drawGnd(acTrans, modSpace, l-3, r+3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield));
-                    }
-                    if (!aborted) trans.Commit(); //units[j] = drawCable(acTrans, modSpace, new Point3d(leftEdgeX + 3, lowestPoint.Y, 0), new Point3d(rightEdgeX - 3, lowestPoint.Y, 0), units[j]);
-                    else j--;
+                    newJ = true;
+                    #endregion
                 }
-                newJ = true;
             }
+            groups = findGroups(units);
         }
 
-        private static Point3d drawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, Point3d lowestPoint, Polyline shield)
+        private static void drawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, Point3d lowestPoint, Polyline shield)
         {
             Polyline groundLasso = new Polyline();
             groundLasso.SetDatabaseDefaults();
@@ -540,24 +892,6 @@ namespace AcElectricalSchemePlugin
             groundCircle.Radius = 0.36;
             modSpace.AppendEntity(groundCircle);
             acTrans.AddNewlyCreatedDBObject(groundCircle, true);
-
-            Line cableLine = new Line();
-            cableLine.SetDatabaseDefaults();
-            cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            cableLine.StartPoint = new Point3d(leftEdgeX + 3, lowestPoint.Y, 0);
-            cableLine.EndPoint = new Point3d(rightEdgeX - 3, lowestPoint.Y, 0);
-            modSpace.AppendEntity(cableLine);
-            acTrans.AddNewlyCreatedDBObject(cableLine, true);
-
-            Line cableLineDown = new Line();
-            cableLineDown.SetDatabaseDefaults();
-            cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            cableLineDown.StartPoint = new Point3d(leftEdgeX + (rightEdgeX - leftEdgeX) / 2, lowestPoint.Y, 0);
-            cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
-            modSpace.AppendEntity(cableLineDown);
-            acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
-
-            return cableLineDown.EndPoint;
         }
 
         private static void drawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, double rightestPoint, Polyline shield)
@@ -641,7 +975,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(groundCircle, true);
         }
 
-        private static Point3d drawTBoxGnd(Transaction acTrans, BlockTableRecord modSpace, Point3d lastTermPoint, double leftEdgeX, double rightEdgeX, double upY, double downY)
+        private static Point3d drawTBoxGnd(Transaction acTrans, BlockTableRecord modSpace, tBox tbox, Point3d lastTermPoint, double leftEdgeX, double rightEdgeX, double upY, double downY)
         {
             Polyline termPoly = new Polyline();
             termPoly.SetDatabaseDefaults();
@@ -663,7 +997,7 @@ namespace AcElectricalSchemePlugin
             double x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
             double y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
             termText.Location = new Point3d(x, y, 0);
-            if (upY != downY) termText.Contents = "";
+            if (upY != downY) termText.Contents = "S" + (tbox.LastShieldNumber < 10 ? "0" + tbox.LastShieldNumber.ToString() : tbox.LastShieldNumber.ToString());
             else termText.Contents = "OSH";
             termText.Rotation = 1.5708;
             termText.Attachment = AttachmentPoint.MiddleCenter;
@@ -907,343 +1241,434 @@ namespace AcElectricalSchemePlugin
             cableLineDown.SetDatabaseDefaults();
             cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             cableLineDown.StartPoint = new Point3d(x, cablePoly.GetPoint2dAt(3).Y, 0);
-            cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -7, 0));
+            cableLineDown.EndPoint = cableLineDown.StartPoint.Add(new Vector3d(0, -10, 0));
             modSpace.AppendEntity(cableLineDown);
             acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
 
-            MText colorMark = new MText();
-            colorMark.SetDatabaseDefaults();
-            colorMark.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                colorMark.TextStyleId = tst["spds 2.5-0.85"];
-            colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            x = cableLineDown.EndPoint.X - 1;
-            y = cableLineDown.EndPoint.Y + (cableLineDown.StartPoint.Y - cableLineDown.EndPoint.Y) / 2;
-            colorMark.Location = new Point3d(x, y, 0);
-            colorMark.Contents = unit.colors[color];
-            colorMark.Rotation = 1.5708;
-            colorMark.Attachment = AttachmentPoint.BottomCenter;
-            modSpace.AppendEntity(colorMark);
-            acTrans.AddNewlyCreatedDBObject(colorMark, true);
-            
+            if (!unit.cupboardName.Contains("VA"))
+            {
+                MText colorMark = new MText();
+                colorMark.SetDatabaseDefaults();
+                colorMark.TextHeight = 2.5;
+                if (tst.Has("spds 2.5-0.85"))
+                    colorMark.TextStyleId = tst["spds 2.5-0.85"];
+                colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                x = cableLineDown.EndPoint.X - 1;
+                y = cableLineDown.EndPoint.Y + (cableLineDown.StartPoint.Y - cableLineDown.EndPoint.Y) / 2;
+                colorMark.Location = new Point3d(x, y, 0);
+                colorMark.Contents = unit.colors[color];
+                colorMark.Rotation = 1.5708;
+                colorMark.Attachment = AttachmentPoint.BottomCenter;
+                modSpace.AppendEntity(colorMark);
+                acTrans.AddNewlyCreatedDBObject(colorMark, true);
+            }
+            else if (unit.colors[0].Length>1)
+            {
+                MText colorMark = new MText();
+                colorMark.SetDatabaseDefaults();
+                colorMark.TextHeight = 2.5;
+                if (tst.Has("spds 2.5-0.85"))
+                    colorMark.TextStyleId = tst["spds 2.5-0.85"];
+                colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                x = cableLineDown.EndPoint.X - 1;
+                y = cableLineDown.EndPoint.Y + (cableLineDown.StartPoint.Y - cableLineDown.EndPoint.Y) / 2;
+                colorMark.Location = new Point3d(x, y, 0);
+                colorMark.Contents = unit.colors[color];
+                colorMark.Rotation = 1.5708;
+                colorMark.Attachment = AttachmentPoint.BottomCenter;
+                modSpace.AppendEntity(colorMark);
+                acTrans.AddNewlyCreatedDBObject(colorMark, true);
+            }
+
             lowestPoint = cableLineDown.EndPoint;
             return termPoly;
         }
 
-        private static void drawCables(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline shield)
+        private static void drawCables(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline shieldCupBoard)
         {
-            Line cableLineUp = new Line();
-            cableLineUp.SetDatabaseDefaults();
-            cableLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            cableLineUp.StartPoint = units[0].cableOutput[0];
-            cableLineUp.EndPoint = cableLineUp.StartPoint;
-            modSpace.AppendEntity(cableLineUp);
-            acTrans.AddNewlyCreatedDBObject(cableLineUp, true);
 
-            List<Point3d> points = new List<Point3d>();
-            List<int> index = new List<int>();
-
-            string prevTbox = units[0].tBoxName;
-            //tBox tbox = new tBox();
-            //tbox.Name = units[0].tBoxName;
-
-            for (int i = 0; i < units.Count; i++)
+            for (int i = 0; i < groups.Count; i++)
             {
-                if (units[i].tBoxName == prevTbox && !units[i].newSheet)
-                    for (int j = 0; j < units[i].cableOutput.Count; j++)
-                    {
-                        cableLineUp.EndPoint = units[i].cableOutput[j];
-                        points.Add(units[i].cableOutput[j]);
-                        index.Add(i);
-                    }
+                tBox tbox;
+                int index = 0;
+                if (tboxes.Exists(x => x.Name == groups[i].GroupName) && groups[i].GroupName != String.Empty)
+                {
+                    index = tboxes.IndexOf(tboxes.Find(x => x.Name == groups[i].GroupName));
+                    tbox = tboxes[index];
+                    tbox.Count++;
+                }
                 else
                 {
-                    Line cableLine = new Line();
-                    cableLine.SetDatabaseDefaults();
-                    cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    cableLine.StartPoint = new Point3d(cableLineUp.StartPoint.X + (cableLineUp.EndPoint.X - cableLineUp.StartPoint.X) / 2, cableLineUp.EndPoint.Y, 0);
-                    cableLine.EndPoint = cableLine.StartPoint.Add(new Vector3d(0, -70, 0));
-                    modSpace.AppendEntity(cableLine);
-                    acTrans.AddNewlyCreatedDBObject(cableLine, true);
+                    tbox = new tBox();
+                    tbox.Name = groups[i].GroupName;
+                    tbox.Count = 1;
+                    tbox.LastPairNumber = 0;
+                    tbox.LastShieldNumber = 1;
+                    tbox.LastTerminalNumber = 1;
+                    tbox.textName = new List<MText>();
+                    tbox.ldr = new List<Leader>();
+                    tboxes.Add(new tBox());
+                    index = tboxes.Count - 1;
+                }
 
-                    MText cableMark = new MText();
-                    cableMark.SetDatabaseDefaults();
-                    cableMark.TextHeight = 3;
-                    if (tst.Has("spds 2.5-0.85"))
-                        cableMark.TextStyleId = tst["spds 2.5-0.85"];
-                    cableMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
-                    cableMark.Contents = units[i-1].cableMark;
-                    cableMark.Rotation = 1.5708;
-                    cableMark.Attachment = AttachmentPoint.BottomCenter;
-                    modSpace.AppendEntity(cableMark);
-                    acTrans.AddNewlyCreatedDBObject(cableMark, true);
+                Line cableLineUp = new Line();
+                cableLineUp.SetDatabaseDefaults();
+                cableLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableLineUp.StartPoint = groups[i].Units[0].cableOutput[0].EndPoint;
+                int unitsIndex = groups[i].Units.Count - 1;
+                int cableIndex = groups[i].Units[unitsIndex].cableOutput.Count - 1;
+                cableLineUp.EndPoint = groups[i].Units[unitsIndex].cableOutput[cableIndex].EndPoint;
+                modSpace.AppendEntity(cableLineUp);
+                acTrans.AddNewlyCreatedDBObject(cableLineUp, true);
 
-                    MText textName = new MText();
-                    textName.SetDatabaseDefaults();
-                    textName.TextHeight = 3;
-                    if (tst.Has("spds 2.5-0.85"))
-                        textName.TextStyleId = tst["spds 2.5-0.85"];
-                    textName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
-                    textName.Attachment = AttachmentPoint.TopCenter;
-                    textName.Rotation = 1.5708;
-                    textName.Contents = units[i - 1].tBoxName == string.Empty ? units[i - 1].cupboardName.Split(' ')[1] + "/" + units[i - 1].designation : units[i - 1].cupboardName.Split(' ')[1] + "/" + units[i - 1].tBoxName;
-                    modSpace.AppendEntity(textName);
-                    acTrans.AddNewlyCreatedDBObject(textName, true);
+                Line cableLine = new Line();
+                cableLine.SetDatabaseDefaults();
+                cableLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableLine.StartPoint = new Point3d(cableLineUp.StartPoint.X + (cableLineUp.EndPoint.X - cableLineUp.StartPoint.X) / 2, cableLineUp.EndPoint.Y, 0);
+                cableLine.EndPoint = cableLine.StartPoint.Add(new Vector3d(0, -70, 0));
+                modSpace.AppendEntity(cableLine);
+                acTrans.AddNewlyCreatedDBObject(cableLine, true);
 
-                    if (units[i - 1].shield)
-                        drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shield);
-                    
-                    List<Point3d> equipPoints = new List<Point3d>();
-                    if (units[i - 1].tBoxName != string.Empty)
+                MText cableMark = new MText();
+                cableMark.SetDatabaseDefaults();
+                cableMark.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    cableMark.TextStyleId = tst["spds 2.5-0.85"];
+                cableMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
+                cableMark.Contents = groups[i].Units[unitsIndex].cableMark;
+                cableMark.Rotation = 1.5708;
+                cableMark.Attachment = AttachmentPoint.BottomCenter;
+                modSpace.AppendEntity(cableMark);
+                acTrans.AddNewlyCreatedDBObject(cableMark, true);
+
+                MText textName = new MText();
+                textName.SetDatabaseDefaults();
+                textName.TextHeight = 3;
+                if (tst.Has("spds 2.5-0.85"))
+                    textName.TextStyleId = tst["spds 2.5-0.85"];
+                textName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
+                textName.Attachment = AttachmentPoint.TopCenter;
+                textName.Rotation = 1.5708;
+                textName.Contents = groups[i].Units[unitsIndex].tBoxName == string.Empty ? groups[i].Units[unitsIndex].designation + "/" + groups[i].Units[unitsIndex].cupboardName.Split(' ')[1] : groups[i].Units[unitsIndex].tBoxName + "/" + units[i - 1].cupboardName.Split(' ')[1];
+                modSpace.AppendEntity(textName);
+                acTrans.AddNewlyCreatedDBObject(textName, true);
+
+                if (groups[i].Units[unitsIndex].shield && groups[i].Units[unitsIndex].cableOutput.Count > 1)
+                    drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
+
+                if (groups[i].Units[unitsIndex].tBoxName != string.Empty)
+                {
+                    Line cableLineDown = new Line();
+                    cableLineDown.SetDatabaseDefaults();
+                    cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    cableLineDown.StartPoint = new Point3d(cableLineUp.StartPoint.X, cableLine.EndPoint.Y, 0);
+                    cableLineDown.EndPoint = new Point3d(cableLineUp.EndPoint.X, cableLine.EndPoint.Y, 0);
+                    modSpace.AppendEntity(cableLineDown);
+                    acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
+
+                    Point3d lastTermPoint = new Point3d();
+                    curTermNumber = 1;
+                    curPairNumber = 0;
+
+                    Line tBoxJumper = new Line();
+                    int pairNum = 0;
+                    MText pairMark;
+                    for (int k = 0; k < groups[i].Units.Count; k++)
                     {
-                        equipPoints = new List<Point3d>();
-
-                        Line cableLineDown = new Line();
-                        cableLineDown.SetDatabaseDefaults();
-                        cableLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        cableLineDown.StartPoint = new Point3d(cableLineUp.StartPoint.X, cableLine.EndPoint.Y, 0);
-                        cableLineDown.EndPoint = new Point3d(cableLineUp.EndPoint.X, cableLine.EndPoint.Y, 0);
-                        modSpace.AppendEntity(cableLineDown);
-                        acTrans.AddNewlyCreatedDBObject(cableLineDown, true);
-
-                        Point3d lastTermPoint = new Point3d();
-                        int prevIndex = 0;
-                        curTermNumber = 1;
-                        curPairNumber = 1;
-                        Point3d point = drawTerminalBoxUnit(acTrans, modSpace, index[0], points[0], cableLineDown.EndPoint, out lastTermPoint);
-
-                        Line tBoxJumper = new Line();
-                        tBoxJumper.SetDatabaseDefaults();
-                        tBoxJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        tBoxJumper.StartPoint = point;
-                        tBoxJumper.EndPoint = point;
-                        modSpace.AppendEntity(tBoxJumper);
-                        acTrans.AddNewlyCreatedDBObject(tBoxJumper, true);
-
-                        for (int k = 1; k < points.Count; k++)
+                        if (groups[i].Units[k].cupboardName.Contains("VA"))
                         {
-                            if (index[prevIndex] == index[k])
+                            curPairNumber++;
+                            pairNum++;
+
+                            Point3d point = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNum, out lastTermPoint);
+                            tBoxJumper = new Line();
+                            tBoxJumper.SetDatabaseDefaults();
+                            tBoxJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            tBoxJumper.StartPoint = point;
+                            tBoxJumper.EndPoint = point;
+                            modSpace.AppendEntity(tBoxJumper);
+                            acTrans.AddNewlyCreatedDBObject(tBoxJumper, true);
+
+                            pairMark = new MText();
+                            pairMark.SetDatabaseDefaults();
+                            pairMark.TextHeight = 2.5;
+                            if (tst.Has("spds 2.5-0.85"))
+                                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                            pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
+                            double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
+                            pairMark.Location = new Point3d(X, Y, 0);
+                            pairMark.Contents = "PR" + (pairNum < 10 ? "0" + pairNum.ToString() : pairNum.ToString());
+                            pairMark.Rotation = 1.5708;
+                            pairMark.Attachment = AttachmentPoint.BottomCenter;
+                            modSpace.AppendEntity(pairMark);
+                            acTrans.AddNewlyCreatedDBObject(pairMark, true);
+                        }
+                        else
+                        {
+                            curPairNumber++;
+                            tbox.LastPairNumber++;
+
+                            Point3d point = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, out lastTermPoint);
+                            tBoxJumper = new Line();
+                            tBoxJumper.SetDatabaseDefaults();
+                            tBoxJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            tBoxJumper.StartPoint = point;
+                            tBoxJumper.EndPoint = point;
+                            modSpace.AppendEntity(tBoxJumper);
+                            acTrans.AddNewlyCreatedDBObject(tBoxJumper, true);
+
+                            pairMark = new MText();
+                            pairMark.SetDatabaseDefaults();
+                            pairMark.TextHeight = 2.5;
+                            if (tst.Has("spds 2.5-0.85"))
+                                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                            pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
+                            double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
+                            pairMark.Location = new Point3d(X, Y, 0);
+                            pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "0" + tbox.LastPairNumber.ToString() : tbox.LastPairNumber.ToString());
+                            pairMark.Rotation = 1.5708;
+                            pairMark.Attachment = AttachmentPoint.BottomCenter;
+                            modSpace.AppendEntity(pairMark);
+                            acTrans.AddNewlyCreatedDBObject(pairMark, true);
+                        }
+
+                        for (int j = 1; j < groups[i].Units[k].cableOutput.Count; j++)
+                        {
+                            if (groups[i].Units[k].cupboardName.Contains("VA"))
                             {
                                 curPairNumber++;
-                                point = drawTerminalBoxUnit(acTrans, modSpace, index[k], points[k], cableLineDown.EndPoint, out lastTermPoint);
-                                tBoxJumper.EndPoint = point;
+                                pairNum++;
+
+                                tBoxJumper.EndPoint = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNum,  out lastTermPoint);
+
+                                pairMark = new MText();
+                                pairMark.SetDatabaseDefaults();
+                                pairMark.TextHeight = 2.5;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
+                                double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
+                                pairMark.Location = new Point3d(X, Y, 0);
+                                pairMark.Contents = "PR" + (pairNum < 10 ? "0" + pairNum.ToString() : pairNum.ToString());
+                                pairMark.Rotation = 1.5708;
+                                pairMark.Attachment = AttachmentPoint.BottomCenter;
+                                modSpace.AppendEntity(pairMark);
+                                acTrans.AddNewlyCreatedDBObject(pairMark, true);
                             }
                             else
                             {
-                                Line tBoxLineOut = new Line();
-                                tBoxLineOut.SetDatabaseDefaults();
-                                tBoxLineOut.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                                tBoxLineOut.StartPoint = tBoxJumper.StartPoint + (tBoxJumper.EndPoint - tBoxJumper.StartPoint)/2;
-                                tBoxLineOut.EndPoint = tBoxLineOut.StartPoint.Add(new Vector3d(0, -15, 0));
-                                modSpace.AppendEntity(tBoxLineOut);
-                                acTrans.AddNewlyCreatedDBObject(tBoxLineOut, true);
-                                
-                                if (curPairNumber==1)
-                                    curPairMark.Erase();
+                                curPairNumber++;
+                                tbox.LastPairNumber++;
 
-                                equipPoints.Add(tBoxLineOut.EndPoint);
+                                tBoxJumper.EndPoint = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, out lastTermPoint);
 
-                                prevIndex = k;
-
-                                curPairNumber = 1;
-                                curTermNumber = 1;
-
-                                point = drawTerminalBoxUnit(acTrans, modSpace, index[k], points[k], cableLineDown.EndPoint, out lastTermPoint);
-                                
-                                tBoxJumper = new Line();
-                                tBoxJumper.SetDatabaseDefaults();
-                                tBoxJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                                tBoxJumper.StartPoint = point;
-                                tBoxJumper.EndPoint = point;
-                                modSpace.AppendEntity(tBoxJumper);
-                                acTrans.AddNewlyCreatedDBObject(tBoxJumper, true);
+                                pairMark = new MText();
+                                pairMark.SetDatabaseDefaults();
+                                pairMark.TextHeight = 2.5;
+                                if (tst.Has("spds 2.5-0.85"))
+                                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                                double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
+                                double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
+                                pairMark.Location = new Point3d(X, Y, 0);
+                                pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "0" + tbox.LastPairNumber.ToString() : tbox.LastPairNumber.ToString());
+                                pairMark.Rotation = 1.5708;
+                                pairMark.Attachment = AttachmentPoint.BottomCenter;
+                                modSpace.AppendEntity(pairMark);
+                                acTrans.AddNewlyCreatedDBObject(pairMark, true);
                             }
                         }
 
-                        Polyline tBoxFrame = new Polyline();
-                        tBoxFrame.SetDatabaseDefaults();
-                        if (lineTypeTable.Has("штриховая2"))
-                            tBoxFrame.LinetypeId = lineTypeTable["штриховая2"];
-                        else if (lineTypeTable.Has("hidden2"))
-                            tBoxFrame.LinetypeId = lineTypeTable["hidden2"];
-                        tBoxFrame.LinetypeScale = 5;
-                        tBoxFrame.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        tBoxFrame.Closed = true;
-                        tBoxFrame.AddVertexAt(0, new Point2d(cableLineDown.StartPoint.X - 12, cableLineDown.EndPoint.Y + 7), 0, 0, 0);
-                        tBoxFrame.AddVertexAt(1, new Point2d(cableLineDown.EndPoint.X + 14, cableLineDown.EndPoint.Y + 7), 0, 0, 0);
-                        tBoxFrame.AddVertexAt(2, new Point2d(cableLineDown.EndPoint.X + 14, tBoxJumper.EndPoint.Y-2), 0, 0, 0);
-                        tBoxFrame.AddVertexAt(3, new Point2d(cableLineDown.StartPoint.X - 12, tBoxJumper.EndPoint.Y-2), 0, 0, 0);
-                        modSpace.AppendEntity(tBoxFrame);
-                        acTrans.AddNewlyCreatedDBObject(tBoxFrame, true);
+                        //if (groups[i].Units[0].cupboardName.Contains("VA") && groups[i].Units[k].cableOutput.Count == 1)
+                        //    pairMark.Erase();
 
-                        MText tBoxName = new MText();
-                        tBoxName.SetDatabaseDefaults();
-                        tBoxName.TextHeight = 3;
-                        if (tst.Has("spds 2.5-0.85"))
-                            tBoxName.TextStyleId = tst["spds 2.5-0.85"];
-                        tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        tBoxName.Location = tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
-                        tBoxName.Contents = prevTbox + ".";// +tBox.Count.ToString();
-                        tBoxName.Attachment = AttachmentPoint.BottomLeft;
-                        modSpace.AppendEntity(tBoxName);
-                        acTrans.AddNewlyCreatedDBObject(tBoxName, true);
+                        Line tBoxLineOut = new Line();
+                        tBoxLineOut.SetDatabaseDefaults();
+                        tBoxLineOut.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        tBoxLineOut.StartPoint = tBoxJumper.StartPoint + (tBoxJumper.EndPoint - tBoxJumper.StartPoint) / 2;
+                        tBoxLineOut.EndPoint = tBoxLineOut.StartPoint.Add(new Vector3d(0, -15, 0));
+                        modSpace.AppendEntity(tBoxLineOut);
+                        acTrans.AddNewlyCreatedDBObject(tBoxLineOut, true);
 
-                        Leader acLdr = new Leader();
-                        acLdr.SetDatabaseDefaults();
-                        acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(-5, 0, 0)));
-                        acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(0, 5, 0)));
-                        acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(tBoxName.ActualWidth + 1, 5, 0)));
-                        acLdr.HasArrowHead = false;
-                        modSpace.AppendEntity(acLdr);
-                        acTrans.AddNewlyCreatedDBObject(acLdr, true);
-
-                        Line tBoxLineOutLast = new Line();
-                        tBoxLineOutLast.SetDatabaseDefaults();
-                        tBoxLineOutLast.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        tBoxLineOutLast.StartPoint = tBoxJumper.StartPoint + (tBoxJumper.EndPoint - tBoxJumper.StartPoint) / 2;
-                        tBoxLineOutLast.EndPoint = tBoxLineOutLast.StartPoint.Add(new Vector3d(0, -15, 0));
-                        modSpace.AppendEntity(tBoxLineOutLast);
-                        acTrans.AddNewlyCreatedDBObject(tBoxLineOutLast, true);
-                        equipPoints.Add(tBoxLineOutLast.EndPoint);
-                        if (curPairNumber == 1)
-                            curPairMark.Erase();
-
-                        if (units[i - 1].shield)
-                            drawTBoxGnd(acTrans, modSpace, lastTermPoint, cableLine.StartPoint.X - 3, cableLine.StartPoint.X + 3, cableLine.EndPoint.Y+8, cableLine.EndPoint.Y+8);
+                        Group group = groups[i];
+                        Unit unit = groups[i].Units[k];
+                        unit.equipPoint = tBoxLineOut.EndPoint;
+                        groups[i].Units[k] = unit;
                     }
-                    else
+                    if (curPairNumber == 1)
+                        curPairMark.Erase();
+
+                    Polyline tBoxFrame = new Polyline();
+                    tBoxFrame.SetDatabaseDefaults();
+                    if (lineTypeTable.Has("штриховая2"))
+                        tBoxFrame.LinetypeId = lineTypeTable["штриховая2"];
+                    else if (lineTypeTable.Has("hidden2"))
+                        tBoxFrame.LinetypeId = lineTypeTable["hidden2"];
+                    tBoxFrame.LinetypeScale = 5;
+                    tBoxFrame.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    tBoxFrame.Closed = true;
+                    tBoxFrame.AddVertexAt(0, new Point2d(cableLineDown.StartPoint.X - 12, cableLineDown.EndPoint.Y + 7), 0, 0, 0);
+                    tBoxFrame.AddVertexAt(1, new Point2d(cableLineDown.EndPoint.X + 14, cableLineDown.EndPoint.Y + 7), 0, 0, 0);
+                    tBoxFrame.AddVertexAt(2, new Point2d(cableLineDown.EndPoint.X + 14, tBoxJumper.EndPoint.Y - 2), 0, 0, 0);
+                    tBoxFrame.AddVertexAt(3, new Point2d(cableLineDown.StartPoint.X - 12, tBoxJumper.EndPoint.Y - 2), 0, 0, 0);
+                    modSpace.AppendEntity(tBoxFrame);
+                    acTrans.AddNewlyCreatedDBObject(tBoxFrame, true);
+
+                    MText tBoxName = new MText();
+                    tBoxName.SetDatabaseDefaults();
+                    tBoxName.TextHeight = 3;
+                    if (tst.Has("spds 2.5-0.85"))
+                        tBoxName.TextStyleId = tst["spds 2.5-0.85"];
+                    tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    tBoxName.Location = tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
+                    tBoxName.Contents = groups[i].Units[unitsIndex].tBoxName;
+                    tBoxName.Attachment = AttachmentPoint.BottomLeft;
+                    modSpace.AppendEntity(tBoxName);
+                    acTrans.AddNewlyCreatedDBObject(tBoxName, true);
+                    tbox.textName.Add(tBoxName);
+
+                    Leader acLdr = new Leader();
+                    acLdr.SetDatabaseDefaults();
+                    acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(-5, 0, 0)));
+                    acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(0, 5, 0)));
+                    acLdr.AppendVertex(tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(tBoxName.ActualWidth + 1, 5, 0)));
+                    acLdr.HasArrowHead = false;
+                    modSpace.AppendEntity(acLdr);
+                    acTrans.AddNewlyCreatedDBObject(acLdr, true);
+                    tbox.ldr.Add(acLdr);
+
+                    if (groups[i].Units[unitsIndex].shield)
                     {
-                        cableLine.EndPoint = cableLine.EndPoint.Add(new Vector3d(0, -135, 0));
-                        cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
-                        textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
-                        equipPoints.Add(cableLine.EndPoint);
-                    }                        
-                    for (int k = 0; k < equipPoints.Count; k++)
-                    {
-                        double length = (units[index[k]].equipTerminals.Count - 2) * 5 + 5;
-                        Line equipJumper = new Line();
-                        equipJumper.SetDatabaseDefaults();
-                        equipJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        equipJumper.StartPoint = equipPoints[k].Add(new Vector3d(-length / 2, 0, 0));
-                        equipJumper.EndPoint = equipJumper.StartPoint.Add(new Vector3d(length, 0, 0));
-                        modSpace.AppendEntity(equipJumper);
-                        acTrans.AddNewlyCreatedDBObject(equipJumper, true);
-
-                        double lowestPoint = 0;
-                        int color = 0;
-                        for (int c = 0; c < units[index[k]].equipTerminals.Count; c++)
-                        {
-                            Line equipLine = new Line();
-                            equipLine.SetDatabaseDefaults();
-                            equipLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            equipLine.StartPoint = equipJumper.StartPoint.Add(new Vector3d(5 * c, 0, 0));
-                            equipLine.EndPoint = equipLine.StartPoint.Add(new Vector3d(0, -7, 0));
-                            modSpace.AppendEntity(equipLine);
-                            acTrans.AddNewlyCreatedDBObject(equipLine, true);
-
-                            MText colorMark = new MText();
-                            colorMark.SetDatabaseDefaults();
-                            colorMark.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                colorMark.TextStyleId = tst["spds 2.5-0.85"];
-                            colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            double x = equipLine.EndPoint.X - 1;
-                            double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
-                            colorMark.Location = new Point3d(x, y, 0);
-                            colorMark.Contents = units[index[k]].colors[color];
-                            colorMark.Rotation = 1.5708;
-                            colorMark.Attachment = AttachmentPoint.BottomCenter;
-                            modSpace.AppendEntity(colorMark);
-                            acTrans.AddNewlyCreatedDBObject(colorMark, true);
-
-                            Polyline equipTerm = new Polyline();
-                            equipTerm.SetDatabaseDefaults();
-                            equipTerm.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            equipTerm.Closed = true;
-                            equipTerm.AddVertexAt(0, new Point2d(equipLine.EndPoint.X - 2.5, equipLine.EndPoint.Y), 0, 0, 0);
-                            equipTerm.AddVertexAt(1, equipTerm.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
-                            equipTerm.AddVertexAt(2, equipTerm.GetPoint2dAt(1).Add(new Vector2d(0, -5)), 0, 0, 0);
-                            equipTerm.AddVertexAt(3, equipTerm.GetPoint2dAt(0).Add(new Vector2d(0, -5)), 0, 0, 0);
-                            modSpace.AppendEntity(equipTerm);
-                            acTrans.AddNewlyCreatedDBObject(equipTerm, true);
-
-                            MText cableTextDown = new MText();
-                            cableTextDown.SetDatabaseDefaults();
-                            cableTextDown.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
-                            cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            x = equipTerm.GetPoint3dAt(0).X + (equipTerm.GetPoint3dAt(1).X - equipTerm.GetPoint3dAt(0).X) / 2;
-                            y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
-                            cableTextDown.Location = new Point3d(x, y, 0);
-                            cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
-                            cableTextDown.Contents = units[index[k]].equipTerminals[c];
-                            modSpace.AppendEntity(cableTextDown);
-                            acTrans.AddNewlyCreatedDBObject(cableTextDown, true);
-
-                            lowestPoint = equipTerm.GetPoint3dAt(3).Y;
-                            if (color < units[index[k]].colors.Count - 1) color++;
-                            else color = 0;
-                        }
-
-                        Polyline equipFrame = new Polyline();
-                        equipFrame.SetDatabaseDefaults();
-                        if (lineTypeTable.Has("штриховая2"))
-                            equipFrame.LinetypeId = lineTypeTable["штриховая2"];
-                        else if (lineTypeTable.Has("hidden2"))
-                            equipFrame.LinetypeId = lineTypeTable["hidden2"];
-                        equipFrame.LinetypeScale = 5;
-                        equipFrame.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                        equipFrame.Closed = true;
-                        equipFrame.AddVertexAt(0, new Point2d(equipJumper.StartPoint.X - 10, equipJumper.EndPoint.Y + 5), 0, 0, 0);
-                        equipFrame.AddVertexAt(1, new Point2d(equipJumper.EndPoint.X + 10, equipJumper.EndPoint.Y + 5), 0, 0, 0);
-                        equipFrame.AddVertexAt(2, new Point2d(equipJumper.EndPoint.X + 10, lowestPoint - 4), 0, 0, 0);
-                        equipFrame.AddVertexAt(3, new Point2d(equipJumper.StartPoint.X - 10, lowestPoint - 4), 0, 0, 0);
-                        modSpace.AppendEntity(equipFrame);
-                        acTrans.AddNewlyCreatedDBObject(equipFrame, true);
-
-                        double C = equipFrame.GetPoint2dAt(0).X;
-                        double D = equipFrame.GetPoint2dAt(1).X;
-                        double A = tables[curTableNum].Position.X;
-                        double B = tables[curTableNum].Position.X + tables[curTableNum].Width;
-                        width = 2 * (C - B) + (D - C);
-                        tables[curTableNum].InsertColumns(tables[curTableNum].Columns.Count, width, 1);
-                        tables[curTableNum].UnmergeCells(tables[curTableNum].Rows[0]);
-                        if (tst.Has("spds 2.5-0.85"))
-                            tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextStyleId = tst["spds 2.5-0.85"];
-                        tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextHeight = 2.5;
-                        tables[curTableNum].Cells[0, tables[curTableNum].Columns.Count - 1].TextString = units[index[k]].equipType == "" ? "-" : units[index[k]].equipType;
-                        tables[curTableNum].Cells[1, tables[curTableNum].Columns.Count - 1].TextString = units[index[k]].designation;
-                        tables[curTableNum].Cells[2, tables[curTableNum].Columns.Count - 1].TextString = units[index[k]].param;
-                        tables[curTableNum].Cells[3, tables[curTableNum].Columns.Count - 1].TextString = units[index[k]].equipment;
-                        tables[curTableNum].GenerateLayout();
+                        tbox.shield = true;
+                        tbox.lastTermPoint = lastTermPoint;
+                        tbox.cableLineSPLX = cableLine.StartPoint.X - 3;
+                        tbox.cableLineSPRX = cableLine.StartPoint.X + 3;
+                        tbox.cableLineEPY = cableLine.EndPoint.Y + 8;
                     }
+                    else tbox.shield = false;
 
-                    prevTbox = units[i].tBoxName;
-                    points = new List<Point3d>();
-                    index = new List<int>();
 
-                    cableLineUp = new Line();
-                    cableLineUp.SetDatabaseDefaults();
-                    cableLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                    cableLineUp.StartPoint = units[i].cableOutput[0];
-                    cableLineUp.EndPoint = cableLineUp.StartPoint;
-                    modSpace.AppendEntity(cableLineUp);
-                    acTrans.AddNewlyCreatedDBObject(cableLineUp, true);
-                    for (int j = 0; j < units[i].cableOutput.Count; j++)
-                    {
-                        cableLineUp.EndPoint = units[i].cableOutput[j];
-                        points.Add(units[i].cableOutput[j]);
-                        index.Add(i);
-                    }
+                    tboxes[index] = tbox;
                 }
-                if (units[i].newSheet) curTableNum++;
+                else
+                {
+                    cableLine.EndPoint = cableLine.EndPoint.Add(new Vector3d(0, -135, 0));
+                    cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
+                    textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
+                    Unit unit = groups[i].Units[unitsIndex];
+                    unit.equipPoint = cableLine.EndPoint;
+                    groups[i].Units[unitsIndex] = unit;
+                }
+                for (int k = 0; k < groups[i].Units.Count; k++)
+                {
+                    if (groups[i].Units[k].newSheet) curTableNum++;
+                    double length = (groups[i].Units[k].equipTerminals.Count - 2) * 5 + 5;
+                    Line equipJumper = new Line();
+                    equipJumper.SetDatabaseDefaults();
+                    equipJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    equipJumper.StartPoint = groups[i].Units[k].equipPoint.Add(new Vector3d(-length / 2, 0, 0));
+                    equipJumper.EndPoint = equipJumper.StartPoint.Add(new Vector3d(length, 0, 0));
+                    modSpace.AppendEntity(equipJumper);
+                    acTrans.AddNewlyCreatedDBObject(equipJumper, true);
+
+                    double lowestPoint = 0;
+                    int color = 0;
+                    for (int c = 0; c < groups[i].Units[k].equipTerminals.Count; c++)
+                    {
+                        Line equipLine = new Line();
+                        equipLine.SetDatabaseDefaults();
+                        equipLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        equipLine.StartPoint = equipJumper.StartPoint.Add(new Vector3d(5 * c, 0, 0));
+                        equipLine.EndPoint = equipLine.StartPoint.Add(new Vector3d(0, -10, 0));
+                        modSpace.AppendEntity(equipLine);
+                        acTrans.AddNewlyCreatedDBObject(equipLine, true);
+
+                        MText colorMark = new MText();
+                        colorMark.SetDatabaseDefaults();
+                        colorMark.TextHeight = 2.5;
+                        if (tst.Has("spds 2.5-0.85"))
+                            colorMark.TextStyleId = tst["spds 2.5-0.85"];
+                        colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        double x = equipLine.EndPoint.X - 1;
+                        double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
+                        colorMark.Location = new Point3d(x, y, 0);
+                        colorMark.Contents = groups[i].Units[k].colors[color];
+                        colorMark.Rotation = 1.5708;
+                        colorMark.Attachment = AttachmentPoint.BottomCenter;
+                        modSpace.AppendEntity(colorMark);
+                        acTrans.AddNewlyCreatedDBObject(colorMark, true);
+
+                        Polyline equipTerm = new Polyline();
+                        equipTerm.SetDatabaseDefaults();
+                        equipTerm.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        equipTerm.Closed = true;
+                        equipTerm.AddVertexAt(0, new Point2d(equipLine.EndPoint.X - 2.5, equipLine.EndPoint.Y), 0, 0, 0);
+                        equipTerm.AddVertexAt(1, equipTerm.GetPoint2dAt(0).Add(new Vector2d(5, 0)), 0, 0, 0);
+                        equipTerm.AddVertexAt(2, equipTerm.GetPoint2dAt(1).Add(new Vector2d(0, -5)), 0, 0, 0);
+                        equipTerm.AddVertexAt(3, equipTerm.GetPoint2dAt(0).Add(new Vector2d(0, -5)), 0, 0, 0);
+                        modSpace.AppendEntity(equipTerm);
+                        acTrans.AddNewlyCreatedDBObject(equipTerm, true);
+
+                        MText cableTextDown = new MText();
+                        cableTextDown.SetDatabaseDefaults();
+                        cableTextDown.TextHeight = 2.5;
+                        if (tst.Has("spds 2.5-0.85"))
+                            cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                        cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        x = equipTerm.GetPoint3dAt(0).X + (equipTerm.GetPoint3dAt(1).X - equipTerm.GetPoint3dAt(0).X) / 2;
+                        y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
+                        cableTextDown.Location = new Point3d(x, y, 0);
+                        cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
+                        cableTextDown.Contents = groups[i].Units[k].equipTerminals[c];
+                        modSpace.AppendEntity(cableTextDown);
+                        acTrans.AddNewlyCreatedDBObject(cableTextDown, true);
+
+                        lowestPoint = equipTerm.GetPoint3dAt(3).Y;
+                        if (color < groups[i].Units[k].colors.Count - 1) color++;
+                        else color = 0;
+
+                    }
+                    Polyline equipFrame = new Polyline();
+                    equipFrame.SetDatabaseDefaults();
+                    if (lineTypeTable.Has("штриховая2"))
+                        equipFrame.LinetypeId = lineTypeTable["штриховая2"];
+                    else if (lineTypeTable.Has("hidden2"))
+                        equipFrame.LinetypeId = lineTypeTable["hidden2"];
+                    equipFrame.LinetypeScale = 5;
+                    equipFrame.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                    equipFrame.Closed = true;
+                    equipFrame.AddVertexAt(0, new Point2d(equipJumper.StartPoint.X - 10, equipJumper.EndPoint.Y + 5), 0, 0, 0);
+                    equipFrame.AddVertexAt(1, new Point2d(equipJumper.EndPoint.X + 10, equipJumper.EndPoint.Y + 5), 0, 0, 0);
+                    equipFrame.AddVertexAt(2, new Point2d(equipJumper.EndPoint.X + 10, lowestPoint - 4), 0, 0, 0);
+                    equipFrame.AddVertexAt(3, new Point2d(equipJumper.StartPoint.X - 10, lowestPoint - 4), 0, 0, 0);
+                    modSpace.AppendEntity(equipFrame);
+                    acTrans.AddNewlyCreatedDBObject(equipFrame, true);
+
+                    double C = equipFrame.GetPoint2dAt(0).X;
+                    double D = equipFrame.GetPoint2dAt(1).X;
+                    double A = tables[curTableNum].Position.X;
+                    double B = tables[curTableNum].Position.X + tables[curTableNum].Width;
+                    width = 2 * (C - B) + (D - C);
+                    tables[curTableNum].InsertColumns(tables[curTableNum].Columns.Count, width, 1);
+                    tables[curTableNum].UnmergeCells(tables[curTableNum].Rows[0]);
+                    if (tst.Has("spds 2.5-0.85"))
+                        tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextStyleId = tst["spds 2.5-0.85"];
+                    tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextHeight = 2.5;
+                    tables[curTableNum].Cells[0, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].equipType == "" ? "-" : groups[i].Units[k].equipType;
+                    tables[curTableNum].Cells[1, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].designation;
+                    tables[curTableNum].Cells[2, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].param;
+                    tables[curTableNum].Cells[3, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].equipment;
+                    tables[curTableNum].GenerateLayout();
+                }
             }
         }
 
-        private static Point3d drawTerminalBoxUnit(Transaction acTrans, BlockTableRecord modSpace, int index, Point3d point, Point3d cableEndPoint, out Point3d lastTerminalPoint)
+        private static Point3d drawTerminalBoxUnit(Transaction acTrans, BlockTableRecord modSpace, Point3d point, Unit unit, Point3d cableEndPoint, ref tBox tbox, int pairNumber, out Point3d lastTerminalPoint)
         {
             Line tBoxInput = new Line();
             tBoxInput.SetDatabaseDefaults();
@@ -1252,6 +1677,21 @@ namespace AcElectricalSchemePlugin
             tBoxInput.EndPoint = tBoxInput.StartPoint.Add(new Vector3d(0, -8, 0));
             modSpace.AppendEntity(tBoxInput);
             acTrans.AddNewlyCreatedDBObject(tBoxInput, true);
+
+            MText pairMark = new MText();
+            pairMark.SetDatabaseDefaults();
+            pairMark.TextHeight = 2.5;
+            if (tst.Has("spds 2.5-0.85"))
+                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+            pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+            double X = tBoxInput.EndPoint.X - 1;
+            double Y = tBoxInput.EndPoint.Y + (tBoxInput.StartPoint.Y - tBoxInput.EndPoint.Y) / 2;
+            pairMark.Location = new Point3d(X, Y, 0);
+            pairMark.Contents = "PR" + (pairNumber < 10 ? "0" + pairNumber.ToString() : pairNumber.ToString());
+            pairMark.Rotation = 1.5708;
+            pairMark.Attachment = AttachmentPoint.BottomCenter;
+            modSpace.AppendEntity(pairMark);
+            acTrans.AddNewlyCreatedDBObject(pairMark, true);
 
             Line tBoxInputBranch = new Line();
             tBoxInputBranch.SetDatabaseDefaults();
@@ -1264,7 +1704,7 @@ namespace AcElectricalSchemePlugin
             double lowestPoint = 0;
             Point3d lastTermPoint = new Point3d();
             int color = 0;
-            for (int i = units[index].colors.Count - 1; i >= 0; i--)
+            for (int i = unit.colors.Count - 1; i >= 0; i--)
             {
                 tBoxInputBranch.EndPoint = tBoxInput.StartPoint.Add(new Vector3d(-5 * i, -8, 0));
 
@@ -1296,7 +1736,7 @@ namespace AcElectricalSchemePlugin
                 double x = cablePolyUp.GetPoint3dAt(0).X + (cablePolyUp.GetPoint3dAt(1).X - cablePolyUp.GetPoint3dAt(0).X) / 2;
                 double y = cablePolyUp.GetPoint3dAt(2).Y + (cablePolyUp.GetPoint3dAt(1).Y - cablePolyUp.GetPoint3dAt(2).Y) / 2;
                 cableTextUp.Location = new Point3d(x, y, 0);
-                cableTextUp.Contents = units[index].designation + "/" + curTermNumber;
+                cableTextUp.Contents = unit.designation + "/" + curTermNumber;
                 cableTextUp.Rotation = 1.5708;
                 cableTextUp.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(cableTextUp);
@@ -1306,7 +1746,7 @@ namespace AcElectricalSchemePlugin
                 colorLineUp.SetDatabaseDefaults();
                 colorLineUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 colorLineUp.StartPoint = cablePolyUp.GetPoint3dAt(2).Add(new Vector3d(-2.5, 0, 0));
-                colorLineUp.EndPoint = colorLineUp.StartPoint.Add(new Vector3d(0, -8, 0));
+                colorLineUp.EndPoint = colorLineUp.StartPoint.Add(new Vector3d(0, -10, 0));
                 modSpace.AppendEntity(colorLineUp);
                 acTrans.AddNewlyCreatedDBObject(colorLineUp, true);
 
@@ -1319,7 +1759,7 @@ namespace AcElectricalSchemePlugin
                 x = colorLineUp.EndPoint.X - 1;
                 y = colorLineUp.EndPoint.Y + (colorLineUp.StartPoint.Y - colorLineUp.EndPoint.Y) / 2;
                 colorMarkUp.Location = new Point3d(x, y, 0);
-                colorMarkUp.Contents = units[index].colors[color];
+                colorMarkUp.Contents = unit.colors[color];
                 colorMarkUp.Rotation = 1.5708;
                 colorMarkUp.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(colorMarkUp);
@@ -1346,17 +1786,18 @@ namespace AcElectricalSchemePlugin
                 x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
                 y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
                 termText.Location = new Point3d(x, y, 0);
-                termText.Contents = "";
+                termText.Contents = tbox.LastTerminalNumber.ToString();
                 termText.Rotation = 1.5708;
                 termText.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(termText);
                 acTrans.AddNewlyCreatedDBObject(termText, true);
+                tbox.LastTerminalNumber++;
 
                 Line colorLineDown = new Line();
                 colorLineDown.SetDatabaseDefaults();
                 colorLineDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 colorLineDown.StartPoint = termPoly.GetPoint3dAt(2).Add(new Vector3d(-2.5, 0, 0));
-                colorLineDown.EndPoint = colorLineDown.StartPoint.Add(new Vector3d(0, -8, 0));
+                colorLineDown.EndPoint = colorLineDown.StartPoint.Add(new Vector3d(0, -10, 0));
                 modSpace.AppendEntity(colorLineDown);
                 acTrans.AddNewlyCreatedDBObject(colorLineDown, true);
 
@@ -1367,9 +1808,9 @@ namespace AcElectricalSchemePlugin
                     colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
                 colorMarkDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = colorLineDown.EndPoint.X - 1;
-                y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y)/2;
+                y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
                 colorMarkDown.Location = new Point3d(x, y, 0);
-                colorMarkDown.Contents = units[index].colors[color];
+                colorMarkDown.Contents = unit.colors[color];
                 colorMarkDown.Rotation = 1.5708;
                 colorMarkDown.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(colorMarkDown);
@@ -1395,7 +1836,7 @@ namespace AcElectricalSchemePlugin
                 x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                 y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
                 cableTextDown.Location = new Point3d(x, y, 0);
-                cableTextDown.Contents = units[index].designation + "/" + curTermNumber;
+                cableTextDown.Contents = unit.designation + "/" + curTermNumber;
                 cableTextDown.Rotation = 1.5708;
                 cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(cableTextDown);
@@ -1411,21 +1852,22 @@ namespace AcElectricalSchemePlugin
 
                 lowestPoint = tBoxBranchOutput.EndPoint.Y;
                 curTermNumber++;
-                if (color < units[index].colors.Count - 1) color++;
+                if (color < unit.colors.Count - 1) color++;
                 else color = 0;
             }
-            
 
-            tBoxInputBranch.EndPoint = tBoxInput.StartPoint.Add(new Vector3d(-5 * (units[index].colors.Count - 1), -8, 0));
+
+            tBoxInputBranch.EndPoint = tBoxInput.StartPoint.Add(new Vector3d(-5 * (unit.colors.Count - 1), -8, 0));
             Line tBoxOutputBranch = new Line();
             tBoxOutputBranch.SetDatabaseDefaults();
             tBoxOutputBranch.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             tBoxOutputBranch.StartPoint = new Point3d(tBoxInputBranch.StartPoint.X, lowestPoint, 0);
-            tBoxOutputBranch.EndPoint = tBoxOutputBranch.StartPoint.Add(new Vector3d(-5 * (units[index].colors.Count - 1), 0, 0));
+            tBoxOutputBranch.EndPoint = tBoxOutputBranch.StartPoint.Add(new Vector3d(-5 * (unit.colors.Count - 1), 0, 0));
             modSpace.AppendEntity(tBoxOutputBranch);
             acTrans.AddNewlyCreatedDBObject(tBoxOutputBranch, true);
 
-            lastTerminalPoint = drawTBoxGnd(acTrans, modSpace, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y);
+            lastTerminalPoint = drawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y);
+            tbox.LastShieldNumber++;
 
             Line tBoxOutput = new Line();
             tBoxOutput.SetDatabaseDefaults();
@@ -1435,15 +1877,15 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(tBoxOutput);
             acTrans.AddNewlyCreatedDBObject(tBoxOutput, true);
 
-            MText pairMark = new MText();
+            pairMark = new MText();
             curPairMark = pairMark;
             pairMark.SetDatabaseDefaults();
             pairMark.TextHeight = 2.5;
             if (tst.Has("spds 2.5-0.85"))
                 pairMark.TextStyleId = tst["spds 2.5-0.85"];
             pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-            double X = tBoxOutput.EndPoint.X - 1;
-            double Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
+            X = tBoxOutput.EndPoint.X - 1;
+            Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
             pairMark.Location = new Point3d(X, Y, 0);
             pairMark.Contents = "PR" + (curPairNumber < 10 ? "0" + curPairNumber.ToString() : curPairNumber.ToString());
             pairMark.Rotation = 1.5708;
