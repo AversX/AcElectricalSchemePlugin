@@ -47,6 +47,12 @@ namespace AcElectricalSchemePlugin
             ControlSchemeClass.drawControlScheme();
         }
 
+        [CommandMethod("Article", CommandFlags.Session)]
+        public void Article()
+        {
+            ArticleClass.ChangeArticles();
+        }
+
         [CommandMethod("SLine", CommandFlags.Session)]
         public void SLine()
         {

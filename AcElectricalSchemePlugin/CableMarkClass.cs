@@ -28,7 +28,7 @@ namespace AcElectricalSchemePlugin
             marks = getAllMarks();
             cables = new List<Cable>();
             CalculatedCables = new List<Cable>();
-            blocks = getBlocks();
+            //blocks = getBlocks();
 
             using (DocumentLock docLock = acDoc.LockDocument())
             {
@@ -66,10 +66,10 @@ namespace AcElectricalSchemePlugin
             for (int i=0; i<cables.Count; i++)
                 for (int j=0; j<cables[i].TailsNum;j++)
                     data.Add(cables[i].Mark.TextString);
-            List<Cable> cable = calculateBlock();
-            for (int i=0; i<cables.Count; i++)
-                for (int j=0; j<cables[i].TailsNum;j++)
-                    data.Add(cables[i].Mark.TextString);
+            //List<Cable> cable = calculateBlock();
+            //for (int i=0; i<cables.Count; i++)
+            //    for (int j=0; j<cables[i].TailsNum;j++)
+            //        data.Add(cables[i].Mark.TextString);
             data.Sort(new NaturalStringComparer());
             return data;
         }
@@ -78,7 +78,7 @@ namespace AcElectricalSchemePlugin
         {
             TypedValue[] filterlist = new TypedValue[2];
             filterlist[0] = new TypedValue((int)DxfCode.Start, "LINE");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_N,КИА_PE,КИА_КАБЕЛЬ_ОДНОЖИЛЬНЫЙ,КИА_КАБЕЛЬ,КИА_МНОГОЖИЛЬНЫЙ");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_N,КИА_PE,КИА_КАБЕЛЬ_ОДНОЖИЛЬНЫЙ,КИА_КАБЕЛЬ,КИА_МНОГОЖИЛЬНЫЙ,КИА_КАБЕЛЬ_24В,КИА_КАБЕЛБ_24В,0");
             SelectionFilter filter = new SelectionFilter(filterlist);
             Point3d point = Text.Rotation == 0 ?
                         new Point3d(Text.Position.X, Text.Position.Y - 2, Text.Position.Z) : new Point3d(Text.Position.X + 2, Text.Position.Y, Text.Position.Z);
@@ -136,11 +136,11 @@ namespace AcElectricalSchemePlugin
             using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
             {
                 for (int i = 0; i < cables.Count; i++)
-                   if (!inBlock(cables[i]))
+                  // if (!inBlock(cables[i]))
                     {
                         for (int j = i + 1; j < cables.Count; j++)
                         {
-                           if (!inBlock(cables[j]))
+                          // if (!inBlock(cables[j]))
                             {
                                 if (cables[i].Mark.TextString.Equals(cables[j].Mark.TextString))
                                 {
@@ -243,9 +243,9 @@ namespace AcElectricalSchemePlugin
                                         //if (removed == 0) j++;
                                     }
                                 } //else j++;
-                            } else cables.RemoveAt(j);
+                            }// else cables.RemoveAt(j);
                         } //i++;
-                    } else cables.RemoveAt(i);
+                    } //else cables.RemoveAt(i);
                 for (int i = 0; i < cables.Count; i++)
                 {
                     if (cables[i].TailsNum == 2)
@@ -291,7 +291,6 @@ namespace AcElectricalSchemePlugin
         {
             TypedValue[] filterlist = new TypedValue[2];
             filterlist[0] = new TypedValue((int)DxfCode.Start, "CIRCLE");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_КЛЕММЫ");
             SelectionFilter filter = new SelectionFilter(filterlist);
             Point3d point1;
             Point3d point2;
@@ -374,7 +373,6 @@ namespace AcElectricalSchemePlugin
             TypedValue[] filterlist = new TypedValue[2];
             string layerName = ((LayerTableRecord)acTrans.GetObject(line.LayerId, OpenMode.ForRead)).Name;
             filterlist[0] = new TypedValue((int)DxfCode.Start, "HATCH");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, layerName);
             SelectionFilter filter = new SelectionFilter(filterlist);
             Point3d point1;
             Point3d point2;
@@ -415,101 +413,101 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static List<Cable> calculateBlock()
-        {
-            List<Cable> calculated = new List<Cable>();
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                for (int j = 0; j < blocks[i].Cables.Count; j++)
-                {
-                    Cable cableL = blocks[i].Cables[j].cable;
-                    for (int k = j + 1; k < blocks[i].Cables.Count; k++)
-                    {
-                        if (!blocks[i].Cables[k].Left)
-                        {
-                            Cable cableR = blocks[i].Cables[k].cable;
-                            if (blocks[i].Cables[j].Left)
-                            {
-                                if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
-                                    if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
-                                    {
-                                        string left = cableL.Mark.TextString;
-                                        string right = cableR.Mark.TextString;
-                                        left.Remove(0, 2);
-                                        right.Remove(0, 2);
-                                        int leftCount;
-                                        int rightCount;
-                                        int.TryParse(left, out leftCount);
-                                        int.TryParse(right, out rightCount);
-                                        if (leftCount != 0 && rightCount != 0)
-                                        {
-                                            if (leftCount < rightCount)
-                                                for (int q = leftCount; q <= rightCount; q++)
-                                                {
-                                                    DBText mark = new DBText();
-                                                    mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
-                                                    Cable cable = new Cable(mark, new Line());
-                                                    cable.TailsNum = cableL.TailsNum;
-                                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
-                                                        calculated.Add(cable);
-                                                }
-                                        }
-                                    }
-                                    else if (cableL.Mark.TextString == cableR.Mark.TextString)
-                                        for (int q = 0; q < blocks[i].Number; q++)
-                                        {
-                                            DBText mark = new DBText();
-                                            mark.TextString = cableL.Mark.TextString;
-                                            Cable cable = new Cable(mark, new Line());
-                                            cable.TailsNum = cableL.TailsNum;
-                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
-                                                calculated.Add(cable);
-                                        }
-                            }
-                            else
-                            {
-                                if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
-                                    if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
-                                    {
-                                        string left = cableR.Mark.TextString;
-                                        string right = cableL.Mark.TextString;
-                                        left.Remove(0, 2);
-                                        right.Remove(0, 2);
-                                        int leftCount;
-                                        int rightCount;
-                                        int.TryParse(left, out leftCount);
-                                        int.TryParse(right, out rightCount);
-                                        if (leftCount != 0 && rightCount != 0)
-                                        {
-                                            if (leftCount < rightCount)
-                                                for (int q = leftCount; q <= rightCount; q++)
-                                                {
-                                                    DBText mark = new DBText();
-                                                    mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
-                                                    Cable cable = new Cable(mark, new Line());
-                                                    cable.TailsNum = cableL.TailsNum;
-                                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
-                                                        calculated.Add(cable);
-                                                }
-                                        }
-                                    }
-                                    else if (cableL.Mark.TextString == cableR.Mark.TextString)
-                                        for (int q = 0; q < blocks[i].Number; q++)
-                                        {
-                                            DBText mark = new DBText();
-                                            mark.TextString = cableL.Mark.TextString;
-                                            Cable cable = new Cable(mark, new Line());
-                                            cable.TailsNum = cableL.TailsNum;
-                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
-                                                calculated.Add(cable);
-                                        }
-                            }
-                        }
-                    }
-                }
-            }
-            return calculated;
-        }
+        //private static List<Cable> calculateBlock()
+        //{
+        //    List<Cable> calculated = new List<Cable>();
+        //    for (int i = 0; i < blocks.Count; i++)
+        //    {
+        //        for (int j = 0; j < blocks[i].Cables.Count; j++)
+        //        {
+        //            Cable cableL = blocks[i].Cables[j].cable;
+        //            for (int k = j + 1; k < blocks[i].Cables.Count; k++)
+        //            {
+        //                if (!blocks[i].Cables[k].Left)
+        //                {
+        //                    Cable cableR = blocks[i].Cables[k].cable;
+        //                    if (blocks[i].Cables[j].Left)
+        //                    {
+        //                        if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
+        //                            if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
+        //                            {
+        //                                string left = cableL.Mark.TextString;
+        //                                string right = cableR.Mark.TextString;
+        //                                left.Remove(0, 2);
+        //                                right.Remove(0, 2);
+        //                                int leftCount;
+        //                                int rightCount;
+        //                                int.TryParse(left, out leftCount);
+        //                                int.TryParse(right, out rightCount);
+        //                                if (leftCount != 0 && rightCount != 0)
+        //                                {
+        //                                    if (leftCount < rightCount)
+        //                                        for (int q = leftCount; q <= rightCount; q++)
+        //                                        {
+        //                                            DBText mark = new DBText();
+        //                                            mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
+        //                                            Cable cable = new Cable(mark, new Line());
+        //                                            cable.TailsNum = cableL.TailsNum;
+        //                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+        //                                                calculated.Add(cable);
+        //                                        }
+        //                                }
+        //                            }
+        //                            else if (cableL.Mark.TextString == cableR.Mark.TextString)
+        //                                for (int q = 0; q < blocks[i].Number; q++)
+        //                                {
+        //                                    DBText mark = new DBText();
+        //                                    mark.TextString = cableL.Mark.TextString;
+        //                                    Cable cable = new Cable(mark, new Line());
+        //                                    cable.TailsNum = cableL.TailsNum;
+        //                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+        //                                        calculated.Add(cable);
+        //                                }
+        //                    }
+        //                    else
+        //                    {
+        //                        if (cableL.Mark.Position.Y >= cableR.Mark.Position.Y - 1 && cableL.Mark.Position.Y <= cableR.Mark.Position.Y + 1)
+        //                            if (cableL.Mark.TextString[0] == cableR.Mark.TextString[0] && cableL.Mark.TextString[1] == cableR.Mark.TextString[1])
+        //                            {
+        //                                string left = cableR.Mark.TextString;
+        //                                string right = cableL.Mark.TextString;
+        //                                left.Remove(0, 2);
+        //                                right.Remove(0, 2);
+        //                                int leftCount;
+        //                                int rightCount;
+        //                                int.TryParse(left, out leftCount);
+        //                                int.TryParse(right, out rightCount);
+        //                                if (leftCount != 0 && rightCount != 0)
+        //                                {
+        //                                    if (leftCount < rightCount)
+        //                                        for (int q = leftCount; q <= rightCount; q++)
+        //                                        {
+        //                                            DBText mark = new DBText();
+        //                                            mark.TextString = cableL.Mark.TextString[0] + cableL.Mark.TextString[1] + leftCount.ToString();
+        //                                            Cable cable = new Cable(mark, new Line());
+        //                                            cable.TailsNum = cableL.TailsNum;
+        //                                            if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+        //                                                calculated.Add(cable);
+        //                                        }
+        //                                }
+        //                            }
+        //                            else if (cableL.Mark.TextString == cableR.Mark.TextString)
+        //                                for (int q = 0; q < blocks[i].Number; q++)
+        //                                {
+        //                                    DBText mark = new DBText();
+        //                                    mark.TextString = cableL.Mark.TextString;
+        //                                    Cable cable = new Cable(mark, new Line());
+        //                                    cable.TailsNum = cableL.TailsNum;
+        //                                    if (!calculated.Exists(x => x.Mark.TextString == mark.TextString))
+        //                                        calculated.Add(cable);
+        //                                }
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    return calculated;
+        //}
         
         private static Cable findCableByMark(List<Cable> cables, DBText mark)
         {
@@ -519,146 +517,146 @@ namespace AcElectricalSchemePlugin
             return result;
         }
 
-        private static bool inBlock(Cable cable)
-        {
-            BlockCouple block;
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                if (inPerimeter(blocks[i].Block1, cable.Mark.Position))
-                {
-                    block = blocks[i];
-                    List<BlockCable> bC = block.Cables;
-                    bC.Add(new BlockCable(cable, true));
-                    block.Cables = bC;
-                    return true;
-                }
-                else if (inPerimeter(blocks[i].Block2, cable.Mark.Position))
-                {
-                    block = blocks[i];
-                    List<BlockCable> bC = block.Cables;
-                    bC.Add(new BlockCable(cable, false));
-                    block.Cables = bC;
-                    return true;
-                }
-            }
-            return false;
-        }
+        //private static bool inBlock(Cable cable)
+        //{
+        //    BlockCouple block;
+        //    for (int i = 0; i < blocks.Count; i++)
+        //    {
+        //        if (inPerimeter(blocks[i].Block1, cable.Mark.Position))
+        //        {
+        //            block = blocks[i];
+        //            List<BlockCable> bC = block.Cables;
+        //            bC.Add(new BlockCable(cable, true));
+        //            block.Cables = bC;
+        //            return true;
+        //        }
+        //        else if (inPerimeter(blocks[i].Block2, cable.Mark.Position))
+        //        {
+        //            block = blocks[i];
+        //            List<BlockCable> bC = block.Cables;
+        //            bC.Add(new BlockCable(cable, false));
+        //            block.Cables = bC;
+        //            return true;
+        //        }
+        //    }
+        //    return false;
+        //}
 
-        private static bool inPerimeter(Polyline poly, Point3d point)
-        {
-            Point3d point1 = poly.GetPoint3dAt(0);
-            for (int i = 1; i < poly.NumberOfVertices; i++)
-            {
-                Point3d p = poly.GetPoint3dAt(i);
-                if (point1.X >= p.X && point1.Y <= p.Y)
-                    point1 = p;
-            }
-            Point3d point3 = poly.GetPoint3dAt(0);
-            for (int i = 1; i < poly.NumberOfVertices; i++)
-            {
-                Point3d p = poly.GetPoint3dAt(i);
-                if (point3.X <= p.X && point3.Y >= p.Y)
-                    point3 = p;
-            }
-            if (point.X >= point1.X && point.X <= point3.X && point.Y <= point1.Y && point.Y >= point3.Y) 
-                return true;
-            else return false;
-        }
+        //private static bool inPerimeter(Polyline poly, Point3d point)
+        //{
+        //    Point3d point1 = poly.GetPoint3dAt(0);
+        //    for (int i = 1; i < poly.NumberOfVertices; i++)
+        //    {
+        //        Point3d p = poly.GetPoint3dAt(i);
+        //        if (point1.X >= p.X && point1.Y <= p.Y)
+        //            point1 = p;
+        //    }
+        //    Point3d point3 = poly.GetPoint3dAt(0);
+        //    for (int i = 1; i < poly.NumberOfVertices; i++)
+        //    {
+        //        Point3d p = poly.GetPoint3dAt(i);
+        //        if (point3.X <= p.X && point3.Y >= p.Y)
+        //            point3 = p;
+        //    }
+        //    if (point.X >= point1.X && point.X <= point3.X && point.Y <= point1.Y && point.Y >= point3.Y) 
+        //        return true;
+        //    else return false;
+        //}
 
-        private static List<BlockCouple> getBlocks()
-        {
-            List<BlockCouple> blocks = new List<BlockCouple>(); 
-            TypedValue[] filterlist = new TypedValue[2];
-            filterlist[0] = new TypedValue((int)DxfCode.Start, "LWPOLYLINE");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
-            SelectionFilter filter = new SelectionFilter(filterlist);
-            PromptSelectionResult selRes = editor.SelectAll(filter);
-            List<Polyline> polys = new List<Polyline>();
-            if (selRes.Status == PromptStatus.OK)
-            {
-                using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
-                {
-                    List<ObjectId> objIds = selRes.Value.GetObjectIds().ToList();
-                    for (int i = 0; i < objIds.Count; i++)
-                    {
-                        Polyline poly = (Polyline)acTrans.GetObject(objIds[i], OpenMode.ForRead);
-                        if (poly.Area > 30000) polys.Add(poly);
-                    }
-                    acTrans.Commit();
-                }
-            }
-            for (int i = 0; i < polys.Count; i++)
-            {
-                for (int j = i + 1; j < polys.Count; j++)
-                {
-                    if (polys[i].StartPoint.Y <= polys[j].StartPoint.Y + 1 && polys[i].StartPoint.Y >= polys[j].StartPoint.Y - 1)
-                    {
-                        if (comparePolys(polys[i], polys[j]))
-                        {
-                            blocks.Add(new BlockCouple(polys[i], polys[j]));
-                            BlockCouple bc = blocks[blocks.Count - 1];
-                            bc.Number = getNumOfBlocks(bc);
-                            blocks[blocks.Count - 1] = bc;
-                        }
-                        else if (comparePolys(polys[j], polys[i]))
-                        {
-                            blocks.Add(new BlockCouple(polys[j], polys[i]));
-                            BlockCouple bc = blocks[blocks.Count - 1];
-                            bc.Number = getNumOfBlocks(bc);
-                            blocks[blocks.Count - 1] = bc;
-                        }
-                        else j++;
-                    }
-                    else j++;
-                }
-            }
-            return blocks;
-        }
+        //private static List<BlockCouple> getBlocks()
+        //{
+        //    List<BlockCouple> blocks = new List<BlockCouple>(); 
+        //    TypedValue[] filterlist = new TypedValue[2];
+        //    filterlist[0] = new TypedValue((int)DxfCode.Start, "LWPOLYLINE");
+        //    filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
+        //    SelectionFilter filter = new SelectionFilter(filterlist);
+        //    PromptSelectionResult selRes = editor.SelectAll(filter);
+        //    List<Polyline> polys = new List<Polyline>();
+        //    if (selRes.Status == PromptStatus.OK)
+        //    {
+        //        using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
+        //        {
+        //            List<ObjectId> objIds = selRes.Value.GetObjectIds().ToList();
+        //            for (int i = 0; i < objIds.Count; i++)
+        //            {
+        //                Polyline poly = (Polyline)acTrans.GetObject(objIds[i], OpenMode.ForRead);
+        //                if (poly.Area > 30000) polys.Add(poly);
+        //            }
+        //            acTrans.Commit();
+        //        }
+        //    }
+        //    for (int i = 0; i < polys.Count; i++)
+        //    {
+        //        for (int j = i + 1; j < polys.Count; j++)
+        //        {
+        //            if (polys[i].StartPoint.Y <= polys[j].StartPoint.Y + 1 && polys[i].StartPoint.Y >= polys[j].StartPoint.Y - 1)
+        //            {
+        //                if (comparePolys(polys[i], polys[j]))
+        //                {
+        //                    blocks.Add(new BlockCouple(polys[i], polys[j]));
+        //                    BlockCouple bc = blocks[blocks.Count - 1];
+        //                    bc.Number = getNumOfBlocks(bc);
+        //                    blocks[blocks.Count - 1] = bc;
+        //                }
+        //                else if (comparePolys(polys[j], polys[i]))
+        //                {
+        //                    blocks.Add(new BlockCouple(polys[j], polys[i]));
+        //                    BlockCouple bc = blocks[blocks.Count - 1];
+        //                    bc.Number = getNumOfBlocks(bc);
+        //                    blocks[blocks.Count - 1] = bc;
+        //                }
+        //                else j++;
+        //            }
+        //            else j++;
+        //        }
+        //    }
+        //    return blocks;
+        //}
 
-        private static int getNumOfBlocks(BlockCouple blockCouple)
-        {
-            int result = 0;
-            TypedValue[] filterlist = new TypedValue[2];
-            filterlist[0] = new TypedValue((int)DxfCode.Start, "LINE");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
-            SelectionFilter filter = new SelectionFilter(filterlist);
-            Point3d point1 = blockCouple.Block1.GetPoint3dAt(0);
-            for (int i = 1; i < blockCouple.Block1.NumberOfVertices; i++)
-            {
-                Point3d point = blockCouple.Block1.GetPoint3dAt(i);
-                if (point.X >= point1.X && point.Y >= point1.Y)
-                    point1 = point;
-            }
-            Point3d point2 = blockCouple.Block2.GetPoint3dAt(0);
-            for (int i = 1; i < blockCouple.Block2.NumberOfVertices; i++)
-            {
-                Point3d point = blockCouple.Block2.GetPoint3dAt(i);
-                if (point.X <= point2.X && point.Y <= point2.Y)
-                    point2 = point;
-            }
-            PromptSelectionResult selRes = editor.SelectCrossingWindow(point1, point2, filter);
-            if (selRes.Status == PromptStatus.OK)
-            {
-                using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
-                {
-                    Line line = (Line)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
-                    filterlist = new TypedValue[1];
-                    filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
-                    filter = new SelectionFilter(filterlist);
-                    point1 = line.StartPoint.Add(new Vector3d(0, 10, 0));
-                    point2 = line.EndPoint.Add(new Vector3d(0, -10, 0));
-                    selRes = editor.SelectCrossingWindow(point1, point2);
-                    if (selRes.Status == PromptStatus.OK)
-                    {
-                        DBText dbText = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
-                        string text = dbText.TextString;
-                        int.TryParse(text, out result);
-                    }
-                    acTrans.Commit();
-                }
-            }
-            return result;
-        }
+        //private static int getNumOfBlocks(BlockCouple blockCouple)
+        //{
+        //    int result = 0;
+        //    TypedValue[] filterlist = new TypedValue[2];
+        //    filterlist[0] = new TypedValue((int)DxfCode.Start, "LINE");
+        //    filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ПУНКТИР");
+        //    SelectionFilter filter = new SelectionFilter(filterlist);
+        //    Point3d point1 = blockCouple.Block1.GetPoint3dAt(0);
+        //    for (int i = 1; i < blockCouple.Block1.NumberOfVertices; i++)
+        //    {
+        //        Point3d point = blockCouple.Block1.GetPoint3dAt(i);
+        //        if (point.X >= point1.X && point.Y >= point1.Y)
+        //            point1 = point;
+        //    }
+        //    Point3d point2 = blockCouple.Block2.GetPoint3dAt(0);
+        //    for (int i = 1; i < blockCouple.Block2.NumberOfVertices; i++)
+        //    {
+        //        Point3d point = blockCouple.Block2.GetPoint3dAt(i);
+        //        if (point.X <= point2.X && point.Y <= point2.Y)
+        //            point2 = point;
+        //    }
+        //    PromptSelectionResult selRes = editor.SelectCrossingWindow(point1, point2, filter);
+        //    if (selRes.Status == PromptStatus.OK)
+        //    {
+        //        using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
+        //        {
+        //            Line line = (Line)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
+        //            filterlist = new TypedValue[1];
+        //            filterlist[0] = new TypedValue((int)DxfCode.Start, "TEXT");
+        //            filter = new SelectionFilter(filterlist);
+        //            point1 = line.StartPoint.Add(new Vector3d(0, 10, 0));
+        //            point2 = line.EndPoint.Add(new Vector3d(0, -10, 0));
+        //            selRes = editor.SelectCrossingWindow(point1, point2);
+        //            if (selRes.Status == PromptStatus.OK)
+        //            {
+        //                DBText dbText = (DBText)acTrans.GetObject(selRes.Value.GetObjectIds()[0], OpenMode.ForRead);
+        //                string text = dbText.TextString;
+        //                int.TryParse(text, out result);
+        //            }
+        //            acTrans.Commit();
+        //        }
+        //    }
+        //    return result;
+        //}
 
         private static bool comparePolys(Polyline poly1, Polyline poly2)
         {

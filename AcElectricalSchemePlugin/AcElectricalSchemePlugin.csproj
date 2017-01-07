@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AcPlugin.cs" />
+    <Compile Include="ArticleClass.cs" />
     <Compile Include="CableMarkClass.cs" />
     <Compile Include="ConnectionSchemeClass.cs" />
     <Compile Include="ControlSchemeClass.cs" />
