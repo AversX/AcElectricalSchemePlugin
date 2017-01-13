@@ -51,22 +51,28 @@ namespace AcElectricalSchemePlugin
                     if (dbtexts != null)
                         foreach (DBText text in dbtexts)
                         {
-                            if (text.TextString[0] == '-' || text.TextString.Contains("WA"))
+                            if (text.TextString.Length>0)
                             {
-                                DBText Text = (DBText)acTrans.GetObject(text.Id, OpenMode.ForWrite);
-                                Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
-                                cables.Add(new Cable(text.TextString, text.Id, text.Position, null));
+                                if (text.TextString[0] == '-' || text.TextString.Contains("WA"))
+                                {
+                                    DBText Text = (DBText)acTrans.GetObject(text.Id, OpenMode.ForWrite);
+                                    Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
+                                    cables.Add(new Cable(text.TextString, text.Id, text.Position, null));
+                                }
                             }
                         }
                     mtexts = getAllMTexts(acTrans);
                     if (mtexts != null)
                         foreach (MText text in mtexts)
                         {
-                            if (text.Text[0]=='-' || text.Text.Contains("WA"))
+                            if (text.Text.Length > 0)
                             {
-                                MText Text = (MText)acTrans.GetObject(text.Id, OpenMode.ForWrite);
-                                Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
-                                cables.Add(new Cable(text.Text, text.Id, text.Location, null));
+                                if (text.Text[0] == '-' || text.Text.Contains("WA"))
+                                {
+                                    MText Text = (MText)acTrans.GetObject(text.Id, OpenMode.ForWrite);
+                                    Text.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
+                                    cables.Add(new Cable(text.Text, text.Id, text.Location, null));
+                                }
                             }
                         }
                     cables.Sort(new CableComparer());
@@ -191,20 +197,10 @@ namespace AcElectricalSchemePlugin
                     {
                         if (cables[i].CableLine.Id == cables[j].CableLine.Id)
                         {
-                            if (cables[i].Position.X < cables[j].Position.X)
-                            {
-                                DBText mark = (DBText)acTrans.GetObject(cables[j].Id, OpenMode.ForWrite);
-                                mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForWrite)).Color;
-                                cables.Remove(cables[j]);
-                                j--;
-                            }
-                            else
-                            {
-                                DBText mark = (DBText)acTrans.GetObject(cables[j].Id, OpenMode.ForWrite);
-                                mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForWrite)).Color;
-                                cables.Remove(cables[i]);
-                                i--;
-                            }
+                            DBText mark = (DBText)acTrans.GetObject(cables[j].Id, OpenMode.ForWrite);
+                            mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForWrite)).Color;
+                            cables.Remove(cables[j]);
+                            j--;
                         }
                         else
                         {
@@ -393,6 +389,7 @@ namespace AcElectricalSchemePlugin
                                 terminal = true;
                                 break;
                             }
+                            else terminal = false;
                         }
                         if (terminal) { circles.Remove(circles[i]); i--; }
                     }
@@ -446,28 +443,6 @@ namespace AcElectricalSchemePlugin
                 if (hatches.Count > 0) return hatches;
                 else return null;
             }
-        }
-        
-        private static Cable findCableByMark(List<Cable> cables, DBText mark)
-        {
-            Cable result = new Cable();
-            for (int i = 0; i < cables.Count; i++)
-                if (mark.Equals(cables[i].Mark)) result = cables[i];
-            return result;
-        }
-
-        private static bool comparePolys(Polyline poly1, Polyline poly2)
-        {
-            double X1 = poly1.StartPoint.X;
-            double X2 = poly2.StartPoint.X;
-            if (X1 < X2)
-            {
-                double delta = Math.Abs(X2) - Math.Abs(X1);
-                if (delta <= 1000 && delta>0)
-                    return true;
-                else return false;
-            }
-            else return false;
         }
     }
 
