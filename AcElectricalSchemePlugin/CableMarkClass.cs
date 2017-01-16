@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -80,10 +81,14 @@ namespace AcElectricalSchemePlugin
                     acTrans.Dispose();
                 }
             }
-            
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "Text|*.txt";
+            saveFileDialog1.ShowDialog();
+            if (saveFileDialog1.FileName != "")
+                System.IO.File.WriteAllLines(saveFileDialog1.FileName, getData());
         }
 
-        public static List<string> getData()
+        private static List<string> getData()
         {
             List<string> data = new List<string>();
             for (int i=0; i<cables.Count; i++)
@@ -99,8 +104,15 @@ namespace AcElectricalSchemePlugin
             filterlist[0] = new TypedValue((int)DxfCode.Start, "LINE");
             filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_N,КИА_PE,КИА_КАБЕЛЬ_ОДНОЖИЛЬНЫЙ,КИА_КАБЕЛЬ,КИА_провод,КИА_МНОГОЖИЛЬНЫЙ,КИА_КАБЕЛЬ_24В,КИА_КАБЕЛБ_24В,0");
             SelectionFilter filter = new SelectionFilter(filterlist);
-            Point3d point = Text.Rotation == 0 ?
-                        new Point3d(Text.Position.X, Text.Position.Y - 2, Text.Position.Z) : new Point3d(Text.Position.X + 2, Text.Position.Y, Text.Position.Z);
+            Point3d point;
+            if (Text.Rotation == 0)
+            {
+                point = new Point3d(Text.Position.X + 3, Text.Position.Y - 2, Text.Position.Z);
+            }
+            else
+            {
+                point = new Point3d(Text.Position.X + 2, Text.Position.Y + 3, Text.Position.Z);
+            }
             Point3dCollection points = new Point3dCollection(new Point3d[] { Text.Position, point });
             PromptSelectionResult selRes = editor.SelectFence(points, filter);
             if (selRes.Status != PromptStatus.OK)
@@ -198,7 +210,7 @@ namespace AcElectricalSchemePlugin
                         if (cables[i].CableLine.Id == cables[j].CableLine.Id)
                         {
                             DBText mark = (DBText)acTrans.GetObject(cables[j].Id, OpenMode.ForWrite);
-                            mark.Color = ((LayerTableRecord)acTrans.GetObject(mark.LayerId, OpenMode.ForWrite)).Color;
+                            mark.Color = Color.FromRgb(255,255,255);
                             cables.Remove(cables[j]);
                             j--;
                         }

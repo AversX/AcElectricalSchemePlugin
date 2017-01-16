@@ -65,6 +65,7 @@
     <Compile Include="ControlSchemeClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleLineSchemeClass.cs" />
+    <Compile Include="TerminalsWeightClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
@@ -149,6 +150,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Specification.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Term.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\без ГУ.dwg">
