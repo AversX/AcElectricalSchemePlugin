@@ -42,11 +42,17 @@ namespace AcElectricalSchemePlugin
 
             Weights = LoadWeights();
 
+            TypedValue[] filterlist = new TypedValue[2];
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "INSERT");
+            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ТЕКСТ");
+            SelectionFilter filter = new SelectionFilter(filterlist);
+            PromptSelectionResult selRes = acDoc.Editor.GetSelection(filter);
+
             using (DocumentLock docLock = acDoc.LockDocument())
             {
                 using (Transaction acTrans = acDb.TransactionManager.StartTransaction())
                 {
-                    Units = getAllUnits(acTrans);
+                    Units = getAllUnits(acTrans, selRes);
                     for (int i=0; i<Units.Count; i++)
                     {
                         bool passed = false;
@@ -102,14 +108,10 @@ namespace AcElectricalSchemePlugin
             return data;
         }
 
-        private static List<Unit> getAllUnits(Transaction acTrans)
+        private static List<Unit> getAllUnits(Transaction acTrans, PromptSelectionResult selRes)
         {
             List<Unit> units = new List<Unit>();
-            TypedValue[] filterlist = new TypedValue[2];
-            filterlist[0] = new TypedValue((int)DxfCode.Start, "INSERT");
-            filterlist[1] = new TypedValue((int)DxfCode.LayerName, "КИА_ТЕКСТ");
-            SelectionFilter filter = new SelectionFilter(filterlist);
-            PromptSelectionResult selRes = editor.SelectAll(filter);
+
             if (selRes.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nОшибка выборки блоков!\n");
