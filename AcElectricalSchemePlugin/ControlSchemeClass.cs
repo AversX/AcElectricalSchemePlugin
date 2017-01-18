@@ -22,6 +22,7 @@ namespace AcElectricalSchemePlugin
         private static int currentSheet = 9;
         private static int sheetNum246 = 6;
         private static bool mainControl = true;
+        private static bool gas = true;
         private static Point3d currentPoint;
         private static List<Point3d> ets;
         private static Point3d link1; //4.4.1-11
@@ -84,6 +85,17 @@ namespace AcElectricalSchemePlugin
                         currentSheet--;
                         sheetNum246--;
                     }
+
+            PromptResult G = editor.GetString("\nС загазованность?(y/n) ");
+            if (G.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("Неверный ввод...");
+                return;
+            }
+            else
+                if (G.StringResult != null)
+                    if (!(G.StringResult.ToUpper().Contains("Д") || G.StringResult.ToUpper().Contains("Y")))
+                        gas = false;
 
             PromptIntegerResult ET = editor.GetInteger("\nВведите количество ET: ");
             if (ET.Status != PromptStatus.OK)
