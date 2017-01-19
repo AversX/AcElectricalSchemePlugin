@@ -459,7 +459,7 @@ namespace AcElectricalSchemePlugin
                         }
                     }
                     int x = currentModule + doCount - (int)Math.Truncate(do24vCount);
-                    if (x < maxCount)
+                    if (x-1 < maxCount)
                     {
                         insertDOGas(acTrans, acModSpace, acDb, x, gas);
                         currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
