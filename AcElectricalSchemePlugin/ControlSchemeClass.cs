@@ -137,20 +137,24 @@ namespace AcElectricalSchemePlugin
                     if (!(MC.StringResult.ToUpper().Contains("Д") || MC.StringResult.ToUpper().Contains("Y")))
                     {
                         mainControl = false;
+                        gas = false;
                         currentSheet--;
                         sheetNum246--;
                     }
 
-            PromptResult G = editor.GetString("\nС загазованность?(y/n) ");
-            if (G.Status != PromptStatus.OK)
+            if (mainControl)
             {
-                editor.WriteMessage("Неверный ввод...");
-                return;
+                PromptResult G = editor.GetString("\nС загазованность?(y/n) ");
+                if (G.Status != PromptStatus.OK)
+                {
+                    editor.WriteMessage("Неверный ввод...");
+                    return;
+                }
+                else
+                    if (G.StringResult != null)
+                        if (!(G.StringResult.ToUpper().Contains("Д") || G.StringResult.ToUpper().Contains("Y")))
+                            gas = false;
             }
-            else
-                if (G.StringResult != null)
-                    if (!(G.StringResult.ToUpper().Contains("Д") || G.StringResult.ToUpper().Contains("Y")))
-                        gas = false;
 
             PromptIntegerResult ET = editor.GetInteger("\nВведите количество ET: ");
             if (ET.Status != PromptStatus.OK)
@@ -307,6 +311,7 @@ namespace AcElectricalSchemePlugin
                         }
                     }
 
+                    insertTable(acTrans, acModSpace, acDb, currentPoint);
                     for (int i = 0; i < aiCount; i++)
                     {
                         if (i < 10)
@@ -336,13 +341,37 @@ namespace AcElectricalSchemePlugin
                     int maxCount = 8;
                     if (etCount == 2) maxCount = 10;
                     int currentET = 1;
-                    for (int i = 1; i < diCount-1; i++)
+                    if (mainControl)
                     {
-                        if (i < maxCount)
+                        for (int i = 1; i < diCount - 1; i++)
                         {
-                            insertDI(acTrans, acModSpace, acDb, i);
+                            if (i < maxCount)
+                            {
+                                insertDI(acTrans, acModSpace, acDb, i);
+                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
+                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            }
+                            else
+                            {
+                                if (currentET != 2)
+                                {
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                                }
+                            }
+                        }
+                        if (diCount - 1 < maxCount)
+                        {
+                            insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                         }
                         else
@@ -354,93 +383,94 @@ namespace AcElectricalSchemePlugin
                                     currentET++;
                                     currentD++;
                                     maxCount = 16;
-                                    i--;
+                                    insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
+                                    currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                    insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
+                                    ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                                 }
                                 else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                             }
                         }
-                    }
-                    if (diCount-1 < maxCount)
-                    {
-                        insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
-                        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                        insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
-                        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    }
-                    else
-                    {
-                        if (currentET != 2)
-                        {
-                            if (etCount == 3)
-                            {
-                                currentET++;
-                                currentD++;
-                                maxCount = 16;
-                                insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
-                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                                insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
-                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                            }
-                            else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
-                        }
-                    }
 
-                    currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
-                    int currentModule = diCount;
-                    for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
-                    {
-                        if (i < maxCount)
+                        currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                        int currentModule = diCount;
+                        for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
                         {
-                            insertDO24V(acTrans, acModSpace, acDb, currentModule);
+                            if (i < maxCount)
+                            {
+                                insertDO24V(acTrans, acModSpace, acDb, currentModule);
+                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                                currentModule++;
+                            }
+                            else
+                            {
+                                if (currentET != 2)
+                                {
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else
+                                    {
+                                        editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (do24vCount - Math.Truncate(do24vCount) != 0)
+                        {
+                            insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                             currentModule++;
+                            do24vCount += 0.5;
                         }
                         else
                         {
-                            if (currentET != 2)
+                            insertDO1(acTrans, acModSpace, acDb, currentModule);
+                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
+                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            currentModule++;
+                            doCount--;
+                        }
+                        for (int i = currentModule; i < currentModule + doCount - Math.Truncate(do24vCount) - 1; i++)
+                        {
+                            if (i < maxCount)
                             {
-                                if (etCount == 3)
+                                insertDO(acTrans, acModSpace, acDb, i);
+                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            }
+                            else
+                            {
+                                if (currentET != 2)
                                 {
-                                    currentET++;
-                                    currentD++;
-                                    maxCount = 16;
-                                    i--;
-                                }
-                                else
-                                {
-                                    editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
-                                    break;
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                                 }
                             }
                         }
-                    }
-                    if (do24vCount - Math.Truncate(do24vCount) != 0)
-                    {
-                        insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
-                        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                        insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
-                        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                        currentModule++;
-                        do24vCount += 0.5;
-                    }
-                    else
-                    {
-                        insertDO1(acTrans, acModSpace, acDb, currentModule);
-                        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                        insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
-                        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                        currentModule++;
-                        doCount--;
-                    }
-                    for (int i = currentModule; i < currentModule + doCount - Math.Truncate(do24vCount) - 1; i++)
-                    {
-                        if (i < maxCount)
+                        int x = currentModule + doCount - (int)Math.Truncate(do24vCount);
+                        if (x - 1 < maxCount)
                         {
-                            insertDO(acTrans, acModSpace, acDb, i);
+                            insertDOGas(acTrans, acModSpace, acDb, x - 1, gas);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                            insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], x - 1, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                         }
                         else
@@ -452,35 +482,113 @@ namespace AcElectricalSchemePlugin
                                     currentET++;
                                     currentD++;
                                     maxCount = 16;
-                                    i--;
+                                    insertDOGas(acTrans, acModSpace, acDb, x - 1, gas);
+                                    currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                    insertETD(acTrans, acModSpace, acDb, ets[currentET], x - 1, "DO");
+                                    ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                                 }
                                 else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                             }
                         }
                     }
-                    int x = currentModule + doCount - (int)Math.Truncate(do24vCount);
-                    if (x-1 < maxCount)
-                    {
-                        insertDOGas(acTrans, acModSpace, acDb, x, gas);
-                        currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                        insertETD(acTrans, acModSpace, acDb, ets[currentET], x, "DO");
-                        ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
-                    }
                     else
                     {
-                        if (currentET != 2)
+                        for (int i = 1; i < diCount; i++)
                         {
-                            if (etCount == 3)
+                            if (i < maxCount)
                             {
-                                currentET++;
-                                currentD++;
-                                maxCount = 16;
-                                insertDOGas(acTrans, acModSpace, acDb, x, gas);
+                                insertDI(acTrans, acModSpace, acDb, i);
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
-                                insertETD(acTrans, acModSpace, acDb, ets[currentET], x, "DO");
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
                             }
-                            else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                            else
+                            {
+                                if (currentET != 2)
+                                {
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                                }
+                            }
+                        }
+                        currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                        int currentModule = diCount;
+                        for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
+                        {
+                            if (i < maxCount)
+                            {
+                                insertDO24V(acTrans, acModSpace, acDb, currentModule);
+                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                                currentModule++;
+                            }
+                            else
+                            {
+                                if (currentET != 2)
+                                {
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else
+                                    {
+                                        editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (do24vCount - Math.Truncate(do24vCount) != 0)
+                        {
+                            insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
+                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
+                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            currentModule++;
+                            do24vCount += 0.5;
+                        }
+                        else
+                        {
+                            insertDO1(acTrans, acModSpace, acDb, currentModule);
+                            currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                            insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
+                            ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            currentModule++;
+                            doCount--;
+                        }
+                        for (int i = currentModule; i < currentModule + doCount - Math.Truncate(do24vCount); i++)
+                        {
+                            if (i < maxCount)
+                            {
+                                insertDO(acTrans, acModSpace, acDb, i);
+                                currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
+                                insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
+                                ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
+                            }
+                            else
+                            {
+                                if (currentET != 2)
+                                {
+                                    if (etCount == 3)
+                                    {
+                                        currentET++;
+                                        currentD++;
+                                        maxCount = 16;
+                                        i--;
+                                    }
+                                    else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
+                                }
+                            }
                         }
                     }
                     currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
@@ -13060,6 +13168,80 @@ namespace AcElectricalSchemePlugin
                 }
                 else editor.WriteMessage("В файле не найден блок с именем \"[{0}\"", blockName);
             }
+        }
+
+        private static void insertTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint)
+        {
+            Table table = new Table();
+            table.Position = insertPoint.Add(new Vector3d(132, -26, 0));
+            table.SetSize(8, 1);
+            table.TableStyle = acdb.Tablestyle;
+            table.Rotation = 90;
+
+            table.SetTextHeight(0, 0, 2.5);
+            table.Cells[0, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
+            table.Rows[0].IsMergeAllEnabled = false;
+
+            table.SetTextHeight(1, 0, 2.5);
+            table.Cells[1, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(2, 0, 2.5);
+            table.Cells[2, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(3, 0, 2.5);
+            table.Cells[3, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
+
+            table.SetBreakHeight(4, 28);
+
+            table.SetTextHeight(4, 0, 2.5);
+            table.Cells[4, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[4, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(4, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(5, 0, 2.5);
+            table.Cells[5, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[5, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(5, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(6, 0, 2.5);
+            table.Cells[6, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[6, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(6, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(7, 0, 2.5);
+            table.Cells[7, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[7, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(7, 0, CellAlignment.MiddleCenter);
+
+            table.Columns[0].Width = 137;
+            table.SetRowHeight(0, 40);
+            table.SetRowHeight(1, 40);
+            table.SetRowHeight(2, 40);
+            table.SetRowHeight(3, 40);
+            table.SetRowHeight(4, 40);
+            table.SetRowHeight(5, 40);
+            table.SetRowHeight(6, 40);
+            table.SetRowHeight(7, 40);
+
+            table.GenerateLayout();
+            modSpace.AppendEntity(table);
+            acTrans.AddNewlyCreatedDBObject(table, true);
         }
 
         private static void setPoints(Point3d startPoint)

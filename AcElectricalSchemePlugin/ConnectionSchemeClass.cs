@@ -55,6 +55,8 @@ namespace AcElectricalSchemePlugin
             public string cupboardName;
             public string tBoxName;
             public string designation;
+            public int numOfGear;
+            public string linkText;
             public string param;
             public string equipment;
             public string equipType;
@@ -69,11 +71,13 @@ namespace AcElectricalSchemePlugin
             public MText cableName;
             public bool newSheet; 
 
-            public Unit(string _cupboardName, string _tBoxName, string _designation, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _colors, List<string> _equipTerminals)
+            public Unit(string _cupboardName, string _tBoxName, string _designation, int  _numOfGear, string _linkText, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _colors, List<string> _equipTerminals)
             {
                 cupboardName = _cupboardName;
                 tBoxName = _tBoxName;
                 designation = _designation;
+                numOfGear = _numOfGear;
+                linkText = _linkText;
                 param = _param;
                 equipment = _equipment;
                 equipType = _equipType;
@@ -129,11 +133,6 @@ namespace AcElectricalSchemePlugin
                 Unit unit = new Unit();
                 unit.cupboardName = dataSet.Tables[0].Rows[row][0].ToString();
                 unit.tBoxName = dataSet.Tables[0].Rows[row][1].ToString();
-                if (unit.tBoxName.Contains("*"))
-                {
-                    unit.tBoxName = unit.tBoxName.Replace('*','\0');
-                    unit.tBoxName += "*";
-                }
                 unit.designation = dataSet.Tables[0].Rows[row][2].ToString();
                 unit.param = dataSet.Tables[0].Rows[row][3].ToString();
                 unit.equipment = dataSet.Tables[0].Rows[row][4].ToString();
@@ -152,6 +151,8 @@ namespace AcElectricalSchemePlugin
                 for (int i = 19; i < 29; i++)
                     if (dataSet.Tables[0].Rows[row][i].ToString() != "")
                         equipTerminals.Add(dataSet.Tables[0].Rows[row][i].ToString());
+                int.TryParse(dataSet.Tables[0].Rows[row][29].ToString(), out unit.numOfGear);
+                unit.linkText = dataSet.Tables[0].Rows[row][30].ToString();
                 unit.equipTerminals = equipTerminals;
                 units.Add(unit);
             }
@@ -233,7 +234,7 @@ namespace AcElectricalSchemePlugin
                                 editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
                             }
                         tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForWrite);
-                        loadFonts(acTrans, acModSpace, acDb);
+                        //loadFonts(acTrans, acModSpace, acDb);
                        
                         Point3d startPoint = selectedPoint.Value;
                         Polyline sh = drawSheet(acTrans, acModSpace, acDb, startPoint);
@@ -260,17 +261,25 @@ namespace AcElectricalSchemePlugin
         {
             for (int i=0; i<tboxes.Count; i++)
             {
-                if (tboxes[i].Name != String.Empty && tboxes[i].Count>1)
+                if (tboxes[i].Name != String.Empty)
                 {
-                    for (int j=0; j<tboxes[i].Count; j++)
+                    if (tboxes[i].Count > 1)
                     {
-                        MText text = tboxes[i].textName[j];
-                        text.Contents += "." + (j + 1);
-                        tboxes[i].textName[j] = text;
+                        for (int j = 0; j < tboxes[i].Count; j++)
+                        {
+                            MText text = tboxes[i].textName[j];
+                            text.Contents += "." + (j + 1);
+                            if (text.Contents.Contains("*"))
+                            {
+                                text.Contents = text.Contents.Replace("*", string.Empty);
+                                text.Contents += "*";
+                            }
+                            tboxes[i].textName[j] = text;
 
-                        Leader ldr = tboxes[i].ldr[j];
-                        Point3d point = ldr.VertexAt(1);
-                        ldr.SetVertexAt(2, new Point3d(point.X + text.ActualWidth + 1, point.Y, 0));
+                            Leader ldr = tboxes[i].ldr[j];
+                            Point3d point = ldr.VertexAt(1);
+                            ldr.SetVertexAt(2, new Point3d(point.X + text.ActualWidth + 1, point.Y, 0));
+                        }
                     }
                 }
                 if (tboxes[i].shield)
@@ -862,7 +871,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName!=null)
+                                            if (units[j].tBoxName.Length>0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -940,7 +951,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1032,7 +1045,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1153,7 +1168,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1224,7 +1241,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1309,7 +1328,9 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0)
+                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -2403,6 +2424,30 @@ namespace AcElectricalSchemePlugin
                         equipFrame.AddVertexAt(1, new Point2d(equipJumper.EndPoint.X + 10, equipJumper.EndPoint.Y + 5), 0, 0, 0);
                         equipFrame.AddVertexAt(2, new Point2d(equipJumper.EndPoint.X + 10, lowestPoint - 4), 0, 0, 0);
                         equipFrame.AddVertexAt(3, new Point2d(equipJumper.StartPoint.X - 10, lowestPoint - 4), 0, 0, 0);
+                    }
+
+                    if (groups[i].Units[k].designation.Contains("FNM") && groups[i].Units[k].linkText!="")
+                    {
+                        MText tBoxName = new MText();
+                        tBoxName.SetDatabaseDefaults();
+                        tBoxName.TextHeight = 3;
+                        if (tst.Has("spds 2.5-0.85"))
+                            tBoxName.TextStyleId = tst["spds 2.5-0.85"];
+                        tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        tBoxName.Location = equipFrame.GetPoint3dAt(1).Add(new Vector3d(6, -4, 0));
+                        tBoxName.Contents = groups[i].Units[k].linkText;
+                        tBoxName.Attachment = AttachmentPoint.BottomLeft;
+                        modSpace.AppendEntity(tBoxName);
+                        acTrans.AddNewlyCreatedDBObject(tBoxName, true);
+
+                        Leader acLdr = new Leader();
+                        acLdr.SetDatabaseDefaults();
+                        acLdr.AppendVertex(equipFrame.GetPoint3dAt(1).Add(new Vector3d(0, -10, 0)));
+                        acLdr.AppendVertex(equipFrame.GetPoint3dAt(1).Add(new Vector3d(5, -5, 0)));
+                        acLdr.AppendVertex(equipFrame.GetPoint3dAt(1).Add(new Vector3d(5+tBoxName.ActualWidth + 2, -5, 0)));
+                        acLdr.HasArrowHead = false;
+                        modSpace.AppendEntity(acLdr);
+                        acTrans.AddNewlyCreatedDBObject(acLdr, true);
                     }
 
                     if (rigthEdgeXTable==0)
