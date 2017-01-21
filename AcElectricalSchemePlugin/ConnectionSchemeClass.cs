@@ -97,16 +97,19 @@ namespace AcElectricalSchemePlugin
         {
             public List<Unit> Units;
             public string GroupName;
+            public int CableNum;
 
-            public Group(List<Unit> _units, string groupName)
+            public Group(List<Unit> _units, string groupName, int cableNum)
             {
                 Units = _units;
                 GroupName = groupName;
+                CableNum = cableNum;
             }
 
             public void addUnit(Unit unit)
             {
                 Units.Add(unit);
+                CableNum += 1;
             }
         }
 
@@ -163,7 +166,7 @@ namespace AcElectricalSchemePlugin
         {
             List<Group> Groups = new List<Group>();
 
-            Group group = new Group(new List<Unit>(), Units[0].tBoxName);
+            Group group = new Group(new List<Unit>(), Units[0].tBoxName, 0);
             group.addUnit(Units[0]);
             Groups.Add(group);
 
@@ -177,7 +180,7 @@ namespace AcElectricalSchemePlugin
                 }
                 else
                 {
-                    group = new Group(new List<Unit>(), Units[i].tBoxName);
+                    group = new Group(new List<Unit>(), Units[i].tBoxName, 0);
                     group.addUnit(Units[i]);
                     Groups.Add(group);
                 }
@@ -1975,8 +1978,11 @@ namespace AcElectricalSchemePlugin
                 modSpace.AppendEntity(textName);
                 acTrans.AddNewlyCreatedDBObject(textName, true);
 
-                if (groups[i].Units[groups[i].Units.Count - 1].shield && groups[i].Units[groups[i].Units.Count - 1].cableOutput.Count > 1)
-                    drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
+                if (groups[i].Units[groups[i].Units.Count - 1].shield)
+                    if (groups[i].CableNum>1)
+                        drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
+                //if (groups[i].Units[groups[i].Units.Count - 1].shield && groups[i].Units.Count>1)
+                //    drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
 
                 if (groups[i].Units[groups[i].Units.Count - 1].tBoxName != string.Empty)
                 {
