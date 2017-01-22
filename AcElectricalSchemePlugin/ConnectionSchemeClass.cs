@@ -874,8 +874,8 @@ namespace AcElectricalSchemePlugin
 
                                         units[j].cableOutput.Add(cableLineDown);
 
-                                        if (units[j].tBoxName!=null)
-                                            if (units[j].tBoxName.Length>0)
+                                        if (units[j].tBoxName != null)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -955,7 +955,7 @@ namespace AcElectricalSchemePlugin
                                         units[j].cableOutput.Add(cableLineDown);
 
                                         if (units[j].tBoxName != null)
-                                            if (units[j].tBoxName.Length > 0)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -1049,7 +1049,7 @@ namespace AcElectricalSchemePlugin
                                         units[j].cableOutput.Add(cableLineDown);
 
                                         if (units[j].tBoxName != null)
-                                            if (units[j].tBoxName.Length > 0)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -1172,7 +1172,7 @@ namespace AcElectricalSchemePlugin
                                         units[j].cableOutput.Add(cableLineDown);
 
                                         if (units[j].tBoxName != null)
-                                            if (units[j].tBoxName.Length > 0)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -1245,7 +1245,7 @@ namespace AcElectricalSchemePlugin
                                         units[j].cableOutput.Add(cableLineDown);
 
                                         if (units[j].tBoxName != null)
-                                            if (units[j].tBoxName.Length > 0)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -1332,7 +1332,7 @@ namespace AcElectricalSchemePlugin
                                         units[j].cableOutput.Add(cableLineDown);
 
                                         if (units[j].tBoxName != null)
-                                            if (units[j].tBoxName.Length > 0)
+                                            if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
                                                 drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
@@ -1979,7 +1979,7 @@ namespace AcElectricalSchemePlugin
                 acTrans.AddNewlyCreatedDBObject(textName, true);
 
                 if (groups[i].Units[groups[i].Units.Count - 1].shield)
-                    if (groups[i].CableNum>1)
+                    //if (groups[i].CableNum>1)
                         drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
                 //if (groups[i].Units[groups[i].Units.Count - 1].shield && groups[i].Units.Count>1)
                 //    drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
@@ -2738,7 +2738,8 @@ namespace AcElectricalSchemePlugin
                 tBoxOutputBranch.StartPoint = new Point3d(tBoxInputBranch.StartPoint.X, lowestPoint, 0);
                 tBoxOutputBranch.EndPoint = tBoxOutputBranch.StartPoint.Add(new Vector3d(-5 * (unit.colors.Count - 1), 0, 0));
             }
-            if (unit.shield)
+
+            if (unit.shield && unit.cableMark.Contains("ИЭ"))
             {
                 if (unit.param.ToLower() != "резерв")
                 {
@@ -2751,7 +2752,7 @@ namespace AcElectricalSchemePlugin
                     tbox.LastShieldNumber++;
                 }
             }
-            else lastTerminalPoint = tBoxInput.EndPoint.Add(new Vector3d(5, 0, 0));
+            else lastTerminalPoint = lastTermPoint;
             
             if (unit.param.ToLower() != "резерв")
             {
@@ -3093,7 +3094,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(tBoxOutputBranch);
             acTrans.AddNewlyCreatedDBObject(tBoxOutputBranch, true);
 
-            if (unit.shield)
+            if (unit.shield && unit.cableMark.Contains("ИЭ"))
             {
                 if (unit.param.ToLower() != "резерв")
                 {
@@ -3106,7 +3107,7 @@ namespace AcElectricalSchemePlugin
                     tbox.LastShieldNumber++;
                 }
             }
-            else lastTermPoint = tBoxInput.EndPoint.Add(new Vector3d(5, 0, 0));
+            //else lastTermPoint = tBoxInput.EndPoint.Add(new Vector3d(5, 0, 0));
 
             if (unit.param.ToLower() != "резерв")
             {
