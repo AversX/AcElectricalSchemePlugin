@@ -1,0 +1,3 @@
+Avers
+AVERSNOTEBOOK 
+23 ÿםגאנÿ 2017 ד.  15:44:00

@@ -311,23 +311,27 @@ namespace AcElectricalSchemePlugin
                         }
                     }
 
-                    insertTable(acTrans, acModSpace, acDb, currentPoint);
+                    Table table = insertTable(acTrans, acModSpace, acDb, currentPoint);
+                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table);
                     for (int i = 0; i < aiCount; i++)
                     {
                         if (i < 10)
                         {
                             insertAI(acTrans, acModSpace, acDb, currentPoint, i);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETA(acTrans, acModSpace, acDb, ets[0], i, "AI");
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
                         }
                     }
                     currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                    table = insertTable(acTrans, acModSpace, acDb, currentPoint);
                     for (int i = aiCount; i < aiCount + aoCount; i++)
                     {
                         if (i < 10)
                         {
                             insertAO(acTrans, acModSpace, acDb, currentPoint, i);
+                            //insertAI(acTrans, acModSpace, acDb, currentPoint, i);
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETA(acTrans, acModSpace, acDb, ets[0], i, "AO");
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
@@ -11888,7 +11892,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-1+";
+                                                        attRef.TextString = "TB-02-1+";
                                                         gasCableDI3P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11900,7 +11904,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-1-";
+                                                        attRef.TextString = "TB-02-1-";
                                                         gasCableDI3M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11912,7 +11916,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-4+";
+                                                        attRef.TextString = "TB-02-4+";
                                                         gasCableDI4P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11924,7 +11928,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-4-";
+                                                        attRef.TextString = "TB-02-4-";
                                                         gasCableDI4M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11936,7 +11940,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-2+";
+                                                        attRef.TextString = "TB-04-2+";
                                                         gasCableDI5P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11948,7 +11952,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-2-";
+                                                        attRef.TextString = "TB-04-2-";
                                                         gasCableDI5M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11960,7 +11964,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-5+";
+                                                        attRef.TextString = "TB-04-5+";
                                                         gasCableDI6P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11972,7 +11976,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-5-";
+                                                        attRef.TextString = "TB-04-5-";
                                                         gasCableDI6M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11984,7 +11988,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-3+";
+                                                        attRef.TextString = "TB-03-3+";
                                                         gasCableDO1P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -11996,7 +12000,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-3-";
+                                                        attRef.TextString = "TB-03-3-";
                                                         gasCableDO1M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12008,7 +12012,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-6+";
+                                                        attRef.TextString = "TB-03-6+";
                                                         gasCableDO2P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12020,7 +12024,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-6-";
+                                                        attRef.TextString = "TB-03-6-";
                                                         gasCableDO2M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12032,7 +12036,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-7+";
+                                                        attRef.TextString = "TB-03-7+";
                                                         gasCableDO3P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12044,7 +12048,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-7-";
+                                                        attRef.TextString = "TB-03-7-";
                                                         gasCableDO3M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12056,7 +12060,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-8+";
+                                                        attRef.TextString = "TB-03-8+";
                                                         gasCableDO4P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12068,7 +12072,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-8-";
+                                                        attRef.TextString = "TB-03-8-";
                                                         gasCableDO4M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12201,7 +12205,7 @@ namespace AcElectricalSchemePlugin
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
                                                         attRef.TextString = "(-XT" + lastDNumDI + "." + lastModNumDI + ".2:43/3." + lastSheetDI + ")";
-                                                        gasLinkDI6P.TextString = "(-XT:TB-04:4+/3." + currentSheet + ")";
+                                                        gasLinkDI6P.TextString = "(-XT:TB-04:5+/3." + currentSheet + ")";
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                     }
@@ -12437,7 +12441,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-1+";
+                                                        attRef.TextString = "TB-02-1+";
                                                         gasCableDI3P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12449,7 +12453,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-1-";
+                                                        attRef.TextString = "TB-02-1-";
                                                         gasCableDI3M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12461,7 +12465,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-4+";
+                                                        attRef.TextString = "TB-02-3+";
                                                         gasCableDI4P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12473,7 +12477,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-4-";
+                                                        attRef.TextString = "TB-02-3-";
                                                         gasCableDI4M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12485,7 +12489,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-2+";
+                                                        attRef.TextString = "TB-02-4+";
                                                         gasCableDI5P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12497,7 +12501,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-2-";
+                                                        attRef.TextString = "TB-02-4-";
                                                         gasCableDI5M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12509,7 +12513,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-5+";
+                                                        attRef.TextString = "TB-02-5+";
                                                         gasCableDI6P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12521,7 +12525,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-5-";
+                                                        attRef.TextString = "TB-02-5-";
                                                         gasCableDI6M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12533,7 +12537,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-3+";
+                                                        attRef.TextString = "TB-03-2+";
                                                         gasCableDO1P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12545,7 +12549,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-3-";
+                                                        attRef.TextString = "TB-03-2-";
                                                         gasCableDO1M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12557,7 +12561,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-6+";
+                                                        attRef.TextString = "TB-03-6+";
                                                         gasCableDO2P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12569,7 +12573,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-6-";
+                                                        attRef.TextString = "TB-03-6-";
                                                         gasCableDO2M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12581,7 +12585,7 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-7+";
+                                                        attRef.TextString = "TB-03-7+";
                                                         gasCableDO3P.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
@@ -12593,32 +12597,8 @@ namespace AcElectricalSchemePlugin
                                                     AttributeReference attRef = new AttributeReference();
                                                     {
                                                         attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-7-";
+                                                        attRef.TextString = "TB-03-7-";
                                                         gasCableDO3M.TextString = attRef.TextString;
-                                                        br.AttributeCollection.AppendAttribute(attRef);
-                                                        acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                    }
-                                                    break;
-                                                }
-                                            case "GASCABLE10+":
-                                                {
-                                                    AttributeReference attRef = new AttributeReference();
-                                                    {
-                                                        attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-8+";
-                                                        gasCableDO4P.TextString = attRef.TextString;
-                                                        br.AttributeCollection.AppendAttribute(attRef);
-                                                        acTrans.AddNewlyCreatedDBObject(attRef, true);
-                                                    }
-                                                    break;
-                                                }
-                                            case "GASCABLE10-":
-                                                {
-                                                    AttributeReference attRef = new AttributeReference();
-                                                    {
-                                                        attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
-                                                        attRef.TextString = "TB-01-8-";
-                                                        gasCableDO4M.TextString = attRef.TextString;
                                                         br.AttributeCollection.AppendAttribute(attRef);
                                                         acTrans.AddNewlyCreatedDBObject(attRef, true);
                                                     }
@@ -13170,13 +13150,26 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static void insertTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint)
+        private static Table insertTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint)
         {
             Table table = new Table();
             table.Position = insertPoint.Add(new Vector3d(132, -26, 0));
             table.SetSize(8, 1);
             table.TableStyle = acdb.Tablestyle;
-            table.Rotation = 90;
+            table.Rotation = 1.5708;
+
+            Matrix3d curUCSMatrix = acDoc.Editor.CurrentUserCoordinateSystem;
+            CoordinateSystem3d curUCS = curUCSMatrix.CoordinateSystem3d;
+            table.TransformBy(Matrix3d.Rotation(1.5708,
+                                                 curUCS.Zaxis,
+                                                 table.Position));
+            table.Position = table.Position.Add(new Vector3d(0, -137, 0));
+
+            table.SetBreakHeight(0, 191);
+            table.SetBreakSpacing(28);
+            table.SetBreakOffset(0, new Vector3d(28, 0, 0));
+            table.BreakFlowDirection = TableBreakFlowDirection.DownOrUp;
+            table.BreakEnabled = true;
 
             table.SetTextHeight(0, 0, 2.5);
             table.Cells[0, 0].TextString = "";
@@ -13202,8 +13195,6 @@ namespace AcElectricalSchemePlugin
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
-
-            table.SetBreakHeight(4, 28);
 
             table.SetTextHeight(4, 0, 2.5);
             table.Cells[4, 0].TextString = "";
@@ -13242,6 +13233,78 @@ namespace AcElectricalSchemePlugin
             table.GenerateLayout();
             modSpace.AppendEntity(table);
             acTrans.AddNewlyCreatedDBObject(table, true);
+            return table;
+        }
+
+        private static void addRowsToTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, Table table)
+        {
+            table.SetSize(table.Rows.Count + 8, 1);
+            table.BreakOptions = TableBreakOptions.AllowManualPositions;
+            table.SetBreakHeight(2, 191);
+            table.SetBreakSpacing(28);
+            table.SetBreakOffset(2, new Vector3d(table.Height + 246, 0, 0));
+            table.BreakFlowDirection = TableBreakFlowDirection.DownOrUp;
+            table.BreakEnabled = true;
+
+            table.SetTextHeight(table.Rows.Count - 8, 0, 2.5);
+            table.Cells[table.Rows.Count - 8, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 8, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 8, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 7, 0, 2.5);
+            table.Cells[table.Rows.Count - 7, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 7, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 7, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 6, 0, 2.5);
+            table.Cells[table.Rows.Count - 6, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 6, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 6, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 5, 0, 2.5);
+            table.Cells[table.Rows.Count - 5, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 5, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 5, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 4, 0, 2.5);
+            table.Cells[table.Rows.Count - 4, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 4, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 4, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 3, 0, 2.5);
+            table.Cells[table.Rows.Count - 3, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 3, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 3, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 2, 0, 2.5);
+            table.Cells[table.Rows.Count - 2, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 2, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 2, 0, CellAlignment.MiddleCenter);
+
+            table.SetTextHeight(table.Rows.Count - 1, 0, 2.5);
+            table.Cells[table.Rows.Count - 1, 0].TextString = "";
+            if (tst.Has("spds 2.5-0.85"))
+                table.Cells[table.Rows.Count - 1, 0].TextStyleId = tst["spds 2.5-0.85"];
+            table.SetAlignment(table.Rows.Count - 1, 0, CellAlignment.MiddleCenter);
+
+            table.Columns[0].Width = 137;
+            table.SetRowHeight(table.Rows.Count - 8, 40);
+            table.SetRowHeight(table.Rows.Count - 7, 40);
+            table.SetRowHeight(table.Rows.Count - 6, 40);
+            table.SetRowHeight(table.Rows.Count - 5, 40);
+            table.SetRowHeight(table.Rows.Count - 4, 40);
+            table.SetRowHeight(table.Rows.Count - 3, 40);
+            table.SetRowHeight(table.Rows.Count - 2, 40);
+            table.SetRowHeight(table.Rows.Count - 1, 40);
+
+            table.GenerateLayout();
         }
 
         private static void setPoints(Point3d startPoint)
