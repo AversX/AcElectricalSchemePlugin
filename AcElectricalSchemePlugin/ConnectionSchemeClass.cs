@@ -93,6 +93,7 @@ namespace AcElectricalSchemePlugin
                 equipPoint = new Point3d();
             }
         }
+
         struct Group
         {
             public List<Unit> Units;

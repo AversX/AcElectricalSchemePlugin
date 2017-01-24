@@ -311,33 +311,46 @@ namespace AcElectricalSchemePlugin
                         }
                     }
 
-                    Table table = insertTable(acTrans, acModSpace, acDb, currentPoint);
-                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table);
+                    Table table = insertTable(acTrans, acModSpace, acDb, 8, currentPoint, new Vector3d(132, -26, 0), 137, 40, 28);
+                    int index = 2;
                     for (int i = 0; i < aiCount; i++)
                     {
                         if (i < 10)
                         {
                             insertAI(acTrans, acModSpace, acDb, currentPoint, i);
-                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table);
+                            if (index < aiCount * 2)
+                            {
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 28, 274.2, 137, 40);
+                                index += 2;
+                            }
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETA(acTrans, acModSpace, acDb, ets[0], i, "AI");
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
                         }
                     }
                     currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
-                    table = insertTable(acTrans, acModSpace, acDb, currentPoint);
+                    table = insertTable(acTrans, acModSpace, acDb, 8, currentPoint, new Vector3d(132, -26, 0), 137, 40, 28);
+                    index = 2;
                     for (int i = aiCount; i < aiCount + aoCount; i++)
                     {
                         if (i < 10)
                         {
                             insertAO(acTrans, acModSpace, acDb, currentPoint, i);
-                            //insertAI(acTrans, acModSpace, acDb, currentPoint, i);
+                            if (index < aoCount * 2)
+                            {
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 28, 274.2, 137, 40);
+                                index += 2;
+                            }
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETA(acTrans, acModSpace, acDb, ets[0], i, "AO");
                             ets[0] = ets[0].Add(new Vector3d(24, 0, 0));
                         }
                     }
                     currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                    table = insertTable(acTrans, acModSpace, acDb, 16, currentPoint, new Vector3d(137, -26, 0), 137, 19.69, 30.5);
+                    index = 2;
+                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                    index += 2;
                     insertDI1(acTrans, acModSpace, acDb, 0);
                     currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                     insertETD(acTrans, acModSpace, acDb, ets[1], 0, "DI");
@@ -347,11 +360,16 @@ namespace AcElectricalSchemePlugin
                     int currentET = 1;
                     if (mainControl)
                     {
+                        #region di
                         for (int i = 1; i < diCount - 1; i++)
                         {
                             if (i < maxCount)
                             {
                                 insertDI(acTrans, acModSpace, acDb, i);
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -374,6 +392,10 @@ namespace AcElectricalSchemePlugin
                         if (diCount - 1 < maxCount)
                         {
                             insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -388,6 +410,10 @@ namespace AcElectricalSchemePlugin
                                     currentD++;
                                     maxCount = 16;
                                     insertDIGas(acTrans, acModSpace, acDb, diCount - 1);
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
                                     currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                     insertETD(acTrans, acModSpace, acDb, ets[currentET], diCount - 1, "DI");
                                     ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -395,14 +421,27 @@ namespace AcElectricalSchemePlugin
                                 else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                             }
                         }
+                        #endregion
 
+                        #region do
                         currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                        table = insertTable(acTrans, acModSpace, acDb, 16, currentPoint, new Vector3d(137, -26, 0), 137, 19.69, 30.5);
+                        index = 2;
+                        addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                        index += 2;
                         int currentModule = diCount;
                         for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
                         {
                             if (i < maxCount)
                             {
                                 insertDO24V(acTrans, acModSpace, acDb, currentModule);
+                                if (index < Math.Truncate(do24vCount) * 4)
+                                {
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                }
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -430,6 +469,10 @@ namespace AcElectricalSchemePlugin
                         if (do24vCount - Math.Truncate(do24vCount) != 0)
                         {
                             insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -439,6 +482,10 @@ namespace AcElectricalSchemePlugin
                         else
                         {
                             insertDO1(acTrans, acModSpace, acDb, currentModule);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -450,6 +497,13 @@ namespace AcElectricalSchemePlugin
                             if (i < maxCount)
                             {
                                 insertDO(acTrans, acModSpace, acDb, i);
+                                if (index < doCount * 4)
+                                {
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                }
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -473,6 +527,10 @@ namespace AcElectricalSchemePlugin
                         if (x - 1 < maxCount)
                         {
                             insertDOGas(acTrans, acModSpace, acDb, x - 1, gas);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], x - 1, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -487,6 +545,10 @@ namespace AcElectricalSchemePlugin
                                     currentD++;
                                     maxCount = 16;
                                     insertDOGas(acTrans, acModSpace, acDb, x - 1, gas);
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
+                                    addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 8, 30.5, 279.2, 137, 19.69);
+                                    index += 2;
                                     currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                     insertETD(acTrans, acModSpace, acDb, ets[currentET], x - 1, "DO");
                                     ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -494,6 +556,7 @@ namespace AcElectricalSchemePlugin
                                 else editor.WriteMessage("Количество модулей DI/DO превышает допустимое");
                             }
                         }
+                        #endregion
                     }
                     else
                     {
@@ -502,6 +565,10 @@ namespace AcElectricalSchemePlugin
                             if (i < maxCount)
                             {
                                 insertDI(acTrans, acModSpace, acDb, i);
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DI");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -522,12 +589,20 @@ namespace AcElectricalSchemePlugin
                             }
                         }
                         currentPoint = currentPoint.Add(new Vector3d(500, 0, 0));
+                        table = insertTable(acTrans, acModSpace, acDb, 16, currentPoint, new Vector3d(137, -26, 0), 137, 19.69, 30.5);
+                        index = 2;
+                        addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                        index += 2;
                         int currentModule = diCount;
                         for (int i = diCount; i < Math.Truncate(do24vCount) + diCount; i++)
                         {
                             if (i < maxCount)
                             {
                                 insertDO24V(acTrans, acModSpace, acDb, currentModule);
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -555,6 +630,10 @@ namespace AcElectricalSchemePlugin
                         if (do24vCount - Math.Truncate(do24vCount) != 0)
                         {
                             insertDO24Vhalf(acTrans, acModSpace, acDb, currentModule);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -564,6 +643,10 @@ namespace AcElectricalSchemePlugin
                         else
                         {
                             insertDO1(acTrans, acModSpace, acDb, currentModule);
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
+                            addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                            index += 2;
                             currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                             insertETD(acTrans, acModSpace, acDb, ets[currentET], currentModule, "DO");
                             ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -575,6 +658,10 @@ namespace AcElectricalSchemePlugin
                             if (i < maxCount)
                             {
                                 insertDO(acTrans, acModSpace, acDb, i);
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
+                                addRowsToTable(acTrans, acModSpace, acDb, currentPoint, table, index, 16, 30.5, 279.2, 137, 19.69);
+                                index += 2;
                                 currentPoint = currentPoint.Add(new Vector3d(594, 0, 0));
                                 insertETD(acTrans, acModSpace, acDb, ets[currentET], i, "DO");
                                 ets[currentET] = ets[currentET].Add(new Vector3d(24, 0, 0));
@@ -13150,11 +13237,11 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static Table insertTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint)
+        private static Table insertTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, int rowsNum, Point3d insertPoint, Vector3d insertOffset, double width, double rowHeight, double breakOffset)
         {
             Table table = new Table();
-            table.Position = insertPoint.Add(new Vector3d(132, -26, 0));
-            table.SetSize(8, 1);
+            table.Position = insertPoint.Add(insertOffset);
+            table.SetSize(rowsNum, 1);
             table.TableStyle = acdb.Tablestyle;
             table.Rotation = 1.5708;
 
@@ -13163,72 +13250,27 @@ namespace AcElectricalSchemePlugin
             table.TransformBy(Matrix3d.Rotation(1.5708,
                                                  curUCS.Zaxis,
                                                  table.Position));
-            table.Position = table.Position.Add(new Vector3d(0, -137, 0));
+            table.Position = table.Position.Add(new Vector3d(0, -width, 0));
 
-            table.SetBreakHeight(0, 191);
-            table.SetBreakSpacing(28);
-            table.SetBreakOffset(0, new Vector3d(28, 0, 0));
+            table.SetBreakHeight(0, 161);
+            table.SetBreakSpacing(breakOffset);
+            table.SetBreakOffset(0, new Vector3d(breakOffset, 0, 0));
             table.BreakFlowDirection = TableBreakFlowDirection.DownOrUp;
             table.BreakEnabled = true;
+            
+            
+            for (int i = 0; i < rowsNum; i++)
+            {
+                table.SetTextHeight(i, 0, 2.5);
+                table.Cells[i, 0].TextString = "";
+                if (tst.Has("spds 2.5-0.85"))
+                    table.Cells[i, 0].TextStyleId = tst["spds 2.5-0.85"];
+                table.SetAlignment(i, 0, CellAlignment.MiddleCenter);
+                table.SetRowHeight(i, rowHeight);
+            }
 
-            table.SetTextHeight(0, 0, 2.5);
-            table.Cells[0, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
             table.Rows[0].IsMergeAllEnabled = false;
-
-            table.SetTextHeight(1, 0, 2.5);
-            table.Cells[1, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(2, 0, 2.5);
-            table.Cells[2, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(3, 0, 2.5);
-            table.Cells[3, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(4, 0, 2.5);
-            table.Cells[4, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[4, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(4, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(5, 0, 2.5);
-            table.Cells[5, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[5, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(5, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(6, 0, 2.5);
-            table.Cells[6, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[6, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(6, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(7, 0, 2.5);
-            table.Cells[7, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[7, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(7, 0, CellAlignment.MiddleCenter);
-
-            table.Columns[0].Width = 137;
-            table.SetRowHeight(0, 40);
-            table.SetRowHeight(1, 40);
-            table.SetRowHeight(2, 40);
-            table.SetRowHeight(3, 40);
-            table.SetRowHeight(4, 40);
-            table.SetRowHeight(5, 40);
-            table.SetRowHeight(6, 40);
-            table.SetRowHeight(7, 40);
+            table.Columns[0].Width = width;
 
             table.GenerateLayout();
             modSpace.AppendEntity(table);
@@ -13236,74 +13278,27 @@ namespace AcElectricalSchemePlugin
             return table;
         }
 
-        private static void addRowsToTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, Table table)
+        private static void addRowsToTable(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d insertPoint, Table table, int index, int numRows, double breakOffset1, double breakOffset2, double width, double rowHeight)
         {
-            table.SetSize(table.Rows.Count + 8, 1);
+            table.SetSize(table.Rows.Count + numRows, 1);
             table.BreakOptions = TableBreakOptions.AllowManualPositions;
-            table.SetBreakHeight(2, 191);
-            table.SetBreakSpacing(28);
-            table.SetBreakOffset(2, new Vector3d(table.Height + 246, 0, 0));
+            table.SetBreakHeight(index, 161);
+            table.SetBreakSpacing(breakOffset1);
+            table.SetBreakOffset(index, new Vector3d(table.Height + breakOffset2*(index/2), 0, 0));
             table.BreakFlowDirection = TableBreakFlowDirection.DownOrUp;
             table.BreakEnabled = true;
 
-            table.SetTextHeight(table.Rows.Count - 8, 0, 2.5);
-            table.Cells[table.Rows.Count - 8, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 8, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 8, 0, CellAlignment.MiddleCenter);
+            for (int i = numRows; i > 0; i--)
+            {
+                table.SetTextHeight(table.Rows.Count - i, 0, 2.5);
+                table.Cells[table.Rows.Count - i, 0].TextString = "";
+                if (tst.Has("spds 2.5-0.85"))
+                    table.Cells[table.Rows.Count - i, 0].TextStyleId = tst["spds 2.5-0.85"];
+                table.SetAlignment(table.Rows.Count - i, 0, CellAlignment.MiddleCenter);
+                table.SetRowHeight(table.Rows.Count - i, rowHeight);
+            }
 
-            table.SetTextHeight(table.Rows.Count - 7, 0, 2.5);
-            table.Cells[table.Rows.Count - 7, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 7, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 7, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 6, 0, 2.5);
-            table.Cells[table.Rows.Count - 6, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 6, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 6, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 5, 0, 2.5);
-            table.Cells[table.Rows.Count - 5, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 5, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 5, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 4, 0, 2.5);
-            table.Cells[table.Rows.Count - 4, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 4, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 4, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 3, 0, 2.5);
-            table.Cells[table.Rows.Count - 3, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 3, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 3, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 2, 0, 2.5);
-            table.Cells[table.Rows.Count - 2, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 2, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 2, 0, CellAlignment.MiddleCenter);
-
-            table.SetTextHeight(table.Rows.Count - 1, 0, 2.5);
-            table.Cells[table.Rows.Count - 1, 0].TextString = "";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[table.Rows.Count - 1, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(table.Rows.Count - 1, 0, CellAlignment.MiddleCenter);
-
-            table.Columns[0].Width = 137;
-            table.SetRowHeight(table.Rows.Count - 8, 40);
-            table.SetRowHeight(table.Rows.Count - 7, 40);
-            table.SetRowHeight(table.Rows.Count - 6, 40);
-            table.SetRowHeight(table.Rows.Count - 5, 40);
-            table.SetRowHeight(table.Rows.Count - 4, 40);
-            table.SetRowHeight(table.Rows.Count - 3, 40);
-            table.SetRowHeight(table.Rows.Count - 2, 40);
-            table.SetRowHeight(table.Rows.Count - 1, 40);
-
+            table.Columns[0].Width = width;
             table.GenerateLayout();
         }
 
