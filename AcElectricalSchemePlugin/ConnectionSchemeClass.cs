@@ -363,7 +363,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(text, true);
 
             Table table = new Table();
-            table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-30, -325, 0));
+            table.Position = shieldPoly.GetPoint3dAt(0).Add(new Vector3d(-30, -335, 0));
             table.SetSize(4, 1);
             table.TableStyle = acdb.Tablestyle;
 
@@ -2432,6 +2432,49 @@ namespace AcElectricalSchemePlugin
                         equipFrame.AddVertexAt(3, new Point2d(equipJumper.StartPoint.X - 10, lowestPoint - 4), 0, 0, 0);
                         modSpace.AppendEntity(equipFrame);
                         acTrans.AddNewlyCreatedDBObject(equipFrame, true);
+
+                        if (!groups[i].Units[k].designation.Contains("PDS") && !groups[i].Units[k].designation.Contains("MA") && !groups[i].Units[k].designation.Contains("MT"))
+                        {
+                            Line line1 = new Line();
+                            line1.SetDatabaseDefaults();
+                            line1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            line1.StartPoint = equipFrame.GetPoint3dAt(2);
+                            line1.EndPoint = line1.StartPoint.Add(new Vector3d(5, 0, 0));
+                            modSpace.AppendEntity(line1);
+                            acTrans.AddNewlyCreatedDBObject(line1, true);
+
+                            Line line2 = new Line();
+                            line2.SetDatabaseDefaults();
+                            line2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            line2.StartPoint = line1.EndPoint;
+                            line2.EndPoint = line2.StartPoint.Add(new Vector3d(0, -3, 0));
+                            modSpace.AppendEntity(line2);
+                            acTrans.AddNewlyCreatedDBObject(line2, true);
+
+                            Line line3 = new Line();
+                            line3.SetDatabaseDefaults();
+                            line3.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            line3.StartPoint = line2.EndPoint.Add(new Vector3d(-3, 0, 0));
+                            line3.EndPoint = line3.StartPoint.Add(new Vector3d(6, 0, 0));
+                            modSpace.AppendEntity(line3);
+                            acTrans.AddNewlyCreatedDBObject(line3, true);
+
+                            Line line4 = new Line();
+                            line4.SetDatabaseDefaults();
+                            line4.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            line4.StartPoint = line2.EndPoint.Add(new Vector3d(-2, -1, 0));
+                            line4.EndPoint = line4.StartPoint.Add(new Vector3d(4, 0, 0));
+                            modSpace.AppendEntity(line4);
+                            acTrans.AddNewlyCreatedDBObject(line4, true);
+
+                            Line line5 = new Line();
+                            line5.SetDatabaseDefaults();
+                            line5.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            line5.StartPoint = line2.EndPoint.Add(new Vector3d(-1, -2, 0));
+                            line5.EndPoint = line5.StartPoint.Add(new Vector3d(2, 0, 0));
+                            modSpace.AppendEntity(line5);
+                            acTrans.AddNewlyCreatedDBObject(line5, true);
+                        }
                     }
                     else
                     {
