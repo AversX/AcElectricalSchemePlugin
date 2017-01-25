@@ -48,6 +48,12 @@ namespace AcElectricalSchemePlugin
             public double cableLineSPLX;
             public double cableLineSPRX;
             public double cableLineEPY;
+
+            public double gndL;
+            public double gndR;
+            public double gndLowP;
+            public double gndY;
+            public Polyline gndShield;
         }
 
         struct Unit
@@ -69,8 +75,7 @@ namespace AcElectricalSchemePlugin
             public Point3d equipPoint;
             public List<Line> cables;
             public MText cableName;
-            public bool newSheet; 
-
+            public bool newSheet;
             public Unit(string _cupboardName, string _tBoxName, string _designation, int  _numOfGear, string _linkText, string _param, string _equipment, string _equipType, string _cableMark, bool _shield, List<string> _terminals, List<string> _colors, List<string> _equipTerminals)
             {
                 cupboardName = _cupboardName;
@@ -263,7 +268,7 @@ namespace AcElectricalSchemePlugin
 
         private static void renameTBoxes(Transaction acTrans, BlockTableRecord modSpace)
         {
-            for (int i=0; i<tboxes.Count; i++)
+            for (int i = 0; i < tboxes.Count; i++)
             {
                 if (tboxes[i].Name != String.Empty)
                 {
@@ -287,7 +292,11 @@ namespace AcElectricalSchemePlugin
                     }
                 }
                 if (tboxes[i].shield)
+                {
                     drawTBoxGnd(acTrans, modSpace, tboxes[i], tboxes[i].lastTermPoint, tboxes[i].cableLineSPLX, tboxes[i].cableLineSPRX, tboxes[i].cableLineEPY, tboxes[i].cableLineEPY, true, tboxes[i].framePoint);
+                    if (tboxes[i].gndShield!=null)
+                        drawGnd(acTrans, modSpace, tboxes[i].gndL, tboxes[i].gndR, tboxes[i].gndY, tboxes[i].gndLowP, tboxes[i].gndShield);
+                }
             }
         }
 
@@ -596,7 +605,9 @@ namespace AcElectricalSchemePlugin
 
                                 units[j].cableOutput.Add(cableLineDown);
                                 if (units[j].shield)
+                                {
                                     drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                }
 
                                 points = new List<Point3d>();
                             }
@@ -775,7 +786,9 @@ namespace AcElectricalSchemePlugin
 
                                 units[j].cableOutput.Add(cableLineDown);
                                 if (units[j].shield)
+                                {
                                     drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                }
 
                                 points = new List<Point3d>();
                             }
@@ -1912,7 +1925,6 @@ namespace AcElectricalSchemePlugin
 
         private static void drawCables(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline shieldCupBoard)
         {
-
             for (int i = 0; i < groups.Count; i++)
             {
                 tBox tbox;
@@ -1980,8 +1992,13 @@ namespace AcElectricalSchemePlugin
                 acTrans.AddNewlyCreatedDBObject(textName, true);
 
                 if (groups[i].Units[groups[i].Units.Count - 1].shield)
-                    //if (groups[i].CableNum>1)
-                        drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
+                {
+                    tbox.gndL = cableLine.StartPoint.X - 6;
+                    tbox.gndR = cableLine.StartPoint.X + 6;
+                    tbox.gndY = cableLine.StartPoint.Y;
+                    tbox.gndLowP = cableLineUp.EndPoint.X + 12.27;
+                    tbox.gndShield = shieldCupBoard;
+                }
                 //if (groups[i].Units[groups[i].Units.Count - 1].shield && groups[i].Units.Count>1)
                 //    drawGnd(acTrans, modSpace, cableLine.StartPoint.X - 6, cableLine.StartPoint.X + 6, cableLine.StartPoint.Y, cableLineUp.EndPoint.X + 12.27, shieldCupBoard);
 
