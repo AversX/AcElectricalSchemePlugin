@@ -30,7 +30,7 @@ namespace AcElectricalSchemePlugin
         private static double rigthEdgeXTable;
         private static List<Group> groups;
         private static Polyline curDefGnd;
-
+        private static double widthFactor = 1;
 
         struct tBox
         {
@@ -242,7 +242,13 @@ namespace AcElectricalSchemePlugin
                             {
                                 editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
                             }
-                        tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForWrite);
+                        tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForRead);
+                        TextStyleTableRecord tstr = null;
+                        if (tst.Has("spds 2.5-0.85"))
+                        {
+                            tstr = (TextStyleTableRecord)acTrans.GetObject(tst["spds 2.5-0.85"], OpenMode.ForRead);
+                            widthFactor = tstr.XScale;
+                        }
                         //loadFonts(acTrans, acModSpace, acDb);
                        
                         Point3d startPoint = selectedPoint.Value;
@@ -330,7 +336,10 @@ namespace AcElectricalSchemePlugin
             DBText defGndText = new DBText();
             defGndText.SetDatabaseDefaults();
             if (tst.Has("spds 2.5-0.85"))
+            {
                 defGndText.TextStyleId = tst["spds 2.5-0.85"];
+                defGndText.WidthFactor = widthFactor;
+            }
             defGndText.Height = 3;
             defGndText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             defGndText.Position = defGndPoly.GetPoint3dAt(0).Add(new Vector3d(0, 2, 0));
@@ -353,7 +362,11 @@ namespace AcElectricalSchemePlugin
             DBText text = new DBText();
             text.SetDatabaseDefaults();
             if (tst.Has("spds 2.5-0.85"))
+            {
                 text.TextStyleId = tst["spds 2.5-0.85"];
+                text.WidthFactor = widthFactor;
+            }
+            text.WidthFactor = widthFactor;
             text.Height = 3;
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = gndPoly.GetPoint3dAt(0).Add(new Vector3d(0, 2, 0));
@@ -450,7 +463,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -543,7 +559,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -655,7 +674,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -732,7 +754,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -842,7 +867,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1000,7 +1028,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1146,7 +1177,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1290,7 +1324,10 @@ namespace AcElectricalSchemePlugin
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
                                     if (tst.Has("spds 2.5-0.85"))
+                                    {
                                         text.TextStyleId = tst["spds 2.5-0.85"];
+                                        text.WidthFactor = widthFactor;
+                                    }
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1577,7 +1614,7 @@ namespace AcElectricalSchemePlugin
             double x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
             double y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
             termText.Location = new Point3d(x, y, 0);
-            if (upY != downY || !osh) termText.Contents = "S" + (tbox.LastShieldNumber < 10 ? "0" + tbox.LastShieldNumber.ToString() : tbox.LastShieldNumber.ToString());
+            if (upY != downY || !osh) termText.Contents = "\\W"+widthFactor+";S" + (tbox.LastShieldNumber < 10 ? "0" + tbox.LastShieldNumber.ToString() : tbox.LastShieldNumber.ToString());
             else
             {
                 termText.Contents = "OSH";
@@ -1785,7 +1822,10 @@ namespace AcElectricalSchemePlugin
             DBText text = new DBText();
             text.SetDatabaseDefaults();
             if (tst.Has("spds 2.5-0.85"))
+            {
                 text.TextStyleId = tst["spds 2.5-0.85"];
+                text.WidthFactor = widthFactor;
+            }
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = shield.GetPoint3dAt(0).Add(new Vector3d(382, -10, 0));
             text.TextString = cupbordName;
@@ -1814,7 +1854,10 @@ namespace AcElectricalSchemePlugin
             DBText text = new DBText();
             text.SetDatabaseDefaults();
             if (tst.Has("spds 2.5-0.85"))
+            {
                 text.TextStyleId = tst["spds 2.5-0.85"];
+                text.WidthFactor = widthFactor;
+            }
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = termPoly.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
             if (unit.param.ToLower() != "резерв")
@@ -1890,7 +1933,7 @@ namespace AcElectricalSchemePlugin
             double x = cablePoly.GetPoint3dAt(0).X + (cablePoly.GetPoint3dAt(1).X - cablePoly.GetPoint3dAt(0).X) / 2;
             double y = cablePoly.GetPoint3dAt(2).Y + (cablePoly.GetPoint3dAt(1).Y - cablePoly.GetPoint3dAt(2).Y) / 2;
             textLine.Location = new Point3d(x, y, 0);
-            textLine.Contents = unit.param.ToLower() != "резерв" ? unit.designation + "/" + cableNumber : "Резерв";
+            textLine.Contents = unit.param.ToLower() != "резерв" ? "\\W"+widthFactor+";"+unit.designation + "/" + cableNumber : "\\W"+widthFactor+";Резерв";
             textLine.Rotation = 1.5708;
             textLine.Attachment = AttachmentPoint.MiddleCenter;
             modSpace.AppendEntity(textLine);
@@ -1913,7 +1956,7 @@ namespace AcElectricalSchemePlugin
             x = cableLineDown.EndPoint.X - 1;
             y = cableLineDown.EndPoint.Y + (cableLineDown.StartPoint.Y - cableLineDown.EndPoint.Y) / 2;
             colorMark.Location = new Point3d(x, y, 0);
-            colorMark.Contents = unit.colors[color];
+            colorMark.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
             colorMark.Rotation = 1.5708;
             colorMark.Attachment = AttachmentPoint.BottomCenter;
             modSpace.AppendEntity(colorMark);
@@ -1972,7 +2015,7 @@ namespace AcElectricalSchemePlugin
                     cableMark.TextStyleId = tst["spds 2.5-0.85"];
                 cableMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
-                cableMark.Contents = groups[i].Units[groups[i].Units.Count - 1].cableMark;
+                cableMark.Contents = "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].cableMark;
                 cableMark.Rotation = 1.5708;
                 cableMark.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(cableMark);
@@ -1987,7 +2030,7 @@ namespace AcElectricalSchemePlugin
                 textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
                 textName.Attachment = AttachmentPoint.TopCenter;
                 textName.Rotation = 1.5708;
-                textName.Contents = groups[i].Units[groups[i].Units.Count - 1].tBoxName == string.Empty ? groups[i].Units[groups[i].Units.Count - 1].designation + "/" + groups[i].Units[groups[i].Units.Count - 1].cupboardName.Split(' ')[1] : groups[i].Units[groups[i].Units.Count - 1].tBoxName + "/" + groups[i].Units[groups[i].Units.Count - 1].cupboardName.Split(' ')[1];
+                textName.Contents = groups[i].Units[groups[i].Units.Count - 1].tBoxName == string.Empty ? "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].designation + "/" + groups[i].Units[groups[i].Units.Count - 1].cupboardName.Split(' ')[1] : "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].tBoxName + "/" + groups[i].Units[groups[i].Units.Count - 1].cupboardName.Split(' ')[1];
                 modSpace.AppendEntity(textName);
                 acTrans.AddNewlyCreatedDBObject(textName, true);
 
@@ -2055,7 +2098,7 @@ namespace AcElectricalSchemePlugin
                             double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                             double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
                             pairMark.Location = new Point3d(X, Y, 0);
-                            pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "0" + tbox.LastPairNumber.ToString() : tbox.LastPairNumber.ToString());
+                            pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "\\W" + widthFactor + ";0" + tbox.LastPairNumber.ToString() : "\\W" + widthFactor + ";" + tbox.LastPairNumber.ToString());
                             pairMark.Rotation = 1.5708;
                             pairMark.Attachment = AttachmentPoint.BottomCenter;
                             modSpace.AppendEntity(pairMark);
@@ -2102,7 +2145,7 @@ namespace AcElectricalSchemePlugin
                                 double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                                 double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
                                 pairMark.Location = new Point3d(X, Y, 0);
-                                pairMark.Contents = "PR" + (pairNumUp < 10 ? "0" + pairNumUp.ToString() : pairNumUp.ToString());
+                                pairMark.Contents = "PR" + (pairNumUp < 10 ? "\\W" + widthFactor + ";0" + pairNumUp.ToString() : "\\W" + widthFactor + ";" + pairNumUp.ToString());
                                 pairMark.Rotation = 1.5708;
                                 pairMark.Attachment = AttachmentPoint.BottomCenter;
                                 modSpace.AppendEntity(pairMark);
@@ -2131,7 +2174,7 @@ namespace AcElectricalSchemePlugin
                                 double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                                 double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
                                 pairMark.Location = new Point3d(X, Y, 0);
-                                pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "0" + tbox.LastPairNumber.ToString() : tbox.LastPairNumber.ToString());
+                                pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "\\W" + widthFactor + ";0" + tbox.LastPairNumber.ToString() : "\\W" + widthFactor + ";" + tbox.LastPairNumber.ToString());
                                 pairMark.Rotation = 1.5708;
                                 pairMark.Attachment = AttachmentPoint.BottomCenter;
                                 modSpace.AppendEntity(pairMark);
@@ -2156,7 +2199,7 @@ namespace AcElectricalSchemePlugin
                                     double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
                                     double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
                                     pairMark.Location = new Point3d(X, Y, 0);
-                                    pairMark.Contents = "PR" + (pairNumUp < 10 ? "0" + pairNumUp.ToString() : pairNumUp.ToString());
+                                    pairMark.Contents = "PR" + (pairNumUp < 10 ? "\\W" + widthFactor + ";0" + pairNumUp.ToString() : "\\W" + widthFactor + ";" + pairNumUp.ToString());
                                     pairMark.Rotation = 1.5708;
                                     pairMark.Attachment = AttachmentPoint.BottomCenter;
                                     modSpace.AppendEntity(pairMark);
@@ -2178,7 +2221,7 @@ namespace AcElectricalSchemePlugin
                                     double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
                                     double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
                                     pairMark.Location = new Point3d(X, Y, 0);
-                                    pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "0" + tbox.LastPairNumber.ToString() : tbox.LastPairNumber.ToString());
+                                    pairMark.Contents = "PR" + (tbox.LastPairNumber < 10 ? "\\W"+widthFactor+";0" + tbox.LastPairNumber.ToString() : "\\W" + widthFactor + ";" + tbox.LastPairNumber.ToString());
                                     pairMark.Rotation = 1.5708;
                                     pairMark.Attachment = AttachmentPoint.BottomCenter;
                                     modSpace.AppendEntity(pairMark);
@@ -2247,7 +2290,7 @@ namespace AcElectricalSchemePlugin
                         tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                     tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     tBoxName.Location = tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
-                    tBoxName.Contents = groups[i].Units[groups[i].Units.Count - 1].tBoxName;
+                    tBoxName.Contents = "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].tBoxName;
                     tBoxName.Attachment = AttachmentPoint.BottomLeft;
                     modSpace.AppendEntity(tBoxName);
                     acTrans.AddNewlyCreatedDBObject(tBoxName, true);
@@ -2332,7 +2375,7 @@ namespace AcElectricalSchemePlugin
                             double x = equipLine.EndPoint.X - 1;
                             double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
                             colorMark.Location = new Point3d(x, y, 0);
-                            colorMark.Contents = groups[i].Units[k].colors[color];
+                            colorMark.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].colors[color];
                             colorMark.Rotation = 1.5708;
                             colorMark.Attachment = AttachmentPoint.BottomCenter;
                             modSpace.AppendEntity(colorMark);
@@ -2359,7 +2402,7 @@ namespace AcElectricalSchemePlugin
                             y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
                             cableTextDown.Location = new Point3d(x, y, 0);
                             cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
-                            cableTextDown.Contents = groups[i].Units[k].equipTerminals[c];
+                            cableTextDown.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].equipTerminals[c];
                             modSpace.AppendEntity(cableTextDown);
                             acTrans.AddNewlyCreatedDBObject(cableTextDown, true);
 
@@ -2384,7 +2427,7 @@ namespace AcElectricalSchemePlugin
                             double x = equipLine.EndPoint.X - 1;
                             double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
                             colorMark.Location = new Point3d(x, y, 0);
-                            colorMark.Contents = groups[i].Units[k].colors[color];
+                            colorMark.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].colors[color];
                             colorMark.Rotation = 1.5708;
                             colorMark.Attachment = AttachmentPoint.BottomCenter;
 
@@ -2407,7 +2450,7 @@ namespace AcElectricalSchemePlugin
                             y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
                             cableTextDown.Location = new Point3d(x, y, 0);
                             cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
-                            cableTextDown.Contents = groups[i].Units[k].equipTerminals[c];
+                            cableTextDown.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].equipTerminals[c];
 
                             lowestPoint = equipTerm.GetPoint3dAt(3).Y;
                             if (color < groups[i].Units[k].colors.Count - 1) color++;
@@ -2502,7 +2545,7 @@ namespace AcElectricalSchemePlugin
                             tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                         tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                         tBoxName.Location = equipFrame.GetPoint3dAt(1).Add(new Vector3d(6, -4, 0));
-                        tBoxName.Contents = groups[i].Units[k].linkText;
+                        tBoxName.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].linkText;
                         tBoxName.Attachment = AttachmentPoint.BottomLeft;
                         modSpace.AppendEntity(tBoxName);
                         acTrans.AddNewlyCreatedDBObject(tBoxName, true);
@@ -2558,7 +2601,7 @@ namespace AcElectricalSchemePlugin
             double X = tBoxInput.EndPoint.X - 1;
             double Y = tBoxInput.EndPoint.Y + (tBoxInput.StartPoint.Y - tBoxInput.EndPoint.Y) / 2;
             pairMark.Location = new Point3d(X, Y, 0);
-            pairMark.Contents = "PR" + (pairNumberUp < 10 ? "0" + pairNumberUp.ToString() : pairNumberUp.ToString());
+            pairMark.Contents = "PR" + (pairNumberUp < 10 ? "\\W" + widthFactor + ";0" + pairNumberUp.ToString() : "\\W" + widthFactor + ";" + pairNumberUp.ToString());
             pairMark.Rotation = 1.5708;
             pairMark.Attachment = AttachmentPoint.BottomCenter;
             modSpace.AppendEntity(pairMark);
@@ -2607,7 +2650,7 @@ namespace AcElectricalSchemePlugin
                 double x = cablePolyUp.GetPoint3dAt(0).X + (cablePolyUp.GetPoint3dAt(1).X - cablePolyUp.GetPoint3dAt(0).X) / 2;
                 double y = cablePolyUp.GetPoint3dAt(2).Y + (cablePolyUp.GetPoint3dAt(1).Y - cablePolyUp.GetPoint3dAt(2).Y) / 2;
                 cableTextUp.Location = new Point3d(x, y, 0);
-                cableTextUp.Contents = unit.param.ToLower() != "резерв" ? unit.designation + "/" + curTermNumber : "Резерв";
+                cableTextUp.Contents = unit.param.ToLower() != "резерв" ? "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber : "\\W"+widthFactor+";Резерв";
                 cableTextUp.Rotation = 1.5708;
                 cableTextUp.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(cableTextUp);
@@ -2630,7 +2673,7 @@ namespace AcElectricalSchemePlugin
                 x = colorLineUp.EndPoint.X - 1;
                 y = colorLineUp.EndPoint.Y + (colorLineUp.StartPoint.Y - colorLineUp.EndPoint.Y) / 2;
                 colorMarkUp.Location = new Point3d(x, y, 0);
-                colorMarkUp.Contents = unit.colors[color];
+                colorMarkUp.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
                 colorMarkUp.Rotation = 1.5708;
                 colorMarkUp.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(colorMarkUp);
@@ -2657,7 +2700,7 @@ namespace AcElectricalSchemePlugin
                 x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
                 y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
                 termText.Location = new Point3d(x, y, 0);
-                termText.Contents = tbox.LastTerminalNumber.ToString();
+                termText.Contents = "\\W" + widthFactor + ";" + tbox.LastTerminalNumber.ToString();
                 termText.Rotation = 1.5708;
                 termText.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(termText);
@@ -2683,7 +2726,7 @@ namespace AcElectricalSchemePlugin
                     x = colorLineDown.EndPoint.X - 1;
                     y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
                     colorMarkDown.Location = new Point3d(x, y, 0);
-                    colorMarkDown.Contents = unit.colors[color];
+                    colorMarkDown.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
                     colorMarkDown.Rotation = 1.5708;
                     colorMarkDown.Attachment = AttachmentPoint.BottomCenter;
                     modSpace.AppendEntity(colorMarkDown);
@@ -2709,7 +2752,7 @@ namespace AcElectricalSchemePlugin
                     x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                     y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
                     cableTextDown.Location = new Point3d(x, y, 0);
-                    cableTextDown.Contents = unit.designation + "/" + curTermNumber;
+                    cableTextDown.Contents = "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber;
                     cableTextDown.Rotation = 1.5708;
                     cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
                     modSpace.AppendEntity(cableTextDown);
@@ -2742,7 +2785,7 @@ namespace AcElectricalSchemePlugin
                     x = colorLineDown.EndPoint.X - 1;
                     y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
                     colorMarkDown.Location = new Point3d(x, y, 0);
-                    colorMarkDown.Contents = unit.colors[color];
+                    colorMarkDown.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
                     colorMarkDown.Rotation = 1.5708;
                     colorMarkDown.Attachment = AttachmentPoint.BottomCenter;
 
@@ -2764,7 +2807,7 @@ namespace AcElectricalSchemePlugin
                     x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                     y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
                     cableTextDown.Location = new Point3d(x, y, 0);
-                    cableTextDown.Contents = unit.designation + "/" + curTermNumber;
+                    cableTextDown.Contents = "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber;
                     cableTextDown.Rotation = 1.5708;
                     cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
 
@@ -2835,7 +2878,7 @@ namespace AcElectricalSchemePlugin
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
                 pairMark.Location = new Point3d(X, Y, 0);
-                pairMark.Contents = "PR" + (curPairNumber < 10 ? "0" + pairNumberDown.ToString() : pairNumberDown.ToString());
+                pairMark.Contents = "PR" + (curPairNumber < 10 ? "\\W" + widthFactor + ";0" + pairNumberDown.ToString() : "\\W" + widthFactor + ";" + pairNumberDown.ToString());
                 pairMark.Rotation = 1.5708;
                 pairMark.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(pairMark);
@@ -2861,7 +2904,7 @@ namespace AcElectricalSchemePlugin
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
                 pairMark.Location = new Point3d(X, Y, 0);
-                pairMark.Contents = "PR" + (curPairNumber < 10 ? "0" + pairNumberDown.ToString() : pairNumberDown.ToString());
+                pairMark.Contents = "PR" + (curPairNumber < 10 ? "\\W" + widthFactor + ";0" + pairNumberDown.ToString() : "\\W" + widthFactor + ";" + pairNumberDown.ToString());
                 pairMark.Rotation = 1.5708;
                 pairMark.Attachment = AttachmentPoint.BottomCenter;
 
@@ -2887,7 +2930,7 @@ namespace AcElectricalSchemePlugin
             double X = tBoxInput.EndPoint.X - 1;
             double Y = tBoxInput.EndPoint.Y + (tBoxInput.StartPoint.Y - tBoxInput.EndPoint.Y) / 2;
             pairMark.Location = new Point3d(X, Y, 0);
-            pairMark.Contents = "PR" + (pairNumberUp < 10 ? "0" + pairNumberUp.ToString() : pairNumberUp.ToString());
+            pairMark.Contents = "PR" + (pairNumberUp < 10 ? "\\W" + widthFactor + ";0" + pairNumberUp.ToString() : "\\W" + widthFactor + ";" + pairNumberUp.ToString());
             pairMark.Rotation = 1.5708;
             pairMark.Attachment = AttachmentPoint.BottomCenter;
             modSpace.AppendEntity(pairMark);
@@ -2934,7 +2977,7 @@ namespace AcElectricalSchemePlugin
             double x = cablePolyUp.GetPoint3dAt(0).X + (cablePolyUp.GetPoint3dAt(1).X - cablePolyUp.GetPoint3dAt(0).X) / 2;
             double y = cablePolyUp.GetPoint3dAt(2).Y + (cablePolyUp.GetPoint3dAt(1).Y - cablePolyUp.GetPoint3dAt(2).Y) / 2;
             cableTextUp.Location = new Point3d(x, y, 0);
-            cableTextUp.Contents = unit.param.ToLower() != "резерв" ? unit.designation + "/" + curTermNumber : "Резерв";
+            cableTextUp.Contents = unit.param.ToLower() != "резерв" ? "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber : "\\W"+widthFactor+";Резерв";
             cableTextUp.Rotation = 1.5708;
             cableTextUp.Attachment = AttachmentPoint.MiddleCenter;
             modSpace.AppendEntity(cableTextUp);
@@ -2957,7 +3000,7 @@ namespace AcElectricalSchemePlugin
             x = colorLineUp.EndPoint.X - 1;
             y = colorLineUp.EndPoint.Y + (colorLineUp.StartPoint.Y - colorLineUp.EndPoint.Y) / 2;
             colorMarkUp.Location = new Point3d(x, y, 0);
-            colorMarkUp.Contents = unit.colors[color];
+            colorMarkUp.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
             colorMarkUp.Rotation = 1.5708;
             colorMarkUp.Attachment = AttachmentPoint.BottomCenter;
             modSpace.AppendEntity(colorMarkUp);
@@ -2988,7 +3031,7 @@ namespace AcElectricalSchemePlugin
                 x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
                 y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
                 termText.Location = new Point3d(x, y, 0);
-                termText.Contents = tbox.LastTerminalNumber.ToString();
+                termText.Contents = "\\W" + widthFactor + ";" + tbox.LastTerminalNumber.ToString();
                 termText.Rotation = 1.5708;
                 termText.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(termText);
@@ -3012,7 +3055,7 @@ namespace AcElectricalSchemePlugin
                 x = colorLineDown.EndPoint.X - 1;
                 y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
                 colorMarkDown.Location = new Point3d(x, y, 0);
-                colorMarkDown.Contents = unit.colors[color];
+                colorMarkDown.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
                 colorMarkDown.Rotation = 1.5708;
                 colorMarkDown.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(colorMarkDown);
@@ -3038,7 +3081,7 @@ namespace AcElectricalSchemePlugin
                 x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                 y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
                 cableTextDown.Location = new Point3d(x, y, 0);
-                cableTextDown.Contents = unit.designation + "/" + curTermNumber;
+                cableTextDown.Contents = "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber;
                 cableTextDown.Rotation = 1.5708;
                 cableTextDown.Attachment = AttachmentPoint.MiddleCenter;
                 modSpace.AppendEntity(cableTextDown);
@@ -3092,7 +3135,7 @@ namespace AcElectricalSchemePlugin
             x = cablePolyUp1.GetPoint3dAt(0).X + (cablePolyUp1.GetPoint3dAt(1).X - cablePolyUp1.GetPoint3dAt(0).X) / 2;
             y = cablePolyUp1.GetPoint3dAt(2).Y + (cablePolyUp1.GetPoint3dAt(1).Y - cablePolyUp1.GetPoint3dAt(2).Y) / 2;
             cableTextUp1.Location = new Point3d(x, y, 0);
-            cableTextUp1.Contents = unit.param.ToLower() != "резерв" ? unit.designation + "/" + curTermNumber : "Резерв";
+            cableTextUp1.Contents = unit.param.ToLower() != "резерв" ? "\\W" + widthFactor + ";" + unit.designation + "/" + curTermNumber : "\\W"+widthFactor+";Резерв";
             cableTextUp1.Rotation = 1.5708;
             cableTextUp1.Attachment = AttachmentPoint.MiddleCenter;
             modSpace.AppendEntity(cableTextUp1);
@@ -3115,7 +3158,7 @@ namespace AcElectricalSchemePlugin
             x = colorLineUp1.EndPoint.X - 1;
             y = colorLineUp1.EndPoint.Y + (colorLineUp1.StartPoint.Y - colorLineUp1.EndPoint.Y) / 2;
             colorMarkUp1.Location = new Point3d(x, y, 0);
-            colorMarkUp1.Contents = unit.colors[color];
+            colorMarkUp1.Contents = "\\W" + widthFactor + ";" + unit.colors[color];
             colorMarkUp1.Rotation = 1.5708;
             colorMarkUp1.Attachment = AttachmentPoint.BottomCenter;
             modSpace.AppendEntity(colorMarkUp1);
@@ -3190,7 +3233,7 @@ namespace AcElectricalSchemePlugin
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
                 pairMark.Location = new Point3d(X, Y, 0);
-                pairMark.Contents = "PR" + (curPairNumber < 10 ? "0" + pairNumberDown.ToString() : pairNumberDown.ToString());
+                pairMark.Contents = "PR" + (curPairNumber < 10 ? "\\W" + widthFactor + ";0" + pairNumberDown.ToString() : "\\W" + widthFactor + ";" + pairNumberDown.ToString());
                 pairMark.Rotation = 1.5708;
                 pairMark.Attachment = AttachmentPoint.BottomCenter;
                 modSpace.AppendEntity(pairMark);
@@ -3216,7 +3259,7 @@ namespace AcElectricalSchemePlugin
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
                 pairMark.Location = new Point3d(X, Y, 0);
-                pairMark.Contents = "PR" + (curPairNumber < 10 ? "0" + pairNumberDown.ToString() : pairNumberDown.ToString());
+                pairMark.Contents = "PR" + (curPairNumber < 10 ? "\\W" + widthFactor + ";0" + pairNumberDown.ToString() : "\\W" + widthFactor + ";" + pairNumberDown.ToString());
                 pairMark.Rotation = 1.5708;
                 pairMark.Attachment = AttachmentPoint.BottomCenter;
 
