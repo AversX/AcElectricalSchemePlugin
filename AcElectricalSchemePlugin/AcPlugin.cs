@@ -30,6 +30,18 @@ namespace AcElectricalSchemePlugin
             ConnectionScheme.DrawScheme();
         }
 
+        [CommandMethod("Contour", CommandFlags.Session)]
+        public void Contour()
+        {
+            ContourSchemeClass.DrawScheme();
+        }
+
+        [CommandMethod("ParseControl", CommandFlags.Session)]
+        public void ParseControl()
+        {
+            ContourSchemeClass.ParseControlScheme();
+        }
+
         [CommandMethod("Mark", CommandFlags.Session)]
         public void Mark()
         {
@@ -62,6 +74,19 @@ namespace AcElectricalSchemePlugin
             openFileDialog1.ShowDialog();
             if (openFileDialog1.FileName != "")
                 SingleLineSchemeClass.drawScheme(openFileDialog1.FileName);
+        }
+
+        [CommandMethod("Help", CommandFlags.Session)]
+        public void Help()
+        {
+            HelpForm hForm = new HelpForm();
+            hForm.Show();
+        }
+
+        [CommandMethod("ChangeAttribute", CommandFlags.Session)]
+        public void ChangeAttribute()
+        {
+            ChangeAttributeClass.FindAndChangeAttributes();
         }
     }
 }

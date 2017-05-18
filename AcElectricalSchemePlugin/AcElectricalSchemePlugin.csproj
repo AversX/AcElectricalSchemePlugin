@@ -61,8 +61,22 @@
     <Compile Include="AcPlugin.cs" />
     <Compile Include="ArticleClass.cs" />
     <Compile Include="CableMarkClass.cs" />
+    <Compile Include="ChangeAttributeClass.cs" />
+    <Compile Include="ChangeAttributeForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ChangeAttributeForm.Designer.cs">
+      <DependentUpon>ChangeAttributeForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="ConnectionSchemeClass.cs" />
+    <Compile Include="ContourSchemeClass.cs" />
     <Compile Include="ControlSchemeClass.cs" />
+    <Compile Include="HelpForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="HelpForm.Designer.cs">
+      <DependentUpon>HelpForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleLineSchemeClass.cs" />
     <Compile Include="TerminalsWeightClass.cs" />
@@ -84,6 +98,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Consumer.dwg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\ContourExample.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\DI1.dwg">
@@ -176,6 +193,14 @@
     <None Include="Data\с ГУ.dwg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ChangeAttributeForm.resx">
+      <DependentUpon>ChangeAttributeForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="HelpForm.resx">
+      <DependentUpon>HelpForm.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
