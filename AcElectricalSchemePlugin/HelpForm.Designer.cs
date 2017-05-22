@@ -30,26 +30,26 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HelpForm));
             this.helpTabControl = new System.Windows.Forms.TabControl();
-            this.ControlPage = new System.Windows.Forms.TabPage();
             this.SchemePage = new System.Windows.Forms.TabPage();
-            this.ContourPage = new System.Windows.Forms.TabPage();
-            this.ParseControlPage = new System.Windows.Forms.TabPage();
-            this.MarkPage = new System.Windows.Forms.TabPage();
-            this.TerminalsPage = new System.Windows.Forms.TabPage();
-            this.SLinePage = new System.Windows.Forms.TabPage();
             this.label1 = new System.Windows.Forms.Label();
+            this.ContourPage = new System.Windows.Forms.TabPage();
             this.label2 = new System.Windows.Forms.Label();
+            this.ParseControlPage = new System.Windows.Forms.TabPage();
             this.label3 = new System.Windows.Forms.Label();
+            this.MarkPage = new System.Windows.Forms.TabPage();
             this.label4 = new System.Windows.Forms.Label();
+            this.ControlPage = new System.Windows.Forms.TabPage();
             this.label5 = new System.Windows.Forms.Label();
+            this.TerminalsPage = new System.Windows.Forms.TabPage();
             this.label6 = new System.Windows.Forms.Label();
+            this.SLinePage = new System.Windows.Forms.TabPage();
             this.label7 = new System.Windows.Forms.Label();
             this.helpTabControl.SuspendLayout();
-            this.ControlPage.SuspendLayout();
             this.SchemePage.SuspendLayout();
             this.ContourPage.SuspendLayout();
             this.ParseControlPage.SuspendLayout();
             this.MarkPage.SuspendLayout();
+            this.ControlPage.SuspendLayout();
             this.TerminalsPage.SuspendLayout();
             this.SLinePage.SuspendLayout();
             this.SuspendLayout();
@@ -69,17 +69,6 @@
             this.helpTabControl.Size = new System.Drawing.Size(598, 258);
             this.helpTabControl.TabIndex = 0;
             // 
-            // ControlPage
-            // 
-            this.ControlPage.Controls.Add(this.label5);
-            this.ControlPage.Location = new System.Drawing.Point(4, 22);
-            this.ControlPage.Name = "ControlPage";
-            this.ControlPage.Padding = new System.Windows.Forms.Padding(3);
-            this.ControlPage.Size = new System.Drawing.Size(590, 232);
-            this.ControlPage.TabIndex = 0;
-            this.ControlPage.Text = "CONTROL";
-            this.ControlPage.UseVisualStyleBackColor = true;
-            // 
             // SchemePage
             // 
             this.SchemePage.AutoScroll = true;
@@ -92,6 +81,15 @@
             this.SchemePage.Text = "SCHEME";
             this.SchemePage.UseVisualStyleBackColor = true;
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(3, 12);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(403, 104);
+            this.label1.TabIndex = 0;
+            this.label1.Text = resources.GetString("label1.Text");
+            // 
             // ContourPage
             // 
             this.ContourPage.Controls.Add(this.label2);
@@ -101,6 +99,15 @@
             this.ContourPage.TabIndex = 3;
             this.ContourPage.Text = "CONTOUR";
             this.ContourPage.UseVisualStyleBackColor = true;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(3, 12);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(558, 117);
+            this.label2.TabIndex = 1;
+            this.label2.Text = resources.GetString("label2.Text");
             // 
             // ParseControlPage
             // 
@@ -112,6 +119,15 @@
             this.ParseControlPage.Text = "PARSECONTROL";
             this.ParseControlPage.UseVisualStyleBackColor = true;
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(3, 13);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(523, 143);
+            this.label3.TabIndex = 1;
+            this.label3.Text = resources.GetString("label3.Text");
+            // 
             // MarkPage
             // 
             this.MarkPage.Controls.Add(this.label4);
@@ -121,6 +137,35 @@
             this.MarkPage.TabIndex = 5;
             this.MarkPage.Text = "MARK";
             this.MarkPage.UseVisualStyleBackColor = true;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(3, 12);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(486, 156);
+            this.label4.TabIndex = 2;
+            this.label4.Text = resources.GetString("label4.Text");
+            // 
+            // ControlPage
+            // 
+            this.ControlPage.Controls.Add(this.label5);
+            this.ControlPage.Location = new System.Drawing.Point(4, 22);
+            this.ControlPage.Name = "ControlPage";
+            this.ControlPage.Padding = new System.Windows.Forms.Padding(3);
+            this.ControlPage.Size = new System.Drawing.Size(590, 232);
+            this.ControlPage.TabIndex = 0;
+            this.ControlPage.Text = "CONTROL";
+            this.ControlPage.UseVisualStyleBackColor = true;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(3, 12);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(388, 78);
+            this.label5.TabIndex = 3;
+            this.label5.Text = resources.GetString("label5.Text");
             // 
             // TerminalsPage
             // 
@@ -132,6 +177,15 @@
             this.TerminalsPage.Text = "TERMINALS";
             this.TerminalsPage.UseVisualStyleBackColor = true;
             // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(3, 14);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(439, 91);
+            this.label6.TabIndex = 4;
+            this.label6.Text = resources.GetString("label6.Text");
+            // 
             // SLinePage
             // 
             this.SLinePage.Controls.Add(this.label7);
@@ -141,60 +195,6 @@
             this.SLinePage.TabIndex = 7;
             this.SLinePage.Text = "SLINE";
             this.SLinePage.UseVisualStyleBackColor = true;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 12);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(403, 104);
-            this.label1.TabIndex = 0;
-            this.label1.Text = resources.GetString("label1.Text");
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(3, 12);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(558, 117);
-            this.label2.TabIndex = 1;
-            this.label2.Text = resources.GetString("label2.Text");
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3, 13);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(523, 143);
-            this.label3.TabIndex = 1;
-            this.label3.Text = resources.GetString("label3.Text");
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(3, 12);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(486, 156);
-            this.label4.TabIndex = 2;
-            this.label4.Text = resources.GetString("label4.Text");
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(3, 12);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(388, 78);
-            this.label5.TabIndex = 3;
-            this.label5.Text = resources.GetString("label5.Text");
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(3, 14);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(439, 91);
-            this.label6.TabIndex = 4;
-            this.label6.Text = resources.GetString("label6.Text");
             // 
             // label7
             // 
@@ -214,8 +214,6 @@
             this.Name = "HelpForm";
             this.Text = "HelpForm";
             this.helpTabControl.ResumeLayout(false);
-            this.ControlPage.ResumeLayout(false);
-            this.ControlPage.PerformLayout();
             this.SchemePage.ResumeLayout(false);
             this.SchemePage.PerformLayout();
             this.ContourPage.ResumeLayout(false);
@@ -224,6 +222,8 @@
             this.ParseControlPage.PerformLayout();
             this.MarkPage.ResumeLayout(false);
             this.MarkPage.PerformLayout();
+            this.ControlPage.ResumeLayout(false);
+            this.ControlPage.PerformLayout();
             this.TerminalsPage.ResumeLayout(false);
             this.TerminalsPage.PerformLayout();
             this.SLinePage.ResumeLayout(false);
