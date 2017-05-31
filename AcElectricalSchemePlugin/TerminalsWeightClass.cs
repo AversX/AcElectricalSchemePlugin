@@ -16,7 +16,6 @@ namespace AcElectricalSchemePlugin
     static class TerminalsWeightClass
     {
         private static Editor editor;
-        private static Document acDoc;
         private static Database acDb;
         private static List<Unit> Units;
         private static List<Unit> Weights;

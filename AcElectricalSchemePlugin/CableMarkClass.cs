@@ -14,7 +14,6 @@ namespace AcElectricalSchemePlugin
     static class CableMark
     {
         private static Editor editor;
-        private static Document acDoc;
         private static Database acDb;
         private static List<DBText> marks;
         private static List<DBText> dbtexts;

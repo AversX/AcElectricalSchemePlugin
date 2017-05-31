@@ -380,30 +380,30 @@ namespace AcElectricalSchemePlugin
             table.SetSize(4, 1);
             table.TableStyle = acdb.Tablestyle;
 
-            table.SetTextHeight(0, 0, 2.5);
+            table.Cells[0,0].TextHeight = 2.5;
             table.Cells[0, 0].TextString = "Тип оборудования";
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(0, 0, CellAlignment.MiddleCenter);
+            table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
             table.Rows[0].IsMergeAllEnabled = false;
 
-            table.SetTextHeight(1, 0, 2.5);
+            table.Cells[1, 0].TextHeight = 2.5;
             table.Cells[1, 0].TextString = "Обозначение по проекту";
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(1, 0, CellAlignment.MiddleCenter);
+            table.Cells[1, 0].Alignment = CellAlignment.MiddleCenter;
 
-            table.SetTextHeight(2, 0, 2.5);
+            table.Cells[2, 0].TextHeight = 2.5;
             table.Cells[2, 0].TextString = "Параметры";
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(2, 0, CellAlignment.MiddleCenter);
+            table.Cells[2, 0].Alignment = CellAlignment.MiddleCenter;
 
-            table.SetTextHeight(3, 0, 2.5);
+            table.Cells[3, 0].TextHeight = 2.5;
             table.Cells[3, 0].TextString = "Оборудоание";
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
-            table.SetAlignment(3, 0, CellAlignment.MiddleCenter);
+            table.Cells[3, 0].Alignment = CellAlignment.MiddleCenter;
 
             table.Columns[0].Width = 30;
             table.GenerateLayout();

@@ -51,7 +51,7 @@ namespace AcElectricalSchemePlugin
         [CommandMethod("Control", CommandFlags.Session)]
         public void Control()
         {
-            ControlSchemeClass.drawControlScheme();
+            ControlSchemeClass.DrawControlScheme();
         }
 
         [CommandMethod("Terminals", CommandFlags.Session)]

@@ -177,7 +177,6 @@ namespace AcElectricalSchemePlugin
 
         struct Group
         {
-            public string Equipment;
             public List<UnitA> UnitsA;
             public List<UnitD> UnitsD;
             public Unit? unit;
