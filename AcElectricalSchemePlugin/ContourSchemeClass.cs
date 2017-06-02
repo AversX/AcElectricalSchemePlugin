@@ -2854,7 +2854,7 @@ namespace AcElectricalSchemePlugin
                             }
                         }
 
-                        currentPoint = currentPoint.Add(new Vector3d(1094, 0, 0));
+                        currentPoint = currentPoint.Add(new Vector3d(420+329, 0, 0));
                         int currentRack = 3;
                         int currentSlot = 4;
                         int currentPin = 2;
@@ -2864,7 +2864,7 @@ namespace AcElectricalSchemePlugin
                         filterlist = new TypedValue[1];
                         filterlist[0] = new TypedValue((int)DxfCode.Start, "ACAD_TABLE");
                         filter = new SelectionFilter(filterlist);
-                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(200, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
+                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(0, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
                         if (selRes.Status == PromptStatus.OK)
                         {
                             obj = selRes.Value.GetObjectIds().ToList()[0];
@@ -2908,7 +2908,7 @@ namespace AcElectricalSchemePlugin
                             }
                         }
 
-                        currentPoint = currentPoint.Add(new Vector3d(594 * pages + 500, 0, 0));
+                        currentPoint = currentPoint.Add(new Vector3d(420 * pages + 329, 0, 0));
                         currentPin = 3;
                         pages = 0;
                         currentRack = 3;
@@ -2917,7 +2917,7 @@ namespace AcElectricalSchemePlugin
                         filterlist = new TypedValue[1];
                         filterlist[0] = new TypedValue((int)DxfCode.Start, "ACAD_TABLE");
                         filter = new SelectionFilter(filterlist);
-                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(200, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
+                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(0, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
                         if (selRes.Status == PromptStatus.OK)
                         {
                             obj = selRes.Value.GetObjectIds().ToList()[0];
@@ -2966,7 +2966,7 @@ namespace AcElectricalSchemePlugin
                         }
 
 
-                        currentPoint = currentPoint.Add(new Vector3d(594 * pages + 500, 0, 0));
+                        currentPoint = currentPoint.Add(new Vector3d(420 * pages + 329, 0, 0));
                         currentPin = 2;
                         int currentXTPin = 1;
                         pages = 0;
@@ -2984,7 +2984,7 @@ namespace AcElectricalSchemePlugin
                         filterlist = new TypedValue[1];
                         filterlist[0] = new TypedValue((int)DxfCode.Start, "ACAD_TABLE");
                         filter = new SelectionFilter(filterlist);
-                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(200, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
+                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(0, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
                         if (selRes.Status == PromptStatus.OK)
                         {
                             obj = selRes.Value.GetObjectIds().ToList()[0];
@@ -3057,16 +3057,16 @@ namespace AcElectricalSchemePlugin
                                             currentModNum = 1;
                                             currentRack++;
                                         }
+                                        currentChannel = 0;
                                     }
                                     pages++;
                                     firstPage = false;
                                     currentFCNum = 1;
-                                    currentChannel = 0;
                                 }
                             }
                         }
 
-                        currentPoint = currentPoint.Add(new Vector3d(594 * pages + 500, 0, 0));
+                        currentPoint = currentPoint.Add(new Vector3d(420 * pages + 329, 0, 0));
                         currentPin = 2;
                         currentXTPin = 1;
                         pages = 0;
@@ -3080,7 +3080,7 @@ namespace AcElectricalSchemePlugin
                         filterlist = new TypedValue[1];
                         filterlist[0] = new TypedValue((int)DxfCode.Start, "ACAD_TABLE");
                         filter = new SelectionFilter(filterlist);
-                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(200, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
+                        selRes = editor.SelectCrossingWindow(currentPoint.Add(new Vector3d(0, 0, 0)), currentPoint.Add(new Vector3d(794, -415, 0)), filter);
                         if (selRes.Status == PromptStatus.OK)
                         {
                             obj = selRes.Value.GetObjectIds().ToList()[0];
@@ -3153,11 +3153,11 @@ namespace AcElectricalSchemePlugin
                                             currentModNum = 1;
                                             currentRack++;
                                         }
+                                        currentChannel = 0;
                                     }
                                     pages++;
                                     firstPage = false;
                                     currentFCNum = 1;
-                                    currentChannel = 0;
                                 }
                             }
                         }
