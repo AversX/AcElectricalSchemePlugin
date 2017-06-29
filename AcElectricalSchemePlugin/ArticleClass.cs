@@ -1,17 +1,13 @@
-﻿using System;
-using System.Windows.Forms;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.EditorInput;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Data;
 using System.Data.OleDb;
 using System.IO;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.EditorInput;
+using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
@@ -159,7 +155,6 @@ namespace AcElectricalSchemePlugin
 
             string select = String.Format("SELECT * FROM [{0}]", sheet1);
             OleDbDataAdapter adapter = new OleDbDataAdapter(select, connection);
-            //adapter.FillSchema(dataSetOld, SchemaType.Source);
             adapter.Fill(dataSetOld);
             connection.Close();
 
@@ -178,7 +173,6 @@ namespace AcElectricalSchemePlugin
 
             select = String.Format("SELECT * FROM [{0}]", sheet1);
             adapter = new OleDbDataAdapter(select, connection);
-            //adapter.FillSchema(dataSetNew, SchemaType.Source);
             adapter.Fill(dataSetNew);
             connection.Close();
 

@@ -44,6 +44,8 @@
             this.label6 = new System.Windows.Forms.Label();
             this.SLinePage = new System.Windows.Forms.TabPage();
             this.label7 = new System.Windows.Forms.Label();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.label8 = new System.Windows.Forms.Label();
             this.helpTabControl.SuspendLayout();
             this.SchemePage.SuspendLayout();
             this.ContourPage.SuspendLayout();
@@ -52,6 +54,7 @@
             this.ControlPage.SuspendLayout();
             this.TerminalsPage.SuspendLayout();
             this.SLinePage.SuspendLayout();
+            this.tabPage1.SuspendLayout();
             this.SuspendLayout();
             // 
             // helpTabControl
@@ -63,6 +66,7 @@
             this.helpTabControl.Controls.Add(this.ControlPage);
             this.helpTabControl.Controls.Add(this.TerminalsPage);
             this.helpTabControl.Controls.Add(this.SLinePage);
+            this.helpTabControl.Controls.Add(this.tabPage1);
             this.helpTabControl.Location = new System.Drawing.Point(2, 3);
             this.helpTabControl.Name = "helpTabControl";
             this.helpTabControl.SelectedIndex = 0;
@@ -130,6 +134,7 @@
             // 
             // MarkPage
             // 
+            this.MarkPage.AutoScroll = true;
             this.MarkPage.Controls.Add(this.label4);
             this.MarkPage.Location = new System.Drawing.Point(4, 22);
             this.MarkPage.Name = "MarkPage";
@@ -143,7 +148,7 @@
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(3, 12);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(486, 156);
+            this.label4.Size = new System.Drawing.Size(486, 273);
             this.label4.TabIndex = 2;
             this.label4.Text = resources.GetString("label4.Text");
             // 
@@ -205,6 +210,25 @@
             this.label7.TabIndex = 5;
             this.label7.Text = resources.GetString("label7.Text");
             // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.label8);
+            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Size = new System.Drawing.Size(590, 232);
+            this.tabPage1.TabIndex = 8;
+            this.tabPage1.Text = "MARKEXPORT";
+            this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(6, 9);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(555, 130);
+            this.label8.TabIndex = 6;
+            this.label8.Text = resources.GetString("label8.Text");
+            // 
             // HelpForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -228,6 +252,8 @@
             this.TerminalsPage.PerformLayout();
             this.SLinePage.ResumeLayout(false);
             this.SLinePage.PerformLayout();
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -249,5 +275,7 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.TabPage tabPage1;
+        private System.Windows.Forms.Label label8;
     }
 }

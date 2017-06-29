@@ -1,13 +1,6 @@
-﻿using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
+﻿using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.EditorInput;
+using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
@@ -36,10 +29,10 @@ namespace AcElectricalSchemePlugin
             ContourSchemeClass.DrawScheme();
         }
 
-        [CommandMethod("ParseControl", CommandFlags.Session)]
-        public void ParseControl()
+        [CommandMethod("ControlToTxt", CommandFlags.Session)]
+        public void ParseControlToTxt()
         {
-            ContourSchemeClass.ParseControlScheme();
+            ContourSchemeClass.ParseControlSchemeToTxt();
         }
 
         [CommandMethod("Mark", CommandFlags.Session)]
@@ -87,6 +80,12 @@ namespace AcElectricalSchemePlugin
         public void ChangeAttribute()
         {
             ChangeAttributeClass.FindAndChangeAttributes();
+        }
+
+        [CommandMethod("MarkExport", CommandFlags.Session)]
+        public void MarkExport()
+        {
+            ExportTerminalsClass.Export();
         }
     }
 }

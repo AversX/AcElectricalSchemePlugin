@@ -1,14 +1,14 @@
-﻿using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Linq;
-using System;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
@@ -2796,7 +2796,7 @@ namespace AcElectricalSchemePlugin
             public int LinesNum;
         }
 
-        public static void ParseControlScheme()
+        public static void ParseControlSchemeToTxt()
         {
             List<UnitA> unitsA = new List<UnitA>();
             List<UnitD> unitsD = new List<UnitD>();

@@ -1,13 +1,13 @@
-﻿using System;
-using System.Windows.Forms;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.EditorInput;
+using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
@@ -143,7 +143,6 @@ namespace AcElectricalSchemePlugin
             if (selRes.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nОшибка выборки маркировок!\n");
-                acTrans.Commit();
                 return null;
             }
             foreach (ObjectId id in selRes.Value.GetObjectIds())
@@ -164,7 +163,6 @@ namespace AcElectricalSchemePlugin
             if (selRes.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nОшибка выборки текстовых полей!\n");
-                acTrans.Commit();
                 return null;
             }
             foreach (ObjectId id in selRes.Value.GetObjectIds())
@@ -185,7 +183,6 @@ namespace AcElectricalSchemePlugin
             if (selRes.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nОшибка выборки текстовых полей!\n");
-                acTrans.Commit();
                 return null;
             }
             foreach (ObjectId id in selRes.Value.GetObjectIds())

@@ -1,14 +1,13 @@
-﻿using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Linq;
-using System;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
+using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
