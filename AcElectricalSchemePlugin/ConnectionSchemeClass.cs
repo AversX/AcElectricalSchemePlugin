@@ -399,7 +399,7 @@ namespace AcElectricalSchemePlugin
             table.Cells[2, 0].Alignment = CellAlignment.MiddleCenter;
 
             table.Cells[3, 0].TextHeight = 2.5;
-            table.Cells[3, 0].TextString = "Оборудоание";
+            table.Cells[3, 0].TextString = "Оборудование";
             if (tst.Has("spds 2.5-0.85"))
                 table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.Cells[3, 0].Alignment = CellAlignment.MiddleCenter;
