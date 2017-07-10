@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace AcElectricalSchemePlugin
 {
-    static class ConnectionScheme
+    static class ConnectionSchemeClass
     {
         private static Document acDoc;
         private static List<Unit> units;

@@ -29,253 +29,341 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HelpForm));
-            this.helpTabControl = new System.Windows.Forms.TabControl();
-            this.SchemePage = new System.Windows.Forms.TabPage();
-            this.label1 = new System.Windows.Forms.Label();
-            this.ContourPage = new System.Windows.Forms.TabPage();
-            this.label2 = new System.Windows.Forms.Label();
-            this.ParseControlPage = new System.Windows.Forms.TabPage();
-            this.label3 = new System.Windows.Forms.Label();
-            this.MarkPage = new System.Windows.Forms.TabPage();
-            this.label4 = new System.Windows.Forms.Label();
-            this.ControlPage = new System.Windows.Forms.TabPage();
-            this.label5 = new System.Windows.Forms.Label();
-            this.TerminalsPage = new System.Windows.Forms.TabPage();
-            this.label6 = new System.Windows.Forms.Label();
-            this.SLinePage = new System.Windows.Forms.TabPage();
-            this.label7 = new System.Windows.Forms.Label();
-            this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.label8 = new System.Windows.Forms.Label();
-            this.helpTabControl.SuspendLayout();
-            this.SchemePage.SuspendLayout();
-            this.ContourPage.SuspendLayout();
-            this.ParseControlPage.SuspendLayout();
-            this.MarkPage.SuspendLayout();
-            this.ControlPage.SuspendLayout();
-            this.TerminalsPage.SuspendLayout();
-            this.SLinePage.SuspendLayout();
-            this.tabPage1.SuspendLayout();
+            this.metroTabControl1 = new MetroFramework.Controls.MetroTabControl();
+            this.ConnectionSchemePage = new MetroFramework.Controls.MetroTabPage();
+            this.ContourSchemePage = new MetroFramework.Controls.MetroTabPage();
+            this.ParseControlSchemePage = new MetroFramework.Controls.MetroTabPage();
+            this.metroTabPage4 = new MetroFramework.Controls.MetroTabPage();
+            this.metroTabPage5 = new MetroFramework.Controls.MetroTabPage();
+            this.metroTabPage6 = new MetroFramework.Controls.MetroTabPage();
+            this.metroTabPage7 = new MetroFramework.Controls.MetroTabPage();
+            this.metroLabel1 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel2 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel3 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel4 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel5 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel6 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel7 = new MetroFramework.Controls.MetroLabel();
+            this.metroTabPage1 = new MetroFramework.Controls.MetroTabPage();
+            this.metroTabPage2 = new MetroFramework.Controls.MetroTabPage();
+            this.metroLabel8 = new MetroFramework.Controls.MetroLabel();
+            this.metroLabel9 = new MetroFramework.Controls.MetroLabel();
+            this.metroTabControl1.SuspendLayout();
+            this.ConnectionSchemePage.SuspendLayout();
+            this.ContourSchemePage.SuspendLayout();
+            this.ParseControlSchemePage.SuspendLayout();
+            this.metroTabPage4.SuspendLayout();
+            this.metroTabPage5.SuspendLayout();
+            this.metroTabPage6.SuspendLayout();
+            this.metroTabPage7.SuspendLayout();
+            this.metroTabPage1.SuspendLayout();
+            this.metroTabPage2.SuspendLayout();
             this.SuspendLayout();
             // 
-            // helpTabControl
+            // metroTabControl1
             // 
-            this.helpTabControl.Controls.Add(this.SchemePage);
-            this.helpTabControl.Controls.Add(this.ContourPage);
-            this.helpTabControl.Controls.Add(this.ParseControlPage);
-            this.helpTabControl.Controls.Add(this.MarkPage);
-            this.helpTabControl.Controls.Add(this.ControlPage);
-            this.helpTabControl.Controls.Add(this.TerminalsPage);
-            this.helpTabControl.Controls.Add(this.SLinePage);
-            this.helpTabControl.Controls.Add(this.tabPage1);
-            this.helpTabControl.Location = new System.Drawing.Point(2, 3);
-            this.helpTabControl.Name = "helpTabControl";
-            this.helpTabControl.SelectedIndex = 0;
-            this.helpTabControl.Size = new System.Drawing.Size(598, 258);
-            this.helpTabControl.TabIndex = 0;
+            this.metroTabControl1.Controls.Add(this.ConnectionSchemePage);
+            this.metroTabControl1.Controls.Add(this.ContourSchemePage);
+            this.metroTabControl1.Controls.Add(this.ParseControlSchemePage);
+            this.metroTabControl1.Controls.Add(this.metroTabPage4);
+            this.metroTabControl1.Controls.Add(this.metroTabPage5);
+            this.metroTabControl1.Controls.Add(this.metroTabPage6);
+            this.metroTabControl1.Controls.Add(this.metroTabPage7);
+            this.metroTabControl1.Controls.Add(this.metroTabPage1);
+            this.metroTabControl1.Controls.Add(this.metroTabPage2);
+            this.metroTabControl1.Location = new System.Drawing.Point(2, 63);
+            this.metroTabControl1.Name = "metroTabControl1";
+            this.metroTabControl1.SelectedIndex = 3;
+            this.metroTabControl1.Size = new System.Drawing.Size(598, 289);
+            this.metroTabControl1.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabControl1.TabIndex = 1;
+            this.metroTabControl1.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabControl1.UseStyleColors = true;
             // 
-            // SchemePage
+            // ConnectionSchemePage
             // 
-            this.SchemePage.AutoScroll = true;
-            this.SchemePage.Controls.Add(this.label1);
-            this.SchemePage.Location = new System.Drawing.Point(4, 22);
-            this.SchemePage.Name = "SchemePage";
-            this.SchemePage.Padding = new System.Windows.Forms.Padding(3);
-            this.SchemePage.Size = new System.Drawing.Size(590, 232);
-            this.SchemePage.TabIndex = 1;
-            this.SchemePage.Text = "SCHEME";
-            this.SchemePage.UseVisualStyleBackColor = true;
+            this.ConnectionSchemePage.AutoScroll = true;
+            this.ConnectionSchemePage.Controls.Add(this.metroLabel1);
+            this.ConnectionSchemePage.HorizontalScrollbar = true;
+            this.ConnectionSchemePage.HorizontalScrollbarBarColor = true;
+            this.ConnectionSchemePage.Location = new System.Drawing.Point(4, 35);
+            this.ConnectionSchemePage.Name = "ConnectionSchemePage";
+            this.ConnectionSchemePage.Size = new System.Drawing.Size(590, 187);
+            this.ConnectionSchemePage.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.ConnectionSchemePage.TabIndex = 0;
+            this.ConnectionSchemePage.Text = "Схема внешних подключений";
+            this.ConnectionSchemePage.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.ConnectionSchemePage.VerticalScrollbarBarColor = true;
             // 
-            // label1
+            // ContourSchemePage
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 12);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(403, 104);
-            this.label1.TabIndex = 0;
-            this.label1.Text = resources.GetString("label1.Text");
+            this.ContourSchemePage.Controls.Add(this.metroLabel2);
+            this.ContourSchemePage.HorizontalScrollbarBarColor = true;
+            this.ContourSchemePage.Location = new System.Drawing.Point(4, 35);
+            this.ContourSchemePage.Name = "ContourSchemePage";
+            this.ContourSchemePage.Size = new System.Drawing.Size(590, 187);
+            this.ContourSchemePage.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.ContourSchemePage.TabIndex = 1;
+            this.ContourSchemePage.Text = "Схема контуров";
+            this.ContourSchemePage.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.ContourSchemePage.VerticalScrollbarBarColor = true;
             // 
-            // ContourPage
+            // ParseControlSchemePage
             // 
-            this.ContourPage.Controls.Add(this.label2);
-            this.ContourPage.Location = new System.Drawing.Point(4, 22);
-            this.ContourPage.Name = "ContourPage";
-            this.ContourPage.Size = new System.Drawing.Size(590, 232);
-            this.ContourPage.TabIndex = 3;
-            this.ContourPage.Text = "CONTOUR";
-            this.ContourPage.UseVisualStyleBackColor = true;
+            this.ParseControlSchemePage.Controls.Add(this.metroLabel3);
+            this.ParseControlSchemePage.HorizontalScrollbarBarColor = true;
+            this.ParseControlSchemePage.Location = new System.Drawing.Point(4, 35);
+            this.ParseControlSchemePage.Name = "ParseControlSchemePage";
+            this.ParseControlSchemePage.Size = new System.Drawing.Size(590, 187);
+            this.ParseControlSchemePage.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.ParseControlSchemePage.TabIndex = 2;
+            this.ParseControlSchemePage.Text = "Парсер схемы управления";
+            this.ParseControlSchemePage.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.ParseControlSchemePage.VerticalScrollbarBarColor = true;
             // 
-            // label2
+            // metroTabPage4
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(3, 12);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(558, 117);
-            this.label2.TabIndex = 1;
-            this.label2.Text = resources.GetString("label2.Text");
+            this.metroTabPage4.AutoScroll = true;
+            this.metroTabPage4.Controls.Add(this.metroLabel4);
+            this.metroTabPage4.HorizontalScrollbar = true;
+            this.metroTabPage4.HorizontalScrollbarBarColor = true;
+            this.metroTabPage4.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage4.Name = "metroTabPage4";
+            this.metroTabPage4.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage4.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage4.TabIndex = 3;
+            this.metroTabPage4.Text = "Маркировка";
+            this.metroTabPage4.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage4.VerticalScrollbar = true;
+            this.metroTabPage4.VerticalScrollbarBarColor = true;
+            this.metroTabPage4.VerticalScrollbarHighlightOnWheel = true;
             // 
-            // ParseControlPage
+            // metroTabPage5
             // 
-            this.ParseControlPage.Controls.Add(this.label3);
-            this.ParseControlPage.Location = new System.Drawing.Point(4, 22);
-            this.ParseControlPage.Name = "ParseControlPage";
-            this.ParseControlPage.Size = new System.Drawing.Size(590, 232);
-            this.ParseControlPage.TabIndex = 4;
-            this.ParseControlPage.Text = "PARSECONTROL";
-            this.ParseControlPage.UseVisualStyleBackColor = true;
+            this.metroTabPage5.Controls.Add(this.metroLabel5);
+            this.metroTabPage5.HorizontalScrollbarBarColor = true;
+            this.metroTabPage5.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage5.Name = "metroTabPage5";
+            this.metroTabPage5.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage5.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage5.TabIndex = 4;
+            this.metroTabPage5.Text = "Схема управления";
+            this.metroTabPage5.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage5.VerticalScrollbarBarColor = true;
             // 
-            // label3
+            // metroTabPage6
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3, 13);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(523, 143);
-            this.label3.TabIndex = 1;
-            this.label3.Text = resources.GetString("label3.Text");
+            this.metroTabPage6.Controls.Add(this.metroLabel6);
+            this.metroTabPage6.HorizontalScrollbarBarColor = true;
+            this.metroTabPage6.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage6.Name = "metroTabPage6";
+            this.metroTabPage6.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage6.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage6.TabIndex = 5;
+            this.metroTabPage6.Text = "Маркировка со схемы управления(от 07.2017)";
+            this.metroTabPage6.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage6.VerticalScrollbarBarColor = true;
             // 
-            // MarkPage
+            // metroTabPage7
             // 
-            this.MarkPage.AutoScroll = true;
-            this.MarkPage.Controls.Add(this.label4);
-            this.MarkPage.Location = new System.Drawing.Point(4, 22);
-            this.MarkPage.Name = "MarkPage";
-            this.MarkPage.Size = new System.Drawing.Size(590, 232);
-            this.MarkPage.TabIndex = 5;
-            this.MarkPage.Text = "MARK";
-            this.MarkPage.UseVisualStyleBackColor = true;
+            this.metroTabPage7.Controls.Add(this.metroLabel7);
+            this.metroTabPage7.HorizontalScrollbarBarColor = true;
+            this.metroTabPage7.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage7.Name = "metroTabPage7";
+            this.metroTabPage7.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage7.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage7.TabIndex = 6;
+            this.metroTabPage7.Text = "Веса клемм";
+            this.metroTabPage7.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage7.VerticalScrollbarBarColor = true;
             // 
-            // label4
+            // metroLabel1
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(3, 12);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(486, 273);
-            this.label4.TabIndex = 2;
-            this.label4.Text = resources.GetString("label4.Text");
+            this.metroLabel1.AutoSize = true;
+            this.metroLabel1.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel1.Name = "metroLabel1";
+            this.metroLabel1.Size = new System.Drawing.Size(487, 171);
+            this.metroLabel1.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel1.TabIndex = 2;
+            this.metroLabel1.Text = resources.GetString("metroLabel1.Text");
+            this.metroLabel1.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel1.UseStyleColors = true;
             // 
-            // ControlPage
+            // metroLabel2
             // 
-            this.ControlPage.Controls.Add(this.label5);
-            this.ControlPage.Location = new System.Drawing.Point(4, 22);
-            this.ControlPage.Name = "ControlPage";
-            this.ControlPage.Padding = new System.Windows.Forms.Padding(3);
-            this.ControlPage.Size = new System.Drawing.Size(590, 232);
-            this.ControlPage.TabIndex = 0;
-            this.ControlPage.Text = "CONTROL";
-            this.ControlPage.UseVisualStyleBackColor = true;
+            this.metroLabel2.AutoSize = true;
+            this.metroLabel2.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel2.Name = "metroLabel2";
+            this.metroLabel2.Size = new System.Drawing.Size(584, 266);
+            this.metroLabel2.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel2.TabIndex = 3;
+            this.metroLabel2.Text = resources.GetString("metroLabel2.Text");
+            this.metroLabel2.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel2.UseStyleColors = true;
             // 
-            // label5
+            // metroLabel3
             // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(3, 12);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(388, 78);
-            this.label5.TabIndex = 3;
-            this.label5.Text = resources.GetString("label5.Text");
+            this.metroLabel3.AutoSize = true;
+            this.metroLabel3.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel3.Name = "metroLabel3";
+            this.metroLabel3.Size = new System.Drawing.Size(567, 228);
+            this.metroLabel3.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel3.TabIndex = 3;
+            this.metroLabel3.Text = resources.GetString("metroLabel3.Text");
+            this.metroLabel3.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel3.UseStyleColors = true;
             // 
-            // TerminalsPage
+            // metroLabel4
             // 
-            this.TerminalsPage.Controls.Add(this.label6);
-            this.TerminalsPage.Location = new System.Drawing.Point(4, 22);
-            this.TerminalsPage.Name = "TerminalsPage";
-            this.TerminalsPage.Size = new System.Drawing.Size(590, 232);
-            this.TerminalsPage.TabIndex = 6;
-            this.TerminalsPage.Text = "TERMINALS";
-            this.TerminalsPage.UseVisualStyleBackColor = true;
+            this.metroLabel4.AutoSize = true;
+            this.metroLabel4.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel4.Name = "metroLabel4";
+            this.metroLabel4.Size = new System.Drawing.Size(547, 418);
+            this.metroLabel4.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel4.TabIndex = 4;
+            this.metroLabel4.Text = resources.GetString("metroLabel4.Text");
+            this.metroLabel4.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel4.UseStyleColors = true;
             // 
-            // label6
+            // metroLabel5
             // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(3, 14);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(439, 91);
-            this.label6.TabIndex = 4;
-            this.label6.Text = resources.GetString("label6.Text");
+            this.metroLabel5.AutoSize = true;
+            this.metroLabel5.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel5.Name = "metroLabel5";
+            this.metroLabel5.Size = new System.Drawing.Size(469, 133);
+            this.metroLabel5.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel5.TabIndex = 4;
+            this.metroLabel5.Text = resources.GetString("metroLabel5.Text");
+            this.metroLabel5.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel5.UseStyleColors = true;
             // 
-            // SLinePage
+            // metroLabel6
             // 
-            this.SLinePage.Controls.Add(this.label7);
-            this.SLinePage.Location = new System.Drawing.Point(4, 22);
-            this.SLinePage.Name = "SLinePage";
-            this.SLinePage.Size = new System.Drawing.Size(590, 232);
-            this.SLinePage.TabIndex = 7;
-            this.SLinePage.Text = "SLINE";
-            this.SLinePage.UseVisualStyleBackColor = true;
+            this.metroLabel6.AutoSize = true;
+            this.metroLabel6.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel6.Name = "metroLabel6";
+            this.metroLabel6.Size = new System.Drawing.Size(579, 209);
+            this.metroLabel6.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel6.TabIndex = 4;
+            this.metroLabel6.Text = resources.GetString("metroLabel6.Text");
+            this.metroLabel6.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel6.UseStyleColors = true;
             // 
-            // label7
+            // metroLabel7
             // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(6, 12);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(327, 104);
-            this.label7.TabIndex = 5;
-            this.label7.Text = resources.GetString("label7.Text");
+            this.metroLabel7.AutoSize = true;
+            this.metroLabel7.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel7.Name = "metroLabel7";
+            this.metroLabel7.Size = new System.Drawing.Size(528, 152);
+            this.metroLabel7.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel7.TabIndex = 4;
+            this.metroLabel7.Text = resources.GetString("metroLabel7.Text");
+            this.metroLabel7.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel7.UseStyleColors = true;
             // 
-            // tabPage1
+            // metroTabPage1
             // 
-            this.tabPage1.Controls.Add(this.label8);
-            this.tabPage1.Location = new System.Drawing.Point(4, 22);
-            this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Size = new System.Drawing.Size(590, 232);
-            this.tabPage1.TabIndex = 8;
-            this.tabPage1.Text = "MARKEXPORT";
-            this.tabPage1.UseVisualStyleBackColor = true;
+            this.metroTabPage1.Controls.Add(this.metroLabel8);
+            this.metroTabPage1.HorizontalScrollbarBarColor = true;
+            this.metroTabPage1.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage1.Name = "metroTabPage1";
+            this.metroTabPage1.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage1.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage1.TabIndex = 7;
+            this.metroTabPage1.Text = "Схема однолинейная";
+            this.metroTabPage1.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage1.VerticalScrollbarBarColor = true;
             // 
-            // label8
+            // metroTabPage2
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(6, 9);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(555, 130);
-            this.label8.TabIndex = 6;
-            this.label8.Text = resources.GetString("label8.Text");
+            this.metroTabPage2.Controls.Add(this.metroLabel9);
+            this.metroTabPage2.HorizontalScrollbarBarColor = true;
+            this.metroTabPage2.Location = new System.Drawing.Point(4, 35);
+            this.metroTabPage2.Name = "metroTabPage2";
+            this.metroTabPage2.Size = new System.Drawing.Size(590, 250);
+            this.metroTabPage2.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroTabPage2.TabIndex = 8;
+            this.metroTabPage2.Text = "Изменить высоту и стиль текста";
+            this.metroTabPage2.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabPage2.VerticalScrollbarBarColor = true;
+            // 
+            // metroLabel8
+            // 
+            this.metroLabel8.AutoSize = true;
+            this.metroLabel8.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel8.Name = "metroLabel8";
+            this.metroLabel8.Size = new System.Drawing.Size(400, 171);
+            this.metroLabel8.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel8.TabIndex = 3;
+            this.metroLabel8.Text = resources.GetString("metroLabel8.Text");
+            this.metroLabel8.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel8.UseStyleColors = true;
+            // 
+            // metroLabel9
+            // 
+            this.metroLabel9.AutoSize = true;
+            this.metroLabel9.Location = new System.Drawing.Point(6, 16);
+            this.metroLabel9.Name = "metroLabel9";
+            this.metroLabel9.Size = new System.Drawing.Size(522, 247);
+            this.metroLabel9.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.metroLabel9.TabIndex = 3;
+            this.metroLabel9.Text = resources.GetString("metroLabel9.Text");
+            this.metroLabel9.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroLabel9.UseStyleColors = true;
             // 
             // HelpForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(600, 261);
-            this.Controls.Add(this.helpTabControl);
+            this.ClientSize = new System.Drawing.Size(600, 361);
+            this.Controls.Add(this.metroTabControl1);
             this.Name = "HelpForm";
-            this.Text = "HelpForm";
-            this.helpTabControl.ResumeLayout(false);
-            this.SchemePage.ResumeLayout(false);
-            this.SchemePage.PerformLayout();
-            this.ContourPage.ResumeLayout(false);
-            this.ContourPage.PerformLayout();
-            this.ParseControlPage.ResumeLayout(false);
-            this.ParseControlPage.PerformLayout();
-            this.MarkPage.ResumeLayout(false);
-            this.MarkPage.PerformLayout();
-            this.ControlPage.ResumeLayout(false);
-            this.ControlPage.PerformLayout();
-            this.TerminalsPage.ResumeLayout(false);
-            this.TerminalsPage.PerformLayout();
-            this.SLinePage.ResumeLayout(false);
-            this.SLinePage.PerformLayout();
-            this.tabPage1.ResumeLayout(false);
-            this.tabPage1.PerformLayout();
+            this.Resizable = false;
+            this.Style = MetroFramework.MetroColorStyle.Yellow;
+            this.Text = "Справка";
+            this.Theme = MetroFramework.MetroThemeStyle.Dark;
+            this.metroTabControl1.ResumeLayout(false);
+            this.ConnectionSchemePage.ResumeLayout(false);
+            this.ConnectionSchemePage.PerformLayout();
+            this.ContourSchemePage.ResumeLayout(false);
+            this.ContourSchemePage.PerformLayout();
+            this.ParseControlSchemePage.ResumeLayout(false);
+            this.ParseControlSchemePage.PerformLayout();
+            this.metroTabPage4.ResumeLayout(false);
+            this.metroTabPage4.PerformLayout();
+            this.metroTabPage5.ResumeLayout(false);
+            this.metroTabPage5.PerformLayout();
+            this.metroTabPage6.ResumeLayout(false);
+            this.metroTabPage6.PerformLayout();
+            this.metroTabPage7.ResumeLayout(false);
+            this.metroTabPage7.PerformLayout();
+            this.metroTabPage1.ResumeLayout(false);
+            this.metroTabPage1.PerformLayout();
+            this.metroTabPage2.ResumeLayout(false);
+            this.metroTabPage2.PerformLayout();
             this.ResumeLayout(false);
 
         }
 
         #endregion
-
-        private System.Windows.Forms.TabControl helpTabControl;
-        private System.Windows.Forms.TabPage ControlPage;
-        private System.Windows.Forms.TabPage SchemePage;
-        private System.Windows.Forms.TabPage ContourPage;
-        private System.Windows.Forms.TabPage ParseControlPage;
-        private System.Windows.Forms.TabPage MarkPage;
-        private System.Windows.Forms.TabPage TerminalsPage;
-        private System.Windows.Forms.TabPage SLinePage;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.TabPage tabPage1;
-        private System.Windows.Forms.Label label8;
+        private MetroFramework.Controls.MetroTabControl metroTabControl1;
+        private MetroFramework.Controls.MetroTabPage ConnectionSchemePage;
+        private MetroFramework.Controls.MetroLabel metroLabel1;
+        private MetroFramework.Controls.MetroTabPage ContourSchemePage;
+        private MetroFramework.Controls.MetroLabel metroLabel2;
+        private MetroFramework.Controls.MetroTabPage ParseControlSchemePage;
+        private MetroFramework.Controls.MetroLabel metroLabel3;
+        private MetroFramework.Controls.MetroTabPage metroTabPage4;
+        private MetroFramework.Controls.MetroLabel metroLabel4;
+        private MetroFramework.Controls.MetroTabPage metroTabPage5;
+        private MetroFramework.Controls.MetroLabel metroLabel5;
+        private MetroFramework.Controls.MetroTabPage metroTabPage6;
+        private MetroFramework.Controls.MetroLabel metroLabel6;
+        private MetroFramework.Controls.MetroTabPage metroTabPage7;
+        private MetroFramework.Controls.MetroLabel metroLabel7;
+        private MetroFramework.Controls.MetroTabPage metroTabPage1;
+        private MetroFramework.Controls.MetroLabel metroLabel8;
+        private MetroFramework.Controls.MetroTabPage metroTabPage2;
+        private MetroFramework.Controls.MetroLabel metroLabel9;
     }
 }

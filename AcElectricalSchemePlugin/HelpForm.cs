@@ -2,7 +2,7 @@
 
 namespace AcElectricalSchemePlugin
 {
-    public partial class HelpForm : Form
+    public partial class HelpForm : MetroFramework.Forms.MetroForm
     {
         public HelpForm()
         {

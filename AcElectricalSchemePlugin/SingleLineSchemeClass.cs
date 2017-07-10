@@ -81,7 +81,7 @@ namespace AcElectricalSchemePlugin
             public string switchboardDefenseReactTime; //31
         }
 
-        public static void drawScheme(string fileName)
+        public static void SLineScheme(string fileName)
         {
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;

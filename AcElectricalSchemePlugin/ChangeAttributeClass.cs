@@ -14,6 +14,7 @@ namespace AcElectricalSchemePlugin
         private static SelectionSet selectedBlocks;
         private static BlockTableRecord modSpace;
         private static Transaction acTrans;
+
         static public void FindAndChangeAttributes()
         {
             acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -40,7 +41,7 @@ namespace AcElectricalSchemePlugin
         static private void findAttributes()
         {
             TypedValue[] filterlist = new TypedValue[1];
-            filterlist[0] = new TypedValue(0, "INSERT");
+            filterlist[0] = new TypedValue((int)DxfCode.Start, "INSERT");
             SelectionFilter filter = new SelectionFilter(filterlist);
             PromptSelectionResult selRes = editor.GetSelection(filter);
             if (selRes.Status != PromptStatus.OK)
