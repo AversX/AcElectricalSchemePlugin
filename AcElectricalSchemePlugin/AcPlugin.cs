@@ -8,10 +8,11 @@ namespace AcElectricalSchemePlugin
     {
         public Autodesk.AutoCAD.ApplicationServices.Application acadApp;
         public Editor editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
+        static MainForm mf;
         public void Initialize()
         {
             editor.WriteMessage("Плагин успешно загружен.");
-            MainForm mf = new MainForm();
+            mf = new MainForm();
             mf.Show();
         }
 
@@ -22,7 +23,7 @@ namespace AcElectricalSchemePlugin
         [CommandMethod("AcPluginForm", CommandFlags.Session)]
         public static void AcPluginForm()
         {
-            MainForm mf = new MainForm();
+            mf = new MainForm();
             mf.Show();
         }
 

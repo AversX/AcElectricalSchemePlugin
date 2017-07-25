@@ -18,7 +18,7 @@ namespace AcElectricalSchemePlugin
         private static Editor editor;
         private static int curTableNum;
         private static LinetypeTable lineTypeTable;
-        private static TextStyleTable tst;
+        //private static TextStyleTable tst;
         private static double width = 0;
         private static List<Table> tables = new List<Table>();
         private static int currentSheetNumber = 1;
@@ -29,7 +29,7 @@ namespace AcElectricalSchemePlugin
         private static double rigthEdgeXTable;
         private static List<Group> groups;
         private static Polyline curDefGnd;
-        private static double widthFactor = 1;
+        private static double widthFactor = 0.5;
 
         struct tBox
         {
@@ -118,7 +118,7 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static List<Unit> loadData(string path)
+        private static List<Unit> LoadData(string path)
         {
             List<Unit> units = new List<Unit>();
             DataSet dataSet = new DataSet("EXCEL");
@@ -167,7 +167,7 @@ namespace AcElectricalSchemePlugin
             return units;
         }
 
-        private static List<Group> findGroups(List<Unit> Units)
+        private static List<Group> FindGroups(List<Unit> Units)
         {
             List<Group> Groups = new List<Group>();
 
@@ -211,12 +211,12 @@ namespace AcElectricalSchemePlugin
                 curTermNumber = 1;
                 curPairNumber = 1;
                 currentSheetNumber = 1;
-                units = loadData(file.FileName);
-                connectionScheme();
+                units = LoadData(file.FileName);
+                ConnectionScheme();
             }
         }
 
-        private static void connectionScheme()
+        private static void ConnectionScheme()
         {
             Database acDb = acDoc.Database;
             using (DocumentLock docLock = acDoc.LockDocument())
@@ -241,19 +241,19 @@ namespace AcElectricalSchemePlugin
                             {
                                 editor.WriteMessage("В проекте не найден тип линий \"штриховая2\". Попытка загрузить файл с типом линии.. Не найден файл acad.lin.");
                             }
-                        tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForRead);
-                        TextStyleTableRecord tstr = null;
-                        if (tst.Has("spds 2.5-0.85"))
-                        {
-                            tstr = (TextStyleTableRecord)acTrans.GetObject(tst["spds 2.5-0.85"], OpenMode.ForRead);
-                            widthFactor = tstr.XScale;
-                        }
+                        //tst = (TextStyleTable)acTrans.GetObject(acDb.TextStyleTableId, OpenMode.ForRead);
+                        //TextStyleTableRecord tstr = null;
+                        //if (tst.Has("spds 2.5-0.85"))
+                        //{
+                        //    tstr = (TextStyleTableRecord)acTrans.GetObject(tst["spds 2.5-0.85"], OpenMode.ForRead);
+                        //    widthFactor = tstr.XScale;
+                        //}
                         //loadFonts(acTrans, acModSpace, acDb);
                        
                         Point3d startPoint = selectedPoint.Value;
-                        Polyline sh = drawSheet(acTrans, acModSpace, acDb, startPoint);
-                        drawUnits(acTrans, acDb, acModSpace, units, sh);
-                        drawCables(acTrans, acModSpace, units, sh);
+                        Polyline sh = DrawSheet(acTrans, acModSpace, acDb, startPoint);
+                        DrawUnits(acTrans, acDb, acModSpace, units, sh);
+                        DrawCables(acTrans, acModSpace, units, sh);
                         for (int i = 0; i < tables.Count; i++)
                         {
                             if (!acBlkTbl.Has(tables[i].Id))
@@ -262,16 +262,15 @@ namespace AcElectricalSchemePlugin
                                 acTrans.AddNewlyCreatedDBObject(tables[i], true);
                             }
                         }
-                        renameTBoxes(acTrans, acModSpace);
+                        RenameTBoxes(acTrans, acModSpace);
                         acDoc.Editor.Regen();
                         acTrans.Commit();
                     }
                 }
-                acDb.Audit(true, true);
             }
         }
 
-        private static void renameTBoxes(Transaction acTrans, BlockTableRecord modSpace)
+        private static void RenameTBoxes(Transaction acTrans, BlockTableRecord modSpace)
         {
             for (int i = 0; i < tboxes.Count; i++)
             {
@@ -298,14 +297,14 @@ namespace AcElectricalSchemePlugin
                 }
                 if (tboxes[i].shield)
                 {
-                    drawTBoxGnd(acTrans, modSpace, tboxes[i], tboxes[i].lastTermPoint, tboxes[i].cableLineSPLX, tboxes[i].cableLineSPRX, tboxes[i].cableLineEPY, tboxes[i].cableLineEPY, true, tboxes[i].framePoint);
+                    DrawTBoxGnd(acTrans, modSpace, tboxes[i], tboxes[i].lastTermPoint, tboxes[i].cableLineSPLX, tboxes[i].cableLineSPRX, tboxes[i].cableLineEPY, tboxes[i].cableLineEPY, true, tboxes[i].framePoint);
                     if (tboxes[i].gndShield!=null)
-                        drawGnd(acTrans, modSpace, tboxes[i].gndL, tboxes[i].gndR, tboxes[i].gndY, tboxes[i].gndLowP, tboxes[i].gndShield);
+                        DrawGnd(acTrans, modSpace, tboxes[i].gndL, tboxes[i].gndR, tboxes[i].gndY, tboxes[i].gndLowP, tboxes[i].gndShield);
                 }
             }
         }
 
-        private static Polyline drawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet)
+        private static Polyline DrawSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d prevSheet)
         {
             Polyline shieldPoly = new Polyline();
             shieldPoly.SetDatabaseDefaults();
@@ -318,7 +317,7 @@ namespace AcElectricalSchemePlugin
             modSpace.AppendEntity(shieldPoly);
             acTrans.AddNewlyCreatedDBObject(shieldPoly, true);
 
-            insertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 10, 0));
+            InsertSheet(acTrans, modSpace, acdb, new Point3d(shieldPoly.GetPoint2dAt(0).X - 92, shieldPoly.GetPoint2dAt(0).Y + 10, 0));
 
             Polyline defGndPoly = new Polyline();
             defGndPoly.SetDatabaseDefaults();
@@ -334,11 +333,12 @@ namespace AcElectricalSchemePlugin
 
             DBText defGndText = new DBText();
             defGndText.SetDatabaseDefaults();
-            if (tst.Has("spds 2.5-0.85"))
-            {
-                defGndText.TextStyleId = tst["spds 2.5-0.85"];
-                defGndText.WidthFactor = widthFactor;
-            }
+            //if (tst.Has("spds 2.5-0.85"))
+            //{
+            //    defGndText.TextStyleId = tst["spds 2.5-0.85"];
+            //    defGndText.WidthFactor = widthFactor;
+            //}
+            defGndText.WidthFactor = widthFactor;
             defGndText.Height = 3;
             defGndText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             defGndText.Position = defGndPoly.GetPoint3dAt(0).Add(new Vector3d(0, 2, 0));
@@ -360,11 +360,11 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            if (tst.Has("spds 2.5-0.85"))
-            {
-                text.TextStyleId = tst["spds 2.5-0.85"];
-                text.WidthFactor = widthFactor;
-            }
+            //if (tst.Has("spds 2.5-0.85"))
+            //{
+            //    text.TextStyleId = tst["spds 2.5-0.85"];
+            //    text.WidthFactor = widthFactor;
+            //}
             text.WidthFactor = widthFactor;
             text.Height = 3;
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -381,27 +381,27 @@ namespace AcElectricalSchemePlugin
 
             table.Cells[0,0].TextHeight = 2.5;
             table.Cells[0, 0].TextString = "Тип оборудования";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[0, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
             table.Rows[0].IsMergeAllEnabled = false;
 
             table.Cells[1, 0].TextHeight = 2.5;
             table.Cells[1, 0].TextString = "Обозначение по проекту";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[1, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.Cells[1, 0].Alignment = CellAlignment.MiddleCenter;
 
             table.Cells[2, 0].TextHeight = 2.5;
             table.Cells[2, 0].TextString = "Параметры";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[2, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.Cells[2, 0].Alignment = CellAlignment.MiddleCenter;
 
             table.Cells[3, 0].TextHeight = 2.5;
             table.Cells[3, 0].TextString = "Оборудование";
-            if (tst.Has("spds 2.5-0.85"))
-                table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    table.Cells[3, 0].TextStyleId = tst["spds 2.5-0.85"];
             table.Cells[3, 0].Alignment = CellAlignment.MiddleCenter;
 
             table.Columns[0].Width = 30;
@@ -411,9 +411,9 @@ namespace AcElectricalSchemePlugin
             return shieldPoly;
         }
 
-        private static void drawUnits(Transaction acTrans, Database acdb, BlockTableRecord modSpace, List<Unit> units, Polyline shield)
+        private static void DrawUnits(Transaction acTrans, Database acdb, BlockTableRecord modSpace, List<Unit> units, Polyline shield)
         {
-            Polyline tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
+            Polyline tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[0].cupboardName);
             Polyline prevPoly = tBoxPoly;
             Polyline prevTermPoly = null;
             string prevTerminal=string.Empty;
@@ -438,8 +438,8 @@ namespace AcElectricalSchemePlugin
                         bool shielded = false;
                         if (prevCupboard != units[j].cupboardName)
                         {
-                            shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                            tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                            shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                            tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                             prevPoly = tBoxPoly;
                             prevTermPoly = null;
                             prevTerminal = string.Empty;
@@ -461,11 +461,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -477,11 +478,11 @@ namespace AcElectricalSchemePlugin
                                     shielded = false;
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
                                     
                                     points.Add(lowestPoint);
@@ -511,8 +512,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -525,11 +526,11 @@ namespace AcElectricalSchemePlugin
                                     shielded = false;
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
                                     
                                     points.Add(lowestPoint);
@@ -557,11 +558,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -574,8 +576,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -588,11 +590,11 @@ namespace AcElectricalSchemePlugin
                                     shielded = false;
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
                                     
                                     points.Add(lowestPoint);
@@ -624,7 +626,7 @@ namespace AcElectricalSchemePlugin
                                 units[j].cableOutput.Add(cableLineDown);
                                 if (units[j].shield)
                                 {
-                                    drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                    DrawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
                                 }
 
                                 points = new List<Point3d>();
@@ -649,8 +651,8 @@ namespace AcElectricalSchemePlugin
                         bool shielded = false;
                         if (prevCupboard != units[j].cupboardName)
                         {
-                            shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                            tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                            shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                            tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                             prevPoly = tBoxPoly;
                             prevTermPoly = null;
                             prevTerminal = string.Empty;
@@ -672,11 +674,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -686,7 +689,7 @@ namespace AcElectricalSchemePlugin
                                     acTrans.AddNewlyCreatedDBObject(text, true);
                                     newJ = false;
                                     shielded = false;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     points.Add(lowestPoint);
                                     if (color < units[j].colors.Count - 1) color++;
                                     else color = 0;
@@ -714,8 +717,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -726,7 +729,7 @@ namespace AcElectricalSchemePlugin
                                         break;
                                     }
                                     shielded = false;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : 6, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     points.Add(lowestPoint);
                                     if (color < units[j].colors.Count - 1) color++;
                                     else color = 0;
@@ -752,11 +755,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -769,8 +773,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -781,7 +785,7 @@ namespace AcElectricalSchemePlugin
                                         break;
                                     }
                                     shielded = false;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(15, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     points.Add(lowestPoint);
                                     if (color < units[j].colors.Count - 1) color++;
                                     else color = 0;
@@ -811,7 +815,7 @@ namespace AcElectricalSchemePlugin
                                 units[j].cableOutput.Add(cableLineDown);
                                 if (units[j].shield)
                                 {
-                                    drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                    DrawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
                                 }
 
                                 points = new List<Point3d>();
@@ -842,8 +846,8 @@ namespace AcElectricalSchemePlugin
                         bool shielded = false;
                         if (prevCupboard != units[j].cupboardName)
                         {
-                            shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                            tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                            shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                            tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                             prevPoly = tBoxPoly;
                             prevTermPoly = null;
                             prevTerminal = string.Empty;
@@ -865,11 +869,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -882,11 +887,11 @@ namespace AcElectricalSchemePlugin
 
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
                                     points.Add(lowestPoint);
                                     if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
@@ -917,7 +922,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -947,8 +952,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -961,11 +966,11 @@ namespace AcElectricalSchemePlugin
                                     shielded = false;
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
 
                                     points.Add(lowestPoint);
@@ -997,7 +1002,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1026,11 +1031,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1043,8 +1049,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -1058,11 +1064,11 @@ namespace AcElectricalSchemePlugin
                                     offset = 15;
                                     if (i < units[j].terminals.Count - 1)
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     }
                                     else
                                     {
-                                        prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
+                                        prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, units[j].equipTerminals.Count);
                                     }
                                    
                                     points.Add(lowestPoint);
@@ -1094,7 +1100,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1125,7 +1131,7 @@ namespace AcElectricalSchemePlugin
 
                                 units[j].cableOutput.Add(cableLineDown);
 
-                                drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                DrawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                 points = new List<Point3d>();
                             }
@@ -1152,8 +1158,8 @@ namespace AcElectricalSchemePlugin
                         bool shielded = false;
                         if (prevCupboard != units[j].cupboardName)
                         {
-                            shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                            tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                            shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                            tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                             prevPoly = tBoxPoly;
                             prevTermPoly = null;
                             prevTerminal = string.Empty;
@@ -1175,11 +1181,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1189,7 +1196,7 @@ namespace AcElectricalSchemePlugin
                                     acTrans.AddNewlyCreatedDBObject(text, true);
                                     newJ = false;
                                     shielded = false;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     
                                     points.Add(lowestPoint);
                                     if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
@@ -1220,7 +1227,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1250,8 +1257,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -1262,7 +1269,7 @@ namespace AcElectricalSchemePlugin
                                         break;
                                     }
                                     shielded = false;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevTermPoly.GetPoint2dAt(0).Add(new Vector2d(newJ ? 60 : offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     
                                     points.Add(lowestPoint);
                                     if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
@@ -1293,7 +1300,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1322,11 +1329,12 @@ namespace AcElectricalSchemePlugin
                                     DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     text.Height = 3;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                    {
-                                        text.TextStyleId = tst["spds 2.5-0.85"];
-                                        text.WidthFactor = widthFactor;
-                                    }
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //{
+                                    //    text.TextStyleId = tst["spds 2.5-0.85"];
+                                    //    text.WidthFactor = widthFactor;
+                                    //}
+                                    text.WidthFactor = widthFactor;
                                     text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     text.Position = prevPoly.GetPoint3dAt(0).Add(new Vector3d(8, -6, 0));
                                     text.TextString = terminalTag;
@@ -1339,8 +1347,8 @@ namespace AcElectricalSchemePlugin
                                     {
                                         trans.Abort();
                                         aborted = true;
-                                        shield = drawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
-                                        tBoxPoly = drawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
+                                        shield = DrawSheet(acTrans, modSpace, acdb, shield.GetPoint3dAt(0).Add(new Vector3d(950, 0, 0)));
+                                        tBoxPoly = DrawShieldTerminalBox(acTrans, modSpace, shield, units[j].cupboardName);
                                         prevPoly = tBoxPoly;
                                         prevTermPoly = null;
                                         prevTerminal = string.Empty;
@@ -1352,7 +1360,7 @@ namespace AcElectricalSchemePlugin
                                     }
                                     shielded = false;
                                     offset = 15;
-                                    prevTermPoly = drawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
+                                    prevTermPoly = DrawTerminal(acTrans, modSpace, prevPoly.GetPoint2dAt(0).Add(new Vector2d(offset, 0)), terminal, out lowestPoint, units[j], color, i + 1);
                                     
                                     points.Add(lowestPoint);
                                     if (color == 0) l = prevTermPoly.GetPoint2dAt(0).X;
@@ -1383,7 +1391,7 @@ namespace AcElectricalSchemePlugin
 
                                         if (units[j].tBoxName != null)
                                             if (units[j].tBoxName.Length > 0 && units[j].cableMark.Contains("ИЭ"))
-                                                drawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                                DrawGnd(acTrans, modSpace, l, r, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                         points = new List<Point3d>();
 
@@ -1414,7 +1422,7 @@ namespace AcElectricalSchemePlugin
 
                                 units[j].cableOutput.Add(cableLineDown);
 
-                                drawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
+                                DrawGnd(acTrans, modSpace, l - 3, r + 3, prevTermPoly.GetPoint2dAt(2).Y, lowestPoint, shield);
 
                                 points = new List<Point3d>();
                             }
@@ -1426,10 +1434,10 @@ namespace AcElectricalSchemePlugin
                     }
                 }
             }
-            groups = findGroups(units);
+            groups = FindGroups(units);
         }
 
-        private static void drawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, Point3d lowestPoint, Polyline shield)
+        private static void DrawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, Point3d lowestPoint, Polyline shield)
         {
             Polyline groundLasso = new Polyline();
             groundLasso.SetDatabaseDefaults();
@@ -1510,7 +1518,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(groundCircle, true);
         }
 
-        private static void drawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, double rightestPoint, Polyline shield)
+        private static void DrawGnd(Transaction acTrans, BlockTableRecord modSpace, double leftEdgeX, double rightEdgeX, double Y, double rightestPoint, Polyline shield)
         {
             Polyline groundLasso = new Polyline();
             groundLasso.SetDatabaseDefaults();
@@ -1591,7 +1599,7 @@ namespace AcElectricalSchemePlugin
             acTrans.AddNewlyCreatedDBObject(groundCircle, true);
         }
 
-        private static Point3d drawTBoxGnd(Transaction acTrans, BlockTableRecord modSpace, tBox tbox, Point3d lastTermPoint, double leftEdgeX, double rightEdgeX, double upY, double downY,  bool osh, Point3d framePoint)
+        private static Point3d DrawTBoxGnd(Transaction acTrans, BlockTableRecord modSpace, tBox tbox, Point3d lastTermPoint, double leftEdgeX, double rightEdgeX, double upY, double downY,  bool osh, Point3d framePoint)
         {
             Polyline termPoly = new Polyline();
             termPoly.SetDatabaseDefaults();
@@ -1607,8 +1615,8 @@ namespace AcElectricalSchemePlugin
             MText termText = new MText();
             termText.SetDatabaseDefaults();
             termText.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                termText.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    termText.TextStyleId = tst["spds 2.5-0.85"];
             termText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             double x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
             double y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
@@ -1805,7 +1813,7 @@ namespace AcElectricalSchemePlugin
             return termPoly.GetPoint3dAt(1);
         }
 
-        private static Polyline drawShieldTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Polyline shield, string cupbordName)
+        private static Polyline DrawShieldTerminalBox(Transaction acTrans, BlockTableRecord modSpace, Polyline shield, string cupbordName)
         {
             Polyline boxPoly = new Polyline();
             boxPoly.SetDatabaseDefaults();
@@ -1820,11 +1828,12 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            if (tst.Has("spds 2.5-0.85"))
-            {
-                text.TextStyleId = tst["spds 2.5-0.85"];
-                text.WidthFactor = widthFactor;
-            }
+            //if (tst.Has("spds 2.5-0.85"))
+            //{
+            //    text.TextStyleId = tst["spds 2.5-0.85"];
+            //    text.WidthFactor = widthFactor;WidthFactor = widthFactor;
+            //}
+            text.WidthFactor = widthFactor;
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = shield.GetPoint3dAt(0).Add(new Vector3d(382, -10, 0));
             text.TextString = cupbordName;
@@ -1837,7 +1846,7 @@ namespace AcElectricalSchemePlugin
             return boxPoly;
         }
 
-        private static Polyline drawTerminal(Transaction acTrans, BlockTableRecord modSpace, Point2d point, string terminal, out Point3d lowestPoint, Unit unit, int color, int cableNumber)
+        private static Polyline DrawTerminal(Transaction acTrans, BlockTableRecord modSpace, Point2d point, string terminal, out Point3d lowestPoint, Unit unit, int color, int cableNumber)
         {
             Polyline termPoly = new Polyline();
             termPoly.SetDatabaseDefaults();
@@ -1852,11 +1861,12 @@ namespace AcElectricalSchemePlugin
 
             DBText text = new DBText();
             text.SetDatabaseDefaults();
-            if (tst.Has("spds 2.5-0.85"))
-            {
-                text.TextStyleId = tst["spds 2.5-0.85"];
-                text.WidthFactor = widthFactor;
-            }
+            //if (tst.Has("spds 2.5-0.85"))
+            //{
+            //    text.TextStyleId = tst["spds 2.5-0.85"];
+            //    text.WidthFactor = widthFactor;
+            //}
+            text.WidthFactor = widthFactor;
             text.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             text.Position = termPoly.GetPoint3dAt(0).Add(new Vector3d(3, -4, 0));
             if (unit.param.ToLower() != "резерв")
@@ -1926,8 +1936,8 @@ namespace AcElectricalSchemePlugin
             MText textLine = new MText();
             textLine.SetDatabaseDefaults();
             textLine.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                textLine.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    textLine.TextStyleId = tst["spds 2.5-0.85"];
             textLine.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             double x = cablePoly.GetPoint3dAt(0).X + (cablePoly.GetPoint3dAt(1).X - cablePoly.GetPoint3dAt(0).X) / 2;
             double y = cablePoly.GetPoint3dAt(2).Y + (cablePoly.GetPoint3dAt(1).Y - cablePoly.GetPoint3dAt(2).Y) / 2;
@@ -1949,8 +1959,8 @@ namespace AcElectricalSchemePlugin
             MText colorMark = new MText();
             colorMark.SetDatabaseDefaults();
             colorMark.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                colorMark.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    colorMark.TextStyleId = tst["spds 2.5-0.85"];
             colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             x = cableLineDown.EndPoint.X - 1;
             y = cableLineDown.EndPoint.Y + (cableLineDown.StartPoint.Y - cableLineDown.EndPoint.Y) / 2;
@@ -1965,7 +1975,7 @@ namespace AcElectricalSchemePlugin
             return termPoly;
         }
 
-        private static void drawCables(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline shieldCupBoard)
+        private static void DrawCables(Transaction acTrans, BlockTableRecord modSpace, List<Unit> units, Polyline shieldCupBoard)
         {
             for (int i = 0; i < groups.Count; i++)
             {
@@ -2010,8 +2020,8 @@ namespace AcElectricalSchemePlugin
                 MText cableMark = new MText();
                 cableMark.SetDatabaseDefaults();
                 cableMark.TextHeight = 3;
-                if (tst.Has("spds 2.5-0.85"))
-                    cableMark.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    cableMark.TextStyleId = tst["spds 2.5-0.85"];
                 cableMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 cableMark.Location = cableLine.EndPoint.Add(new Vector3d(-1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
                 cableMark.Contents = "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].cableMark;
@@ -2023,8 +2033,8 @@ namespace AcElectricalSchemePlugin
                 MText textName = new MText();
                 textName.SetDatabaseDefaults();
                 textName.TextHeight = 3;
-                if (tst.Has("spds 2.5-0.85"))
-                    textName.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    textName.TextStyleId = tst["spds 2.5-0.85"];
                 textName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 textName.Location = cableLine.EndPoint.Add(new Vector3d(1, (cableLine.StartPoint.Y - cableLine.EndPoint.Y) / 2, 0));
                 textName.Attachment = AttachmentPoint.TopCenter;
@@ -2073,7 +2083,7 @@ namespace AcElectricalSchemePlugin
                             Line tBoxLineOut = new Line();
                             tBoxLineOut.SetDatabaseDefaults();
                             tBoxLineOut.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            tBoxLineOut.StartPoint = drawTerminalBoxUnitTS(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, tbox.LastPairNumber, curPairNumber, ref tbox);
+                            tBoxLineOut.StartPoint = DrawTerminalBoxUnitTS(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, tbox.LastPairNumber, curPairNumber, ref tbox);
                             tBoxLineOut.EndPoint = tBoxLineOut.StartPoint.Add(new Vector3d(0, -15, 0));
                             modSpace.AppendEntity(tBoxLineOut);
                             acTrans.AddNewlyCreatedDBObject(tBoxLineOut, true);
@@ -2091,8 +2101,8 @@ namespace AcElectricalSchemePlugin
                             pairMark = new MText();
                             pairMark.SetDatabaseDefaults();
                             pairMark.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                             pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                             double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
@@ -2115,7 +2125,7 @@ namespace AcElectricalSchemePlugin
                                 curPairNumber++;
                                 pairNumUp++;
 
-                                Point3d point = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNumUp, curPairNumber, out lastTermPoint);
+                                Point3d point = DrawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNumUp, curPairNumber, out lastTermPoint);
                                 if (groups[i].Units[k].param.ToLower() != "резерв")
                                 {
                                     tBoxJumper = new Line();
@@ -2138,8 +2148,8 @@ namespace AcElectricalSchemePlugin
                                 pairMark = new MText();
                                 pairMark.SetDatabaseDefaults();
                                 pairMark.TextHeight = 2.5;
-                                if (tst.Has("spds 2.5-0.85"))
-                                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                //if (tst.Has("spds 2.5-0.85"))
+                                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                 double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                                 double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
@@ -2155,7 +2165,7 @@ namespace AcElectricalSchemePlugin
                                 curPairNumber++;
                                 tbox.LastPairNumber++;
 
-                                Point3d point = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, curPairNumber, out lastTermPoint);
+                                Point3d point = DrawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[0].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, curPairNumber, out lastTermPoint);
                                 tBoxJumper = new Line();
                                 tBoxJumper.SetDatabaseDefaults();
                                 tBoxJumper.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
@@ -2167,8 +2177,8 @@ namespace AcElectricalSchemePlugin
                                 pairMark = new MText();
                                 pairMark.SetDatabaseDefaults();
                                 pairMark.TextHeight = 2.5;
-                                if (tst.Has("spds 2.5-0.85"))
-                                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                //if (tst.Has("spds 2.5-0.85"))
+                                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                 double X = groups[i].Units[k].cableOutput[0].EndPoint.X - 1;
                                 double Y = groups[i].Units[k].cableOutput[0].EndPoint.Y + (groups[i].Units[k].cableOutput[0].StartPoint.Y - groups[i].Units[k].cableOutput[0].EndPoint.Y) / 2;
@@ -2187,13 +2197,13 @@ namespace AcElectricalSchemePlugin
                                     curPairNumber++;
                                     pairNumUp++;
 
-                                    tBoxJumper.EndPoint = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNumUp, curPairNumber, out lastTermPoint);
+                                    tBoxJumper.EndPoint = DrawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, pairNumUp, curPairNumber, out lastTermPoint);
 
                                     pairMark = new MText();
                                     pairMark.SetDatabaseDefaults();
                                     pairMark.TextHeight = 2.5;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                        pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                                     pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
                                     double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
@@ -2209,13 +2219,13 @@ namespace AcElectricalSchemePlugin
                                     curPairNumber++;
                                     tbox.LastPairNumber++;
 
-                                    tBoxJumper.EndPoint = drawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, curPairNumber, out lastTermPoint);
+                                    tBoxJumper.EndPoint = DrawTerminalBoxUnit(acTrans, modSpace, groups[i].Units[k].cableOutput[j].EndPoint, groups[i].Units[k], cableLineDown.EndPoint, ref tbox, tbox.LastPairNumber, curPairNumber, out lastTermPoint);
 
                                     pairMark = new MText();
                                     pairMark.SetDatabaseDefaults();
                                     pairMark.TextHeight = 2.5;
-                                    if (tst.Has("spds 2.5-0.85"))
-                                        pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                                    //if (tst.Has("spds 2.5-0.85"))
+                                    //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                                     pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                                     double X = groups[i].Units[k].cableOutput[j].EndPoint.X - 1;
                                     double Y = groups[i].Units[k].cableOutput[j].EndPoint.Y + (groups[i].Units[k].cableOutput[j].StartPoint.Y - groups[i].Units[k].cableOutput[j].EndPoint.Y) / 2;
@@ -2285,8 +2295,8 @@ namespace AcElectricalSchemePlugin
                     MText tBoxName = new MText();
                     tBoxName.SetDatabaseDefaults();
                     tBoxName.TextHeight = 3;
-                    if (tst.Has("spds 2.5-0.85"))
-                        tBoxName.TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                    //    tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                     tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     tBoxName.Location = tBoxFrame.GetPoint3dAt(1).Add(new Vector3d(1, 6, 0));
                     tBoxName.Contents = "\\W" + widthFactor + ";" + groups[i].Units[groups[i].Units.Count - 1].tBoxName;
@@ -2341,6 +2351,22 @@ namespace AcElectricalSchemePlugin
                         equipJumper.EndPoint = equipJumper.StartPoint.Add(new Vector3d(length, 0, 0));
                         modSpace.AppendEntity(equipJumper);
                         acTrans.AddNewlyCreatedDBObject(equipJumper, true);
+
+                        if (groups[i].Units[k].param.Contains("TT"))
+                        {
+                            MText star = new MText();
+                            star.SetDatabaseDefaults();
+                            star.TextHeight = 3;
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    star.TextStyleId = tst["spds 2.5-0.85"];
+                            star.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                            star.Location = groups[i].Units[k].equipPoint.Add(new Vector3d(-3, 10, 0));
+                            star.Attachment = AttachmentPoint.TopCenter;
+                            star.Rotation = 1.5708;
+                            star.Contents = "*";
+                            modSpace.AppendEntity(star);
+                            acTrans.AddNewlyCreatedDBObject(star, true);
+                        }
                     }
                     else
                     {
@@ -2368,8 +2394,8 @@ namespace AcElectricalSchemePlugin
                             MText colorMark = new MText();
                             colorMark.SetDatabaseDefaults();
                             colorMark.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                colorMark.TextStyleId = tst["spds 2.5-0.85"];
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    colorMark.TextStyleId = tst["spds 2.5-0.85"];
                             colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             double x = equipLine.EndPoint.X - 1;
                             double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
@@ -2394,8 +2420,8 @@ namespace AcElectricalSchemePlugin
                             MText cableTextDown = new MText();
                             cableTextDown.SetDatabaseDefaults();
                             cableTextDown.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
                             cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             x = equipTerm.GetPoint3dAt(0).X + (equipTerm.GetPoint3dAt(1).X - equipTerm.GetPoint3dAt(0).X) / 2;
                             y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
@@ -2420,8 +2446,8 @@ namespace AcElectricalSchemePlugin
                             MText colorMark = new MText();
                             colorMark.SetDatabaseDefaults();
                             colorMark.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                colorMark.TextStyleId = tst["spds 2.5-0.85"];
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    colorMark.TextStyleId = tst["spds 2.5-0.85"];
                             colorMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             double x = equipLine.EndPoint.X - 1;
                             double y = equipLine.EndPoint.Y + (equipLine.StartPoint.Y - equipLine.EndPoint.Y) / 2;
@@ -2442,8 +2468,8 @@ namespace AcElectricalSchemePlugin
                             MText cableTextDown = new MText();
                             cableTextDown.SetDatabaseDefaults();
                             cableTextDown.TextHeight = 2.5;
-                            if (tst.Has("spds 2.5-0.85"))
-                                cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                            //if (tst.Has("spds 2.5-0.85"))
+                            //    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
                             cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                             x = equipTerm.GetPoint3dAt(0).X + (equipTerm.GetPoint3dAt(1).X - equipTerm.GetPoint3dAt(0).X) / 2;
                             y = equipTerm.GetPoint3dAt(2).Y + (equipTerm.GetPoint3dAt(1).Y - equipTerm.GetPoint3dAt(2).Y) / 2;
@@ -2475,48 +2501,48 @@ namespace AcElectricalSchemePlugin
                         modSpace.AppendEntity(equipFrame);
                         acTrans.AddNewlyCreatedDBObject(equipFrame, true);
 
-                        if (!groups[i].Units[k].designation.Contains("PDS") && !groups[i].Units[k].designation.Contains("MA") && !groups[i].Units[k].designation.Contains("MT"))
-                        {
-                            Line line1 = new Line();
-                            line1.SetDatabaseDefaults();
-                            line1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            line1.StartPoint = equipFrame.GetPoint3dAt(2);
-                            line1.EndPoint = line1.StartPoint.Add(new Vector3d(5, 0, 0));
-                            modSpace.AppendEntity(line1);
-                            acTrans.AddNewlyCreatedDBObject(line1, true);
+                        //if (!groups[i].Units[k].designation.Contains("PDS") && !groups[i].Units[k].designation.Contains("MA") && !groups[i].Units[k].designation.Contains("MT"))
+                        //{
+                        //    Line line1 = new Line();
+                        //    line1.SetDatabaseDefaults();
+                        //    line1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        //    line1.StartPoint = equipFrame.GetPoint3dAt(2);
+                        //    line1.EndPoint = line1.StartPoint.Add(new Vector3d(5, 0, 0));
+                        //    modSpace.AppendEntity(line1);
+                        //    acTrans.AddNewlyCreatedDBObject(line1, true);
 
-                            Line line2 = new Line();
-                            line2.SetDatabaseDefaults();
-                            line2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            line2.StartPoint = line1.EndPoint;
-                            line2.EndPoint = line2.StartPoint.Add(new Vector3d(0, -3, 0));
-                            modSpace.AppendEntity(line2);
-                            acTrans.AddNewlyCreatedDBObject(line2, true);
+                        //    Line line2 = new Line();
+                        //    line2.SetDatabaseDefaults();
+                        //    line2.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        //    line2.StartPoint = line1.EndPoint;
+                        //    line2.EndPoint = line2.StartPoint.Add(new Vector3d(0, -3, 0));
+                        //    modSpace.AppendEntity(line2);
+                        //    acTrans.AddNewlyCreatedDBObject(line2, true);
 
-                            Line line3 = new Line();
-                            line3.SetDatabaseDefaults();
-                            line3.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            line3.StartPoint = line2.EndPoint.Add(new Vector3d(-3, 0, 0));
-                            line3.EndPoint = line3.StartPoint.Add(new Vector3d(6, 0, 0));
-                            modSpace.AppendEntity(line3);
-                            acTrans.AddNewlyCreatedDBObject(line3, true);
+                        //    Line line3 = new Line();
+                        //    line3.SetDatabaseDefaults();
+                        //    line3.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        //    line3.StartPoint = line2.EndPoint.Add(new Vector3d(-3, 0, 0));
+                        //    line3.EndPoint = line3.StartPoint.Add(new Vector3d(6, 0, 0));
+                        //    modSpace.AppendEntity(line3);
+                        //    acTrans.AddNewlyCreatedDBObject(line3, true);
 
-                            Line line4 = new Line();
-                            line4.SetDatabaseDefaults();
-                            line4.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            line4.StartPoint = line2.EndPoint.Add(new Vector3d(-2, -1, 0));
-                            line4.EndPoint = line4.StartPoint.Add(new Vector3d(4, 0, 0));
-                            modSpace.AppendEntity(line4);
-                            acTrans.AddNewlyCreatedDBObject(line4, true);
+                        //    Line line4 = new Line();
+                        //    line4.SetDatabaseDefaults();
+                        //    line4.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        //    line4.StartPoint = line2.EndPoint.Add(new Vector3d(-2, -1, 0));
+                        //    line4.EndPoint = line4.StartPoint.Add(new Vector3d(4, 0, 0));
+                        //    modSpace.AppendEntity(line4);
+                        //    acTrans.AddNewlyCreatedDBObject(line4, true);
 
-                            Line line5 = new Line();
-                            line5.SetDatabaseDefaults();
-                            line5.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
-                            line5.StartPoint = line2.EndPoint.Add(new Vector3d(-1, -2, 0));
-                            line5.EndPoint = line5.StartPoint.Add(new Vector3d(2, 0, 0));
-                            modSpace.AppendEntity(line5);
-                            acTrans.AddNewlyCreatedDBObject(line5, true);
-                        }
+                        //    Line line5 = new Line();
+                        //    line5.SetDatabaseDefaults();
+                        //    line5.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
+                        //    line5.StartPoint = line2.EndPoint.Add(new Vector3d(-1, -2, 0));
+                        //    line5.EndPoint = line5.StartPoint.Add(new Vector3d(2, 0, 0));
+                        //    modSpace.AppendEntity(line5);
+                        //    acTrans.AddNewlyCreatedDBObject(line5, true);
+                        //}
                     }
                     else
                     {
@@ -2540,8 +2566,8 @@ namespace AcElectricalSchemePlugin
                         MText tBoxName = new MText();
                         tBoxName.SetDatabaseDefaults();
                         tBoxName.TextHeight = 3;
-                        if (tst.Has("spds 2.5-0.85"))
-                            tBoxName.TextStyleId = tst["spds 2.5-0.85"];
+                        //if (tst.Has("spds 2.5-0.85"))
+                        //    tBoxName.TextStyleId = tst["spds 2.5-0.85"];
                         tBoxName.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                         tBoxName.Location = equipFrame.GetPoint3dAt(1).Add(new Vector3d(6, -4, 0));
                         tBoxName.Contents = "\\W" + widthFactor + ";" + groups[i].Units[k].linkText;
@@ -2569,8 +2595,8 @@ namespace AcElectricalSchemePlugin
                     width = 2 * (C - B) + (D - C);
                     tables[curTableNum].InsertColumns(tables[curTableNum].Columns.Count, width, 1);
                     tables[curTableNum].UnmergeCells(tables[curTableNum].Rows[0]);
-                    if (tst.Has("spds 2.5-0.85"))
-                        tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                    //    tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextStyleId = tst["spds 2.5-0.85"];
                     tables[curTableNum].Columns[tables[curTableNum].Columns.Count - 1].TextHeight = 2.5;
                     tables[curTableNum].Cells[0, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].equipType == "" ? "-" : groups[i].Units[k].equipType;
                     tables[curTableNum].Cells[1, tables[curTableNum].Columns.Count - 1].TextString = groups[i].Units[k].designation;
@@ -2581,7 +2607,7 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static Point3d drawTerminalBoxUnit(Transaction acTrans, BlockTableRecord modSpace, Point3d point, Unit unit, Point3d cableEndPoint, ref tBox tbox, int pairNumberUp, int pairNumberDown, out Point3d lastTerminalPoint)
+        private static Point3d DrawTerminalBoxUnit(Transaction acTrans, BlockTableRecord modSpace, Point3d point, Unit unit, Point3d cableEndPoint, ref tBox tbox, int pairNumberUp, int pairNumberDown, out Point3d lastTerminalPoint)
         {
             Line tBoxInput = new Line();
             tBoxInput.SetDatabaseDefaults();
@@ -2594,8 +2620,8 @@ namespace AcElectricalSchemePlugin
             MText pairMark = new MText();
             pairMark.SetDatabaseDefaults();
             pairMark.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
             pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             double X = tBoxInput.EndPoint.X - 1;
             double Y = tBoxInput.EndPoint.Y + (tBoxInput.StartPoint.Y - tBoxInput.EndPoint.Y) / 2;
@@ -2643,8 +2669,8 @@ namespace AcElectricalSchemePlugin
                 MText cableTextUp = new MText();
                 cableTextUp.SetDatabaseDefaults();
                 cableTextUp.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    cableTextUp.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    cableTextUp.TextStyleId = tst["spds 2.5-0.85"];
                 cableTextUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 double x = cablePolyUp.GetPoint3dAt(0).X + (cablePolyUp.GetPoint3dAt(1).X - cablePolyUp.GetPoint3dAt(0).X) / 2;
                 double y = cablePolyUp.GetPoint3dAt(2).Y + (cablePolyUp.GetPoint3dAt(1).Y - cablePolyUp.GetPoint3dAt(2).Y) / 2;
@@ -2666,8 +2692,8 @@ namespace AcElectricalSchemePlugin
                 MText colorMarkUp = new MText();
                 colorMarkUp.SetDatabaseDefaults();
                 colorMarkUp.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    colorMarkUp.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    colorMarkUp.TextStyleId = tst["spds 2.5-0.85"];
                 colorMarkUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = colorLineUp.EndPoint.X - 1;
                 y = colorLineUp.EndPoint.Y + (colorLineUp.StartPoint.Y - colorLineUp.EndPoint.Y) / 2;
@@ -2693,8 +2719,8 @@ namespace AcElectricalSchemePlugin
                 MText termText = new MText();
                 termText.SetDatabaseDefaults();
                 termText.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    termText.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    termText.TextStyleId = tst["spds 2.5-0.85"];
                 termText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
                 y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
@@ -2719,8 +2745,8 @@ namespace AcElectricalSchemePlugin
                     MText colorMarkDown = new MText();
                     colorMarkDown.SetDatabaseDefaults();
                     colorMarkDown.TextHeight = 2.5;
-                    if (tst.Has("spds 2.5-0.85"))
-                        colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                        //colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
                     colorMarkDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     x = colorLineDown.EndPoint.X - 1;
                     y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
@@ -2745,8 +2771,8 @@ namespace AcElectricalSchemePlugin
                     MText cableTextDown = new MText();
                     cableTextDown.SetDatabaseDefaults();
                     cableTextDown.TextHeight = 2.5;
-                    if (tst.Has("spds 2.5-0.85"))
-                        cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                    //    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
                     cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                     y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
@@ -2778,8 +2804,8 @@ namespace AcElectricalSchemePlugin
                     MText colorMarkDown = new MText();
                     colorMarkDown.SetDatabaseDefaults();
                     colorMarkDown.TextHeight = 2.5;
-                    if (tst.Has("spds 2.5-0.85"))
-                        colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                    //    colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
                     colorMarkDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     x = colorLineDown.EndPoint.X - 1;
                     y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
@@ -2800,8 +2826,8 @@ namespace AcElectricalSchemePlugin
                     MText cableTextDown = new MText();
                     cableTextDown.SetDatabaseDefaults();
                     cableTextDown.TextHeight = 2.5;
-                    if (tst.Has("spds 2.5-0.85"))
-                        cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                    //if (tst.Has("spds 2.5-0.85"))
+                    //    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
                     cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                     x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                     y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
@@ -2846,12 +2872,12 @@ namespace AcElectricalSchemePlugin
             {
                 if (unit.param.ToLower() != "резерв")
                 {
-                    lastTerminalPoint = drawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y, false, new Point3d());
+                    lastTerminalPoint = DrawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y, false, new Point3d());
                     tbox.LastShieldNumber++;
                 }
                 else
                 {
-                    lastTerminalPoint = drawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxInputBranch.StartPoint.Y, false, new Point3d());
+                    lastTerminalPoint = DrawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxInputBranch.StartPoint.Y, false, new Point3d());
                     tbox.LastShieldNumber++;
                 }
             }
@@ -2871,8 +2897,8 @@ namespace AcElectricalSchemePlugin
                 curPairMark = pairMark;
                 pairMark.SetDatabaseDefaults();
                 pairMark.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
@@ -2897,8 +2923,8 @@ namespace AcElectricalSchemePlugin
                 curPairMark = pairMark;
                 pairMark.SetDatabaseDefaults();
                 pairMark.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
@@ -2910,7 +2936,7 @@ namespace AcElectricalSchemePlugin
                 return tBoxOutput.EndPoint;
             }
         }
-        private static Point3d drawTerminalBoxUnitTS(Transaction acTrans, BlockTableRecord modSpace, Point3d point, Unit unit, Point3d cableEndPoint, int pairNumberUp, int pairNumberDown, ref tBox tbox)
+        private static Point3d DrawTerminalBoxUnitTS(Transaction acTrans, BlockTableRecord modSpace, Point3d point, Unit unit, Point3d cableEndPoint, int pairNumberUp, int pairNumberDown, ref tBox tbox)
         {
             Line tBoxInput = new Line();
             tBoxInput.SetDatabaseDefaults();
@@ -2923,8 +2949,8 @@ namespace AcElectricalSchemePlugin
             MText pairMark = new MText();
             pairMark.SetDatabaseDefaults();
             pairMark.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                pairMark.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
             pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             double X = tBoxInput.EndPoint.X - 1;
             double Y = tBoxInput.EndPoint.Y + (tBoxInput.StartPoint.Y - tBoxInput.EndPoint.Y) / 2;
@@ -2970,8 +2996,8 @@ namespace AcElectricalSchemePlugin
             MText cableTextUp = new MText();
             cableTextUp.SetDatabaseDefaults();
             cableTextUp.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                cableTextUp.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    cableTextUp.TextStyleId = tst["spds 2.5-0.85"];
             cableTextUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             double x = cablePolyUp.GetPoint3dAt(0).X + (cablePolyUp.GetPoint3dAt(1).X - cablePolyUp.GetPoint3dAt(0).X) / 2;
             double y = cablePolyUp.GetPoint3dAt(2).Y + (cablePolyUp.GetPoint3dAt(1).Y - cablePolyUp.GetPoint3dAt(2).Y) / 2;
@@ -2993,8 +3019,8 @@ namespace AcElectricalSchemePlugin
             MText colorMarkUp = new MText();
             colorMarkUp.SetDatabaseDefaults();
             colorMarkUp.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                colorMarkUp.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    colorMarkUp.TextStyleId = tst["spds 2.5-0.85"];
             colorMarkUp.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             x = colorLineUp.EndPoint.X - 1;
             y = colorLineUp.EndPoint.Y + (colorLineUp.StartPoint.Y - colorLineUp.EndPoint.Y) / 2;
@@ -3024,8 +3050,8 @@ namespace AcElectricalSchemePlugin
                 MText termText = new MText();
                 termText.SetDatabaseDefaults();
                 termText.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    termText.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    termText.TextStyleId = tst["spds 2.5-0.85"];
                 termText.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = termPoly.GetPoint3dAt(0).X + (termPoly.GetPoint3dAt(1).X - termPoly.GetPoint3dAt(0).X) / 2;
                 y = termPoly.GetPoint3dAt(2).Y + (termPoly.GetPoint3dAt(1).Y - termPoly.GetPoint3dAt(2).Y) / 2;
@@ -3048,8 +3074,8 @@ namespace AcElectricalSchemePlugin
                 MText colorMarkDown = new MText();
                 colorMarkDown.SetDatabaseDefaults();
                 colorMarkDown.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    colorMarkDown.TextStyleId = tst["spds 2.5-0.85"];
                 colorMarkDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = colorLineDown.EndPoint.X - 1;
                 y = colorLineDown.EndPoint.Y + (colorLineDown.StartPoint.Y - colorLineDown.EndPoint.Y) / 2;
@@ -3074,8 +3100,8 @@ namespace AcElectricalSchemePlugin
                 MText cableTextDown = new MText();
                 cableTextDown.SetDatabaseDefaults();
                 cableTextDown.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    cableTextDown.TextStyleId = tst["spds 2.5-0.85"];
                 cableTextDown.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 x = cablePolyDown.GetPoint3dAt(0).X + (cablePolyDown.GetPoint3dAt(1).X - cablePolyDown.GetPoint3dAt(0).X) / 2;
                 y = cablePolyDown.GetPoint3dAt(2).Y + (cablePolyDown.GetPoint3dAt(1).Y - cablePolyDown.GetPoint3dAt(2).Y) / 2;
@@ -3128,8 +3154,8 @@ namespace AcElectricalSchemePlugin
             MText cableTextUp1 = new MText();
             cableTextUp1.SetDatabaseDefaults();
             cableTextUp1.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                cableTextUp1.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    cableTextUp1.TextStyleId = tst["spds 2.5-0.85"];
             cableTextUp1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             x = cablePolyUp1.GetPoint3dAt(0).X + (cablePolyUp1.GetPoint3dAt(1).X - cablePolyUp1.GetPoint3dAt(0).X) / 2;
             y = cablePolyUp1.GetPoint3dAt(2).Y + (cablePolyUp1.GetPoint3dAt(1).Y - cablePolyUp1.GetPoint3dAt(2).Y) / 2;
@@ -3151,8 +3177,8 @@ namespace AcElectricalSchemePlugin
             MText colorMarkUp1 = new MText();
             colorMarkUp1.SetDatabaseDefaults();
             colorMarkUp1.TextHeight = 2.5;
-            if (tst.Has("spds 2.5-0.85"))
-                colorMarkUp1.TextStyleId = tst["spds 2.5-0.85"];
+            //if (tst.Has("spds 2.5-0.85"))
+            //    colorMarkUp1.TextStyleId = tst["spds 2.5-0.85"];
             colorMarkUp1.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
             x = colorLineUp1.EndPoint.X - 1;
             y = colorLineUp1.EndPoint.Y + (colorLineUp1.StartPoint.Y - colorLineUp1.EndPoint.Y) / 2;
@@ -3201,12 +3227,12 @@ namespace AcElectricalSchemePlugin
             {
                 if (unit.param.ToLower() != "резерв")
                 {
-                    lastTermPoint = drawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.StartPoint.X, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y, false, new Point3d());
+                    lastTermPoint = DrawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.StartPoint.X, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.Y, tBoxOutputBranch.StartPoint.Y, false, new Point3d());
                     tbox.LastShieldNumber++;
                 }
                 else
                 {
-                    lastTermPoint = drawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxInputBranch.StartPoint.Y, false, new Point3d());
+                    lastTermPoint = DrawTBoxGnd(acTrans, modSpace, tbox, lastTermPoint, tBoxInputBranch.EndPoint.X, tBoxInputBranch.StartPoint.X, tBoxInputBranch.StartPoint.Y, tBoxInputBranch.StartPoint.Y, false, new Point3d());
                     tbox.LastShieldNumber++;
                 }
             }
@@ -3226,8 +3252,8 @@ namespace AcElectricalSchemePlugin
                 curPairMark = pairMark;
                 pairMark.SetDatabaseDefaults();
                 pairMark.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
@@ -3252,8 +3278,8 @@ namespace AcElectricalSchemePlugin
                 curPairMark = pairMark;
                 pairMark.SetDatabaseDefaults();
                 pairMark.TextHeight = 2.5;
-                if (tst.Has("spds 2.5-0.85"))
-                    pairMark.TextStyleId = tst["spds 2.5-0.85"];
+                //if (tst.Has("spds 2.5-0.85"))
+                //    pairMark.TextStyleId = tst["spds 2.5-0.85"];
                 pairMark.Color = Color.FromColorIndex(ColorMethod.ByLayer, 9);
                 X = tBoxOutput.EndPoint.X - 1;
                 Y = tBoxOutput.EndPoint.Y + (tBoxOutput.StartPoint.Y - tBoxOutput.EndPoint.Y) / 2;
@@ -3266,7 +3292,7 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static void insertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point)
+        private static void InsertSheet(Transaction acTrans, BlockTableRecord modSpace, Database acdb, Point3d point)
         {
             ObjectIdCollection ids = new ObjectIdCollection();
             string filename;
@@ -3338,7 +3364,7 @@ namespace AcElectricalSchemePlugin
             }
         }
 
-        private static void loadFonts(Transaction acTrans, BlockTableRecord modSpace, Database acdb)
+        private static void LoadFonts(Transaction acTrans, BlockTableRecord modSpace, Database acdb)
         {
             ObjectIdCollection ids = new ObjectIdCollection();
             ObjectIdCollection id = new ObjectIdCollection();

@@ -182,6 +182,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(460, 349);
+            this.ControlBox = false;
             this.Controls.Add(this.HelpBtn);
             this.Controls.Add(this.MarkExportBtn);
             this.Controls.Add(this.ChangeTextHeghtBtn);
@@ -194,6 +195,8 @@
             this.Controls.Add(this.MarkBtn);
             this.Controls.Add(this.ContourSchemeBtn);
             this.Controls.Add(this.ConnectionSchemeBtn);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "MainForm";
             this.Resizable = false;
             this.Style = MetroFramework.MetroColorStyle.Yellow;
